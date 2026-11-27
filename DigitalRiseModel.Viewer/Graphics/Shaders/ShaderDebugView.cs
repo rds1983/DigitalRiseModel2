@@ -8,5 +8,7 @@ internal enum ShaderDebugView
 	Roughness,
 	Normal,
 	Occlusion,
-	Emissive
+	Emissive,
+	Diffuse,
+	Specular
 }

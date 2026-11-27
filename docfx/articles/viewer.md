@@ -17,7 +17,7 @@ drm-viewer "path/to/model.glb"
 Command-line options:
 
 - `--shader-test` — start with the fullscreen shader smoke test enabled.
-- `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion` or `emissive`.
+- `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion`, `emissive`, `diffuse` or `specular`.
 - `--exposure <value>` — set the shaded-output exposure scale.
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
 

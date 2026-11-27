@@ -1,6 +1,16 @@
+#define MAX_DIRECTIONAL_LIGHTS 4
+
 float4x4 World;
 float4x4 WorldViewProjection;
 float3 CameraPosition;
+
+// xyz = unit vector toward the light, w = intensity.
+float4 DirectionalLightDirections[MAX_DIRECTIONAL_LIGHTS];
+// rgb = linear light color.
+float4 DirectionalLightColors[MAX_DIRECTIONAL_LIGHTS];
+int DirectionalLightCount;
+float3 AmbientSkyColor;
+float3 AmbientGroundColor;
 
 float4 BaseColorFactor;
 float MetallicFactor;
@@ -176,38 +186,66 @@ float4 ShadeSurface(
 	}
 
 	float3 view = normalize(CameraPosition - worldPosition);
-	float3 light = normalize(float3(0.5, 1.0, 0.5));
-	float3 halfVector = normalize(view + light);
-
-	float nDotL = saturate(dot(normal, light));
 	float nDotV = saturate(dot(normal, view));
-	float nDotH = saturate(dot(normal, halfVector));
-	float vDotH = saturate(dot(view, halfVector));
 
 	float alpha = roughness * roughness;
 	float alphaSquared = alpha * alpha;
-	float denominator = nDotH * nDotH * (alphaSquared - 1.0) + 1.0;
-	float distribution = alphaSquared / (3.14159265 * denominator * denominator);
-
 	float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
-	float geometry = (nDotL / (nDotL * (1.0 - k) + k))
-		* (nDotV / (nDotV * (1.0 - k) + k));
-
 	float3 f0 = lerp(float3(0.04, 0.04, 0.04), baseColor.rgb, metallic);
-	float3 fresnel = f0 + (1.0 - f0) * pow(1.0 - vDotH, 5.0);
 
-	float3 specular = distribution * geometry * fresnel
-		/ max(4.0 * nDotL * nDotV, 0.001);
-	float3 diffuse = (1.0 - fresnel) * (1.0 - metallic) * baseColor.rgb / 3.14159265;
+	float3 directDiffuse = 0.0;
+	float3 directSpecular = 0.0;
+
+	for (int i = 0; i < MAX_DIRECTIONAL_LIGHTS; ++i)
+	{
+		if (i >= DirectionalLightCount)
+		{
+			break;
+		}
+
+		float3 light = normalize(DirectionalLightDirections[i].xyz);
+		float3 lightColor = DirectionalLightColors[i].rgb
+			* DirectionalLightDirections[i].w;
+		float3 halfVector = normalize(view + light);
+
+		float nDotL = saturate(dot(normal, light));
+		float nDotH = saturate(dot(normal, halfVector));
+		float vDotH = saturate(dot(view, halfVector));
+
+		float denominator = nDotH * nDotH * (alphaSquared - 1.0) + 1.0;
+		float distribution = alphaSquared
+			/ (3.14159265 * denominator * denominator);
+		float geometry = (nDotL / (nDotL * (1.0 - k) + k))
+			* (nDotV / (nDotV * (1.0 - k) + k));
+		float3 fresnel = f0 + (1.0 - f0) * pow(1.0 - vDotH, 5.0);
+
+		float3 specular = distribution * geometry * fresnel
+			/ max(4.0 * nDotL * nDotV, 0.001);
+		float3 diffuse = (1.0 - fresnel) * (1.0 - metallic)
+			* baseColor.rgb / 3.14159265;
+
+		directDiffuse += diffuse * nDotL * lightColor;
+		directSpecular += specular * nDotL * lightColor;
+	}
 
 	float up = normal.y * 0.5 + 0.5;
-	float3 skyColor = float3(0.18, 0.22, 0.30);
-	float3 groundColor = float3(0.04, 0.035, 0.03);
-	float3 ambient = lerp(groundColor, skyColor, up) * baseColor.rgb * occlusion;
+	float3 ambient = lerp(AmbientGroundColor, AmbientSkyColor, up)
+		* baseColor.rgb * occlusion;
 
-	float3 color = (diffuse + specular) * nDotL;
-	color += ambient;
-	color += emissive;
+	if (DebugView == 7)
+	{
+		return float4(
+			pow(saturate(directDiffuse * Exposure), 1.0 / 2.2),
+			1.0);
+	}
+	else if (DebugView == 8)
+	{
+		return float4(
+			pow(saturate(directSpecular * Exposure), 1.0 / 2.2),
+			1.0);
+	}
+
+	float3 color = directDiffuse + directSpecular + ambient + emissive;
 	color = ACESFilm(color * Exposure);
 	color = pow(saturate(color), 1.0 / 2.2);
 

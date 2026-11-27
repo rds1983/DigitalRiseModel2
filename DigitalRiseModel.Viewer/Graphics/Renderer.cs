@@ -1,3 +1,4 @@
+using DigitalRiseModel.Viewer.Graphics.Lighting;
 using DigitalRiseModel.Viewer.Graphics.Shaders;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -34,6 +35,8 @@ internal sealed class Renderer : IDisposable
 	private Rectangle _savedScissorRectangle;
 
 	public ShaderSettings Settings { get; } = new();
+
+	public LightSet Lights { get; } = LightSet.CreateStudio();
 
 	public Renderer(
 		GraphicsDevice device,
@@ -76,6 +79,7 @@ internal sealed class Renderer : IDisposable
 		foreach (PbrEffect effect in _pbrEffects.Values)
 		{
 			effect.SetSettings(Settings);
+			effect.SetLights(Lights);
 		}
 
 		_savedBlendState = _device.BlendState;
@@ -187,6 +191,7 @@ internal sealed class Renderer : IDisposable
 		{
 			effect = new PbrEffect(_content, "Shaders/" + GetEffectName(flags));
 			effect.SetSettings(Settings);
+			effect.SetLights(Lights);
 			_pbrEffects[flags] = effect;
 		}
 

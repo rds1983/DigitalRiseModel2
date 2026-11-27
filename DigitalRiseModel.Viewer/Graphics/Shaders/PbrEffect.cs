@@ -1,5 +1,7 @@
 using DigitalRiseModel;
+using DigitalRiseModel.Viewer.Graphics.Lighting;
 using Microsoft.Xna.Framework;
+using DirectionalLight = DigitalRiseModel.Viewer.Graphics.Lighting.DirectionalLight;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -40,6 +42,15 @@ internal sealed class PbrEffect
 	private readonly EffectParameter? _normalTexture;
 	private readonly EffectParameter? _occlusionTexture;
 	private readonly EffectParameter? _emissiveTexture;
+	private readonly EffectParameter _directionalLightDirections;
+	private readonly EffectParameter _directionalLightColors;
+	private readonly EffectParameter _directionalLightCount;
+	private readonly EffectParameter _ambientSkyColor;
+	private readonly EffectParameter _ambientGroundColor;
+	private readonly Vector4[] _packedLightDirections =
+		new Vector4[LightSet.MaxDirectionalLights];
+	private readonly Vector4[] _packedLightColors =
+		new Vector4[LightSet.MaxDirectionalLights];
 
 	public PbrEffect(ContentManager content, string effectName)
 	{
@@ -75,6 +86,11 @@ internal sealed class PbrEffect
 		_normalTexture = FindTextureParameter(_effect, "NormalTexture");
 		_occlusionTexture = FindTextureParameter(_effect, "OcclusionTexture");
 		_emissiveTexture = FindTextureParameter(_effect, "EmissiveTexture");
+		_directionalLightDirections = _effect.Parameters["DirectionalLightDirections"];
+		_directionalLightColors = _effect.Parameters["DirectionalLightColors"];
+		_directionalLightCount = _effect.Parameters["DirectionalLightCount"];
+		_ambientSkyColor = _effect.Parameters["AmbientSkyColor"];
+		_ambientGroundColor = _effect.Parameters["AmbientGroundColor"];
 	}
 
 	public Effect Effect => _effect;
@@ -103,6 +119,50 @@ internal sealed class PbrEffect
 	{
 		_debugView.SetValue((int)settings.DebugView);
 		_exposure.SetValue(settings.Exposure);
+	}
+
+	public void SetLights(LightSet lights)
+	{
+		ArgumentNullException.ThrowIfNull(lights);
+
+		int count = 0;
+
+		foreach (DirectionalLight light in lights.DirectionalLights)
+		{
+			if (count >= LightSet.MaxDirectionalLights)
+			{
+				break;
+			}
+
+			if (light.Intensity <= 0f)
+			{
+				continue;
+			}
+
+			Vector3 direction = light.Direction;
+
+			if (direction.LengthSquared() < 1e-8f)
+			{
+				continue;
+			}
+
+			direction.Normalize();
+			_packedLightDirections[count] = new Vector4(direction, light.Intensity);
+			_packedLightColors[count] = new Vector4(light.Color, 0f);
+			++count;
+		}
+
+		for (int i = count; i < LightSet.MaxDirectionalLights; ++i)
+		{
+			_packedLightDirections[i] = Vector4.Zero;
+			_packedLightColors[i] = Vector4.Zero;
+		}
+
+		_directionalLightDirections.SetValue(_packedLightDirections);
+		_directionalLightColors.SetValue(_packedLightColors);
+		_directionalLightCount.SetValue(count);
+		_ambientSkyColor.SetValue(lights.SkyColor);
+		_ambientGroundColor.SetValue(lights.GroundColor);
 	}
 
 	public void SetMaterial(DrMaterial? material, Texture2D fallbackTexture)

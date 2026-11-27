@@ -39,7 +39,7 @@ internal static class Program
 						|| !Enum.TryParse(args[i], true, out debugView))
 					{
 						Console.Error.WriteLine(
-							"--debug-view requires a view name: shaded, basecolor, metallic, roughness, normal, occlusion, emissive.");
+							"--debug-view requires a view name: shaded, basecolor, metallic, roughness, normal, occlusion, emissive, diffuse, specular.");
 						PrintUsage();
 						return 1;
 					}
