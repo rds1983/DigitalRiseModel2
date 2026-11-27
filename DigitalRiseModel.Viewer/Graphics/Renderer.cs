@@ -14,7 +14,12 @@ internal sealed class Renderer : IDisposable
 	private readonly GraphicsDevice _device;
 	private readonly DrModelInstance _instance;
 	private readonly DrModel _model;
-	private readonly PbrEffect[] _pbrEffects;
+	private const int ColorFlag = 1;
+	private const int NormalFlag = 2;
+	private const int TangentFlag = 4;
+	private const int SkinnedFlag = 8;
+
+	private readonly Dictionary<int, PbrEffect> _pbrEffects = [];
 	private readonly Texture2D _fallbackTexture;
 
 	private Matrix _viewProjection;
@@ -42,27 +47,25 @@ internal sealed class Renderer : IDisposable
 		_instance = instance;
 		_model = instance.Model;
 
-		_pbrEffects = new PbrEffect[Enum.GetValues<PbrVariant>().Length];
-
-		(PbrVariant Variant, string Asset)[] variants =
+		(int Flags, string Name)[] variants =
 		[
-			(PbrVariant.Basic, "Shaders/PbrBasic"),
-			(PbrVariant.BasicColor, "Shaders/PbrBasicVertexColor"),
-			(PbrVariant.NoTangent, "Shaders/PbrNoTangent"),
-			(PbrVariant.NoTangentColor, "Shaders/PbrNoTangentVertexColor"),
-			(PbrVariant.Full, "Shaders/Pbr"),
-			(PbrVariant.FullColor, "Shaders/PbrVertexColor"),
-			(PbrVariant.SkinnedBasic, "Shaders/PbrSkinnedBasic"),
-			(PbrVariant.SkinnedBasicColor, "Shaders/PbrSkinnedBasicVertexColor"),
-			(PbrVariant.Skinned, "Shaders/PbrSkinned"),
-			(PbrVariant.SkinnedColor, "Shaders/PbrSkinnedVertexColor"),
-			(PbrVariant.SkinnedTangent, "Shaders/PbrSkinnedTangent"),
-			(PbrVariant.SkinnedTangentColor, "Shaders/PbrSkinnedTangentVertexColor")
+			(0, "Pbr"),
+			(ColorFlag, "Pbr_HAS_COLOR"),
+			(NormalFlag, "Pbr_HAS_NORMAL"),
+			(ColorFlag | NormalFlag, "Pbr_HAS_COLOR_HAS_NORMAL"),
+			(NormalFlag | TangentFlag, "Pbr_HAS_NORMAL_HAS_TANGENT"),
+			(ColorFlag | NormalFlag | TangentFlag, "Pbr_HAS_COLOR_HAS_NORMAL_HAS_TANGENT"),
+			(SkinnedFlag, "Pbr_SKINNED"),
+			(ColorFlag | SkinnedFlag, "Pbr_HAS_COLOR_SKINNED"),
+			(NormalFlag | SkinnedFlag, "Pbr_HAS_NORMAL_SKINNED"),
+			(ColorFlag | NormalFlag | SkinnedFlag, "Pbr_HAS_COLOR_HAS_NORMAL_SKINNED"),
+			(NormalFlag | TangentFlag | SkinnedFlag, "Pbr_HAS_NORMAL_HAS_TANGENT_SKINNED"),
+			(ColorFlag | NormalFlag | TangentFlag | SkinnedFlag, "Pbr_HAS_COLOR_HAS_NORMAL_HAS_TANGENT_SKINNED")
 		];
 
-		foreach ((PbrVariant variant, string asset) in variants)
+		foreach ((int flags, string name) in variants)
 		{
-			_pbrEffects[(int)variant] = new PbrEffect(content, asset);
+			_pbrEffects[flags] = new PbrEffect(content, "Shaders/" + name);
 		}
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
@@ -89,7 +92,7 @@ internal sealed class Renderer : IDisposable
 		_viewProjection = view * projection;
 		_cameraPosition = Matrix.Invert(view).Translation;
 
-		foreach (PbrEffect effect in _pbrEffects)
+		foreach (PbrEffect effect in _pbrEffects.Values)
 		{
 			effect.SetSettings(Settings);
 		}
@@ -177,44 +180,29 @@ internal sealed class Renderer : IDisposable
 		bool hasTangent,
 		bool hasColor)
 	{
-		PbrVariant variant;
+		int flags = 0;
+
+		if (hasColor)
+		{
+			flags |= ColorFlag;
+		}
+
+		if (hasNormal)
+		{
+			flags |= NormalFlag;
+
+			if (hasTangent)
+			{
+				flags |= TangentFlag;
+			}
+		}
 
 		if (skinned)
 		{
-			if (hasNormal)
-			{
-				if (hasTangent)
-				{
-					variant = hasColor
-						? PbrVariant.SkinnedTangentColor
-						: PbrVariant.SkinnedTangent;
-				}
-				else
-				{
-					variant = hasColor ? PbrVariant.SkinnedColor : PbrVariant.Skinned;
-				}
-			}
-			else
-			{
-				variant = hasColor
-					? PbrVariant.SkinnedBasicColor
-					: PbrVariant.SkinnedBasic;
-			}
-		}
-		else if (hasNormal && hasTangent)
-		{
-			variant = hasColor ? PbrVariant.FullColor : PbrVariant.Full;
-		}
-		else if (hasNormal)
-		{
-			variant = hasColor ? PbrVariant.NoTangentColor : PbrVariant.NoTangent;
-		}
-		else
-		{
-			variant = hasColor ? PbrVariant.BasicColor : PbrVariant.Basic;
+			flags |= SkinnedFlag;
 		}
 
-		return _pbrEffects[(int)variant];
+		return _pbrEffects[flags];
 	}
 
 	private void DrawItem(RenderItem item)
@@ -336,22 +324,6 @@ internal sealed class Renderer : IDisposable
 			throw new InvalidOperationException(
 				"This operation requires an open renderer frame.");
 		}
-	}
-
-	private enum PbrVariant
-	{
-		Basic,
-		BasicColor,
-		NoTangent,
-		NoTangentColor,
-		Full,
-		FullColor,
-		SkinnedBasic,
-		SkinnedBasicColor,
-		Skinned,
-		SkinnedColor,
-		SkinnedTangent,
-		SkinnedTangentColor
 	}
 
 	private sealed class RenderItem

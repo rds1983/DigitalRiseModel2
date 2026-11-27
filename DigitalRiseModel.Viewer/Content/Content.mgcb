@@ -22,81 +22,81 @@
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/processorParam:Defines=HAS_NORMAL;HAS_TANGENT
 /build:Shaders/Pbr.fx;Shaders/Pbr.xnb
 
 #begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
+/processorParam:Defines=HAS_COLOR
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
 /processorParam:Defines=HAS_NORMAL
-/build:Shaders/Pbr.fx;Shaders/PbrNoTangent.xnb
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_NORMAL.xnb
 
 #begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/build:Shaders/Pbr.fx;Shaders/PbrBasic.xnb
+/processorParam:Defines=HAS_COLOR;HAS_NORMAL
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR_HAS_NORMAL.xnb
 
 #begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/processorParam:Defines=SKINNED;HAS_NORMAL
-/build:Shaders/Pbr.fx;Shaders/PbrSkinned.xnb
+/processorParam:Defines=HAS_NORMAL;HAS_TANGENT
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_NORMAL_HAS_TANGENT.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=HAS_COLOR;HAS_NORMAL;HAS_TANGENT
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR_HAS_NORMAL_HAS_TANGENT.xnb
 
 #begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /processorParam:Defines=SKINNED
-/build:Shaders/Pbr.fx;Shaders/PbrSkinnedBasic.xnb
-
-#begin Shaders/Pbr.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/processorParam:Defines=HAS_NORMAL;HAS_TANGENT;HAS_COLOR
-/build:Shaders/Pbr.fx;Shaders/PbrVertexColor.xnb
-
-#begin Shaders/Pbr.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/processorParam:Defines=HAS_NORMAL;HAS_COLOR
-/build:Shaders/Pbr.fx;Shaders/PbrNoTangentVertexColor.xnb
-
-#begin Shaders/Pbr.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/processorParam:Defines=HAS_COLOR
-/build:Shaders/Pbr.fx;Shaders/PbrBasicVertexColor.xnb
-
-#begin Shaders/Pbr.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/processorParam:Defines=SKINNED;HAS_NORMAL;HAS_COLOR
-/build:Shaders/Pbr.fx;Shaders/PbrSkinnedVertexColor.xnb
+/build:Shaders/Pbr.fx;Shaders/Pbr_SKINNED.xnb
 
 #begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /processorParam:Defines=SKINNED;HAS_COLOR
-/build:Shaders/Pbr.fx;Shaders/PbrSkinnedBasicVertexColor.xnb
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR_SKINNED.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=SKINNED;HAS_NORMAL
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_NORMAL_SKINNED.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=SKINNED;HAS_COLOR;HAS_NORMAL
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR_HAS_NORMAL_SKINNED.xnb
 
 #begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /processorParam:Defines=SKINNED;HAS_NORMAL;HAS_TANGENT
-/build:Shaders/Pbr.fx;Shaders/PbrSkinnedTangent.xnb
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_NORMAL_HAS_TANGENT_SKINNED.xnb
 
 #begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/processorParam:Defines=SKINNED;HAS_NORMAL;HAS_TANGENT;HAS_COLOR
-/build:Shaders/Pbr.fx;Shaders/PbrSkinnedTangentVertexColor.xnb
+/processorParam:Defines=SKINNED;HAS_COLOR;HAS_NORMAL;HAS_TANGENT
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR_HAS_NORMAL_HAS_TANGENT_SKINNED.xnb
