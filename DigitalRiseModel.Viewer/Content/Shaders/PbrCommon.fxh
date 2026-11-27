@@ -1,6 +1,5 @@
 #define MAX_DIRECTIONAL_LIGHTS 4
-#define IBL_PREFILTERED_MIP_COUNT 7
-#define INV_TWO_PI 0.15915494309
+#define IBL_PREFILTERED_MIP_COUNT 6
 
 float4x4 World;
 float4x4 WorldViewProjection;
@@ -113,26 +112,28 @@ sampler2D EmissiveSampler = sampler_state
 	AddressV = Wrap;
 };
 
-Texture2D IrradianceTexture;
-sampler2D IrradianceSampler = sampler_state
+TextureCube IrradianceTexture;
+samplerCUBE IrradianceSampler = sampler_state
 {
 	Texture = <IrradianceTexture>;
 	MinFilter = Linear;
 	MagFilter = Linear;
 	MipFilter = Linear;
-	AddressU = Wrap;
+	AddressU = Clamp;
 	AddressV = Clamp;
+	AddressW = Clamp;
 };
 
-Texture2D PrefilteredSpecularTexture;
-sampler2D PrefilteredSpecularSampler = sampler_state
+TextureCube PrefilteredSpecularTexture;
+samplerCUBE PrefilteredSpecularSampler = sampler_state
 {
 	Texture = <PrefilteredSpecularTexture>;
 	MinFilter = Linear;
 	MagFilter = Linear;
 	MipFilter = Linear;
-	AddressU = Wrap;
+	AddressU = Clamp;
 	AddressV = Clamp;
+	AddressW = Clamp;
 };
 
 Texture2D BrdfLutTexture;
@@ -145,42 +146,6 @@ sampler2D BrdfLutSampler = sampler_state
 	AddressU = Clamp;
 	AddressV = Clamp;
 };
-
-float FastAtan2(float y, float x)
-{
-	float absY = abs(y);
-	float absX = abs(x);
-	float a = min(absX, absY) / max(max(absX, absY), 1e-6);
-	float s = a * a;
-	float r = ((-0.0464964749 * s + 0.15931422) * s - 0.327622764) * s * a + a;
-
-	if (absY > absX)
-	{
-		r = 1.57079637 - r;
-	}
-
-	if (x < 0.0)
-	{
-		r = 3.14159274 - r;
-	}
-
-	if (y < 0.0)
-	{
-		r = -r;
-	}
-
-	return r;
-}
-
-// Keep this inverse mapping in sync with IblResources.EquirectUVToDirection.
-float2 DirectionToEquirectUV(float3 direction)
-{
-	direction = normalize(direction);
-
-	float u = FastAtan2(direction.z, direction.x) * INV_TWO_PI + 0.5;
-	float v = 0.5 - 0.5 * direction.y;
-	return float2(u, v);
-}
 
 float3 FresnelSchlickRoughness(float cosTheta, float3 f0, float roughness)
 {
@@ -328,7 +293,9 @@ float4 ShadeSurface(
 
 	if (HasMetallicRoughnessTexture > 0.5)
 	{
-		float4 metallicRoughness = tex2D(MetallicRoughnessSampler, metallicRoughnessUV);
+		float4 metallicRoughness = tex2Dlod(
+			MetallicRoughnessSampler,
+			float4(metallicRoughnessUV, 0.0, 2.0));
 		roughness *= metallicRoughness.g;
 		metallic *= metallicRoughness.b;
 	}
@@ -430,16 +397,14 @@ float4 ShadeSurface(
 	float3 fresnelIbl = FresnelSchlickRoughness(nDotV, f0, roughness);
 	float3 diffuseWeight = (1.0 - fresnelIbl) * (1.0 - metallic);
 
-	float2 irradianceUV = DirectionToEquirectUV(normal);
-	float3 irradiance = tex2D(IrradianceSampler, irradianceUV).rgb;
+	float3 irradiance = texCUBE(IrradianceSampler, normal).rgb;
 	float3 iblDiffuse = irradiance * baseColor.rgb;
 
 	float3 reflection = reflect(-view, normal);
-	float2 reflectionUV = DirectionToEquirectUV(reflection);
 	float mipLevel = roughness * (IBL_PREFILTERED_MIP_COUNT - 1);
-	float3 prefiltered = tex2Dlod(
+	float3 prefiltered = texCUBElod(
 		PrefilteredSpecularSampler,
-		float4(reflectionUV, 0.0, mipLevel)).rgb;
+		float4(reflection, mipLevel)).rgb;
 	float2 brdf = tex2D(BrdfLutSampler, float2(nDotV, roughness)).rg;
 	float3 iblSpecular = prefiltered * (fresnelIbl * brdf.x + brdf.y);
 

@@ -132,10 +132,14 @@ internal sealed class PbrEffect
 		_directionalLightDirections = _effect.Parameters["DirectionalLightDirections"];
 		_directionalLightColors = _effect.Parameters["DirectionalLightColors"];
 		_directionalLightCount = _effect.Parameters["DirectionalLightCount"];
-		_irradianceTexture = FindTextureParameter(_effect, "IrradianceTexture");
+		_irradianceTexture = FindTextureParameter(
+			_effect,
+			"IrradianceTexture",
+			EffectParameterType.TextureCube);
 		_prefilteredSpecularTexture = FindTextureParameter(
 			_effect,
-			"PrefilteredSpecularTexture");
+			"PrefilteredSpecularTexture",
+			EffectParameterType.TextureCube);
 		_brdfLutTexture = FindTextureParameter(_effect, "BrdfLutTexture");
 	}
 
@@ -351,13 +355,16 @@ internal sealed class PbrEffect
 		};
 	}
 
-	private static EffectParameter? FindTextureParameter(Effect effect, string textureName)
+	private static EffectParameter? FindTextureParameter(
+		Effect effect,
+		string textureName,
+		EffectParameterType parameterType = EffectParameterType.Texture2D)
 	{
-		// MonoGame combines a Texture2D with the SamplerState used to sample it,
+		// MonoGame combines a texture with the SamplerState used to sample it,
 		// producing a name like "BaseColorSampler+BaseColorTexture".
 		foreach (EffectParameter parameter in effect.Parameters)
 		{
-			if (parameter.ParameterType == EffectParameterType.Texture2D
+			if (parameter.ParameterType == parameterType
 				&& parameter.Name.EndsWith(textureName, StringComparison.Ordinal))
 			{
 				return parameter;

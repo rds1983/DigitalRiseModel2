@@ -4,16 +4,14 @@ using Microsoft.Xna.Framework.Graphics;
 namespace DigitalRiseModel.Viewer.Graphics.Lighting;
 
 /// <summary>
-/// Image-based lighting textures generated from the procedural studio environment.
-/// Irradiance and the BRDF LUT are 2D textures using a spherical parameterization;
-/// specular reflections are prefiltered into a mip chain with the same parameterization.
+/// Image-based lighting resources generated from the procedural studio environment.
+/// Irradiance and prefiltered specular reflections use cubemaps to avoid
+/// equirectangular seams; the BRDF LUT remains a 2D texture.
 /// </summary>
 internal sealed class IblResources : IDisposable
 {
-	public const int IrradianceWidth = 64;
-	public const int IrradianceHeight = 32;
-	public const int SpecularWidth = 256;
-	public const int SpecularHeight = 128;
+	public const int IrradianceSize = 32;
+	public const int SpecularSize = 128;
 	public const int SpecularMipCount = 6;
 	public const int BrdfLutSize = 128;
 
@@ -32,8 +30,8 @@ internal sealed class IblResources : IDisposable
 	private static readonly Vector3 RimDirection =
 		Vector3.Normalize(new Vector3(0.1f, 0.45f, -0.9f));
 
-	private readonly Texture2D _irradiance;
-	private readonly Texture2D _prefilteredSpecular;
+	private readonly TextureCube _irradiance;
+	private readonly TextureCube _prefilteredSpecular;
 	private readonly Texture2D _brdfLut;
 
 	public IblResources(GraphicsDevice device)
@@ -45,9 +43,9 @@ internal sealed class IblResources : IDisposable
 		_brdfLut = CreateBrdfLut(device);
 	}
 
-	public Texture2D Irradiance => _irradiance;
+	public TextureCube Irradiance => _irradiance;
 
-	public Texture2D PrefilteredSpecular => _prefilteredSpecular;
+	public TextureCube PrefilteredSpecular => _prefilteredSpecular;
 
 	public Texture2D BrdfLut => _brdfLut;
 
@@ -58,114 +56,125 @@ internal sealed class IblResources : IDisposable
 		_brdfLut.Dispose();
 	}
 
-	private static Texture2D CreateIrradiance(GraphicsDevice device)
+	private static TextureCube CreateIrradiance(GraphicsDevice device)
 	{
-		var data = new Color[IrradianceWidth * IrradianceHeight];
-
-		for (int y = 0; y < IrradianceHeight; ++y)
-		{
-			float v = (y + 0.5f) / IrradianceHeight;
-
-			for (int x = 0; x < IrradianceWidth; ++x)
-			{
-				float u = (x + 0.5f) / IrradianceWidth;
-				Vector3 normal = EquirectUVToDirection(u, v);
-				Vector3 up = MathF.Abs(normal.Y) < 0.999f
-					? Vector3.UnitY
-					: Vector3.UnitX;
-				Vector3 right = Vector3.Normalize(Vector3.Cross(up, normal));
-				up = Vector3.Cross(normal, right);
-
-				Vector3 irradiance = Vector3.Zero;
-
-				for (int i = 0; i < IrradianceSampleCount; ++i)
-				{
-					Vector2 xi = HammersleySamples[i];
-					float phi = 2f * MathF.PI * xi.X;
-					float cosTheta = MathF.Sqrt(1f - xi.Y);
-					float sinTheta = MathF.Sqrt(xi.Y);
-					Vector3 tangent = new(
-						MathF.Cos(phi) * sinTheta,
-						MathF.Sin(phi) * sinTheta,
-						cosTheta);
-					Vector3 sampleDirection = tangent.X * right
-						+ tangent.Y * up
-						+ tangent.Z * normal;
-
-					irradiance += EnvironmentRadiance(sampleDirection);
-				}
-
-				irradiance /= IrradianceSampleCount;
-				data[y * IrradianceWidth + x] = ToColor(irradiance);
-			}
-		}
-
-		var texture = new Texture2D(
+		var texture = new TextureCube(
 			device,
-			IrradianceWidth,
-			IrradianceHeight,
+			IrradianceSize,
 			false,
 			SurfaceFormat.Color);
-		texture.SetData(data);
+
+		for (int face = 0; face < 6; ++face)
+		{
+			var data = new Color[IrradianceSize * IrradianceSize];
+
+			for (int y = 0; y < IrradianceSize; ++y)
+			{
+				for (int x = 0; x < IrradianceSize; ++x)
+				{
+					Vector3 normal = CubeFaceDirection(
+						face,
+						x,
+						y,
+						IrradianceSize);
+					Vector3 up = MathF.Abs(normal.Y) < 0.999f
+						? Vector3.UnitY
+						: Vector3.UnitX;
+					Vector3 right = Vector3.Normalize(
+						Vector3.Cross(up, normal));
+					up = Vector3.Cross(normal, right);
+
+					Vector3 irradiance = Vector3.Zero;
+
+					for (int i = 0; i < IrradianceSampleCount; ++i)
+					{
+						Vector2 xi = HammersleySamples[i];
+						float phi = 2f * MathF.PI * xi.X;
+						float cosTheta = MathF.Sqrt(1f - xi.Y);
+						float sinTheta = MathF.Sqrt(xi.Y);
+						Vector3 tangent = new(
+							MathF.Cos(phi) * sinTheta,
+							MathF.Sin(phi) * sinTheta,
+							cosTheta);
+						Vector3 sampleDirection = tangent.X * right
+							+ tangent.Y * up
+							+ tangent.Z * normal;
+
+						irradiance += EnvironmentRadiance(sampleDirection);
+					}
+
+					irradiance /= IrradianceSampleCount;
+					data[y * IrradianceSize + x] = ToColor(irradiance);
+				}
+			}
+
+			texture.SetData((CubeMapFace)face, data);
+		}
+
 		return texture;
 	}
 
-	private static Texture2D CreatePrefilteredSpecular(GraphicsDevice device)
+	private static TextureCube CreatePrefilteredSpecular(GraphicsDevice device)
 	{
-		var texture = new Texture2D(
+		var texture = new TextureCube(
 			device,
-			SpecularWidth,
-			SpecularHeight,
+			SpecularSize,
 			true,
 			SurfaceFormat.Color);
 
 		for (int mip = 0; mip < SpecularMipCount; ++mip)
 		{
-			int width = Math.Max(1, SpecularWidth >> mip);
-			int height = Math.Max(1, SpecularHeight >> mip);
+			int size = Math.Max(1, SpecularSize >> mip);
 			float roughness = mip / (float)(SpecularMipCount - 1);
-			var data = new Color[width * height];
-			int sampleCount = Math.Min(SpecularSampleCount, HammersleySamples.Length);
 
-			for (int y = 0; y < height; ++y)
+			for (int face = 0; face < 6; ++face)
 			{
-				float v = (y + 0.5f) / height;
+				var data = new Color[size * size];
 
-				for (int x = 0; x < width; ++x)
+				for (int y = 0; y < size; ++y)
 				{
-					float u = (x + 0.5f) / width;
-					Vector3 normal = EquirectUVToDirection(u, v);
-					Vector3 view = normal;
-					Vector3 prefiltered = Vector3.Zero;
-					float totalWeight = 0f;
-
-					for (int i = 0; i < sampleCount; ++i)
+					for (int x = 0; x < size; ++x)
 					{
-						Vector2 xi = HammersleySamples[i];
-						Vector3 halfVector = ImportanceSampleGGX(
-							xi,
-							normal,
-							roughness);
-						Vector3 light = Vector3.Normalize(
-							2f * Vector3.Dot(view, halfVector) * halfVector - view);
-						float nDotL = Math.Clamp(
-							Vector3.Dot(normal, light),
-							0f,
-							1f);
+						Vector3 normal = CubeFaceDirection(face, x, y, size);
+						Vector3 view = normal;
+						Vector3 prefiltered = Vector3.Zero;
+						float totalWeight = 0f;
 
-						if (nDotL > 0f)
+						for (int i = 0; i < SpecularSampleCount; ++i)
 						{
-							prefiltered += EnvironmentRadiance(light) * nDotL;
-							totalWeight += nDotL;
+							Vector2 xi = HammersleySamples[i];
+							Vector3 halfVector = ImportanceSampleGGX(
+								xi,
+								normal,
+								roughness);
+							Vector3 light = Vector3.Normalize(
+								2f * Vector3.Dot(view, halfVector) * halfVector
+									- view);
+							float nDotL = Math.Clamp(
+								Vector3.Dot(normal, light),
+								0f,
+								1f);
+
+							if (nDotL > 0f)
+							{
+								prefiltered += EnvironmentRadiance(light) * nDotL;
+								totalWeight += nDotL;
+							}
 						}
+
+						prefiltered /= MathF.Max(totalWeight, 0.0001f);
+						data[y * size + x] = ToColor(prefiltered);
 					}
-
-					prefiltered /= MathF.Max(totalWeight, 0.0001f);
-					data[y * width + x] = ToColor(prefiltered);
 				}
-			}
 
-			texture.SetData(mip, null, data, 0, data.Length);
+				texture.SetData(
+					(CubeMapFace)face,
+					mip,
+					null,
+					data,
+					0,
+					data.Length);
+			}
 		}
 
 		return texture;
@@ -199,6 +208,28 @@ internal sealed class IblResources : IDisposable
 			SurfaceFormat.Color);
 		texture.SetData(data);
 		return texture;
+	}
+
+	private static Vector3 CubeFaceDirection(
+		int face,
+		int x,
+		int y,
+		int size)
+	{
+		float u = 2f * (x + 0.5f) / size - 1f;
+		float v = 2f * (y + 0.5f) / size - 1f;
+
+		Vector3 direction = face switch
+		{
+			0 => new Vector3(1f, -v, -u),
+			1 => new Vector3(-1f, -v, u),
+			2 => new Vector3(u, 1f, v),
+			3 => new Vector3(u, -1f, -v),
+			4 => new Vector3(u, -v, 1f),
+			_ => new Vector3(-u, -v, -1f)
+		};
+
+		return Vector3.Normalize(direction);
 	}
 
 	private static Vector2 IntegrateBrdf(float nDotV, float roughness)
@@ -284,23 +315,6 @@ internal sealed class IblResources : IDisposable
 		return tangent * halfVector.X
 			+ bitangent * halfVector.Y
 			+ normal * halfVector.Z;
-	}
-
-	private static Vector3 EquirectUVToDirection(float u, float v)
-	{
-		return EquirectUVToDirection(new Vector2(u, v));
-	}
-
-	private static Vector3 EquirectUVToDirection(Vector2 uv)
-	{
-		float y = 1f - 2f * Math.Clamp(uv.Y, 0f, 1f);
-		float radius = MathF.Sqrt(MathF.Max(1f - y * y, 0f));
-		float phi = (uv.X - 0.5f) * 2f * MathF.PI;
-
-		return new Vector3(
-			radius * MathF.Cos(phi),
-			y,
-			radius * MathF.Sin(phi));
 	}
 
 	private static Vector2[] CreateHammersleySamples(int count)
