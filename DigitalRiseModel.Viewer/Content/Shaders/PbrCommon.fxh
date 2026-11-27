@@ -208,7 +208,9 @@ float WrapTextureCoordinate(float coordinate, float wrapMode)
 {
 	if (wrapMode < 0.5)
 	{
-		return frac(coordinate);
+		// The sampler_state already uses Wrap. Leaving the coordinate unchanged
+		// preserves UV derivatives and avoids a mip-level seam at integer edges.
+		return coordinate;
 	}
 	else if (wrapMode < 1.5)
 	{
@@ -229,9 +231,21 @@ float2 ApplySamplerSettings(
 
 	if (samplerInfo.z > 0.5)
 	{
-		float2 clamped = clamp(uv, 0.0, 1.0);
-		float2 texelCenters = (floor(clamped * textureSize) + 0.5) / textureSize;
-		uv = min(texelCenters, (textureSize - 0.5) / textureSize);
+		float2 texelCenters = (floor(uv * textureSize) + 0.5) / textureSize;
+		float2 minUV = 0.5 / textureSize;
+		float2 maxUV = (textureSize - 0.5) / textureSize;
+
+		if (samplerInfo.x > 0.5)
+		{
+			texelCenters.x = clamp(texelCenters.x, minUV.x, maxUV.x);
+		}
+
+		if (samplerInfo.y > 0.5)
+		{
+			texelCenters.y = clamp(texelCenters.y, minUV.y, maxUV.y);
+		}
+
+		uv = texelCenters;
 	}
 
 	return uv;
