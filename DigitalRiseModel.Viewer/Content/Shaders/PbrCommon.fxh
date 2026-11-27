@@ -79,7 +79,12 @@ float3 ACESFilm(float3 color)
 		/ (color * (2.43 * color + 0.59) + 0.14));
 }
 
-float4 ShadeSurface(float3 worldPosition, float3 normal, float2 texCoord, float facing)
+float4 ShadeSurface(
+	float3 worldPosition,
+	float3 normal,
+	float2 texCoord,
+	float facing,
+	float4 vertexColor)
 {
 	float4 baseColor = BaseColorFactor;
 
@@ -89,6 +94,9 @@ float4 ShadeSurface(float3 worldPosition, float3 normal, float2 texCoord, float 
 		baseColor.rgb *= pow(saturate(textureColor.rgb), 2.2);
 		baseColor.a *= textureColor.a;
 	}
+
+	baseColor.rgb *= vertexColor.rgb;
+	baseColor.a *= vertexColor.a;
 
 	if (baseColor.a < AlphaCutoff)
 	{

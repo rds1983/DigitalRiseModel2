@@ -13,6 +13,9 @@ struct VertexInput
 #ifdef HAS_TANGENT
 	float4 Tangent : TANGENT;
 #endif
+#ifdef HAS_COLOR
+	float4 Color : COLOR0;
+#endif
 	float2 TexCoord : TEXCOORD0;
 #ifdef SKINNED
 	int4 BlendIndices : BLENDINDICES0;
@@ -30,6 +33,9 @@ struct VertexOutput
 #ifdef HAS_TANGENT
 	float3 Tangent : TEXCOORD2;
 	float3 Bitangent : TEXCOORD3;
+#endif
+#ifdef HAS_COLOR
+	float4 Color : COLOR0;
 #endif
 	float2 TexCoord : TEXCOORD4;
 };
@@ -77,6 +83,10 @@ VertexOutput MainVS(VertexInput input)
 	output.Bitangent = cross(output.Normal, output.Tangent) * input.Tangent.w;
 #endif
 
+#ifdef HAS_COLOR
+	output.Color = input.Color;
+#endif
+
 	output.TexCoord = input.TexCoord;
 	return output;
 }
@@ -101,7 +111,13 @@ float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 	}
 #endif
 
-	return ShadeSurface(input.WorldPosition, normal, input.TexCoord, facing);
+#ifdef HAS_COLOR
+	float4 vertexColor = input.Color;
+#else
+	float4 vertexColor = float4(1.0, 1.0, 1.0, 1.0);
+#endif
+
+	return ShadeSurface(input.WorldPosition, normal, input.TexCoord, facing, vertexColor);
 }
 
 technique
