@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace DigitalRiseModel.Viewer.Graphics;
 
 /// <summary>
-/// Low-level 3D drawing service: stock effects, device state and draw calls.
+/// Low-level 3D drawing service: PBR effects, device state and draw calls.
 /// It owns no scene content beyond the loaded model instance and never draws UI.
 /// </summary>
 internal sealed class Renderer : IDisposable
@@ -14,10 +14,11 @@ internal sealed class Renderer : IDisposable
 	private readonly GraphicsDevice _device;
 	private readonly DrModelInstance _instance;
 	private readonly DrModel _model;
-	private readonly BasicEffect _basicEffect;
-	private readonly SkinnedEffect _skinnedEffect;
-	private readonly PbrEffect? _pbrEffect;
-	private readonly PbrEffect? _pbrSkinnedEffect;
+	private readonly PbrEffect _pbrEffect;
+	private readonly PbrEffect _pbrNoTangentEffect;
+	private readonly PbrEffect _pbrBasicEffect;
+	private readonly PbrEffect _pbrSkinnedEffect;
+	private readonly PbrEffect _pbrSkinnedBasicEffect;
 	private readonly Texture2D _fallbackTexture;
 
 	private Matrix _viewProjection;
@@ -35,36 +36,21 @@ internal sealed class Renderer : IDisposable
 	public Renderer(
 		GraphicsDevice device,
 		DrModelInstance instance,
-		ContentManager? content = null,
-		bool usePbr = false)
+		ContentManager content)
 	{
 		ArgumentNullException.ThrowIfNull(device);
 		ArgumentNullException.ThrowIfNull(instance);
+		ArgumentNullException.ThrowIfNull(content);
 
 		_device = device;
 		_instance = instance;
 		_model = instance.Model;
 
-		if (usePbr)
-		{
-			ArgumentNullException.ThrowIfNull(content);
-			_pbrEffect = new PbrEffect(content, "Shaders/Pbr");
-			_pbrSkinnedEffect = new PbrEffect(content, "Shaders/PbrSkinned");
-		}
-
-		_basicEffect = new BasicEffect(device)
-		{
-			PreferPerPixelLighting = true
-		};
-
-		ConfigureLights(_basicEffect);
-
-		_skinnedEffect = new SkinnedEffect(device)
-		{
-			PreferPerPixelLighting = true
-		};
-
-		ConfigureLights(_skinnedEffect);
+		_pbrEffect = new PbrEffect(content, "Shaders/Pbr");
+		_pbrNoTangentEffect = new PbrEffect(content, "Shaders/PbrNoTangent");
+		_pbrBasicEffect = new PbrEffect(content, "Shaders/PbrBasic");
+		_pbrSkinnedEffect = new PbrEffect(content, "Shaders/PbrSkinned");
+		_pbrSkinnedBasicEffect = new PbrEffect(content, "Shaders/PbrSkinnedBasic");
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
@@ -90,12 +76,11 @@ internal sealed class Renderer : IDisposable
 		_viewProjection = view * projection;
 		_cameraPosition = Matrix.Invert(view).Translation;
 
-		_basicEffect.View = view;
-		_basicEffect.Projection = projection;
-		_skinnedEffect.View = view;
-		_skinnedEffect.Projection = projection;
-		_pbrEffect?.SetSettings(Settings);
-		_pbrSkinnedEffect?.SetSettings(Settings);
+		_pbrEffect.SetSettings(Settings);
+		_pbrNoTangentEffect.SetSettings(Settings);
+		_pbrBasicEffect.SetSettings(Settings);
+		_pbrSkinnedEffect.SetSettings(Settings);
+		_pbrSkinnedBasicEffect.SetSettings(Settings);
 
 		_savedBlendState = _device.BlendState;
 		_savedDepthStencilState = _device.DepthStencilState;
@@ -178,8 +163,6 @@ internal sealed class Renderer : IDisposable
 	{
 		DrModelMeshPart part = item.Part;
 		DrMaterial? material = item.Material;
-		Vector4 color = material?.BaseColorFactor ?? Vector4.One;
-		Texture2D? texture = material?.BaseColorTexture?.Texture;
 
 		_device.BlendState = material?.AlphaMode == DrAlphaMode.Blend
 			? BlendState.AlphaBlend
@@ -194,70 +177,48 @@ internal sealed class Renderer : IDisposable
 
 		VertexDeclaration declaration = part.VertexDeclaration
 			?? part.VertexBuffer!.VertexDeclaration;
-		Effect effect;
+		PbrEffect pbr;
 
 		if (item.SkinTransforms is not null)
 		{
-			if (_pbrSkinnedEffect is not null
-				&& UsesUv0(material?.BaseColorTexture)
-				&& UsesUv0(material?.MetallicRoughnessTexture)
-				&& UsesUv0(material?.OcclusionTexture)
-				&& UsesUv0(material?.EmissiveTexture)
-				&& HasElement(declaration, VertexElementUsage.Normal)
-				&& HasElement(declaration, VertexElementUsage.BlendIndices)
-				&& HasElement(declaration, VertexElementUsage.BlendWeight)
-				&& HasElement(declaration, VertexElementUsage.TextureCoordinate))
-			{
-				_pbrSkinnedEffect.SetWorld(Matrix.Identity);
-				_pbrSkinnedEffect.SetWorldViewProjection(_viewProjection);
-				_pbrSkinnedEffect.SetCameraPosition(_cameraPosition);
-				_pbrSkinnedEffect.SetMaterial(material, _fallbackTexture);
-				_pbrSkinnedEffect.SetSkinTransforms(item.SkinTransforms);
-				effect = _pbrSkinnedEffect.Effect;
-			}
-			else
-			{
-				_skinnedEffect.World = Matrix.Identity;
-				_skinnedEffect.DiffuseColor = new Vector3(color.X, color.Y, color.Z);
-				_skinnedEffect.Alpha = color.W;
-				_skinnedEffect.Texture = texture ?? _fallbackTexture;
-				_skinnedEffect.SetBoneTransforms(item.SkinTransforms);
-				effect = _skinnedEffect;
-			}
-		}
-		else if (_pbrEffect is not null
-			&& UsesUv0(material?.BaseColorTexture)
-			&& UsesUv0(material?.MetallicRoughnessTexture)
-			&& UsesUv0(material?.NormalTexture)
-			&& UsesUv0(material?.OcclusionTexture)
-			&& UsesUv0(material?.EmissiveTexture)
-			&& HasElement(declaration, VertexElementUsage.Normal)
-			&& HasElement(declaration, VertexElementUsage.Tangent)
-			&& HasElement(declaration, VertexElementUsage.TextureCoordinate))
-		{
-			_pbrEffect.SetWorld(item.World);
-			_pbrEffect.SetWorldViewProjection(item.World * _viewProjection);
-			_pbrEffect.SetCameraPosition(_cameraPosition);
-			_pbrEffect.SetMaterial(material, _fallbackTexture);
-			effect = _pbrEffect.Effect;
+			bool hasNormal = HasElement(declaration, VertexElementUsage.Normal);
+			bool hasBlend = HasElement(declaration, VertexElementUsage.BlendIndices)
+				&& HasElement(declaration, VertexElementUsage.BlendWeight);
+			bool hasTexCoord = HasElement(declaration, VertexElementUsage.TextureCoordinate);
+
+			pbr = hasNormal && hasBlend && hasTexCoord
+				? _pbrSkinnedEffect
+				: hasBlend && hasTexCoord
+					? _pbrSkinnedBasicEffect
+					: _pbrBasicEffect;
+
+			pbr.SetWorld(Matrix.Identity);
+			pbr.SetWorldViewProjection(_viewProjection);
+			pbr.SetSkinTransforms(item.SkinTransforms);
 		}
 		else
 		{
-			_basicEffect.World = item.World;
-			_basicEffect.DiffuseColor = new Vector3(color.X, color.Y, color.Z);
-			_basicEffect.Alpha = color.W;
-			_basicEffect.LightingEnabled = HasElement(
-				declaration,
-				VertexElementUsage.Normal);
-			_basicEffect.TextureEnabled = texture is not null;
-			_basicEffect.Texture = texture;
-			effect = _basicEffect;
+			bool hasNormal = HasElement(declaration, VertexElementUsage.Normal);
+			bool hasTangent = HasElement(declaration, VertexElementUsage.Tangent);
+			bool hasTexCoord = HasElement(declaration, VertexElementUsage.TextureCoordinate);
+
+			pbr = hasNormal && hasTangent && hasTexCoord
+				? _pbrEffect
+				: hasNormal && hasTexCoord
+					? _pbrNoTangentEffect
+					: _pbrBasicEffect;
+
+			pbr.SetWorld(item.World);
+			pbr.SetWorldViewProjection(item.World * _viewProjection);
 		}
+
+		pbr.SetCameraPosition(_cameraPosition);
+		pbr.SetMaterial(material, _fallbackTexture);
 
 		_device.SetVertexBuffer(part.VertexBuffer);
 		_device.Indices = part.IndexBuffer;
 
-		foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+		foreach (EffectPass pass in pbr.Effect.CurrentTechnique.Passes)
 		{
 			pass.Apply();
 			_device.DrawIndexedPrimitives(
@@ -291,8 +252,6 @@ internal sealed class Renderer : IDisposable
 
 	public void Dispose()
 	{
-		_basicEffect.Dispose();
-		_skinnedEffect.Dispose();
 		_fallbackTexture.Dispose();
 	}
 
@@ -306,22 +265,6 @@ internal sealed class Renderer : IDisposable
 			&& (uint)parentBone.Index < (uint)absoluteBoneTransforms.Length
 			? absoluteBoneTransforms[parentBone.Index]
 			: Matrix.Identity;
-	}
-
-	private static void ConfigureLights(IEffectLights lights)
-	{
-		lights.AmbientLightColor = new Vector3(0.35f);
-		lights.DirectionalLight0.Enabled = true;
-		lights.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-0.5f, -1f, -0.5f));
-		lights.DirectionalLight0.DiffuseColor = Vector3.One;
-		lights.DirectionalLight0.SpecularColor = Vector3.Zero;
-		lights.DirectionalLight1.Enabled = false;
-		lights.DirectionalLight2.Enabled = false;
-	}
-
-	private static bool UsesUv0(DrTextureInfo? texture)
-	{
-		return texture is null || texture.TexCoord == 0;
 	}
 
 	private static bool HasElement(

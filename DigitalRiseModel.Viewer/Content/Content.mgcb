@@ -29,3 +29,21 @@
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /build:Shaders/PbrSkinned.fx
+
+#begin Shaders/PbrNoTangent.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Shaders/PbrNoTangent.fx
+
+#begin Shaders/PbrBasic.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Shaders/PbrBasic.fx
+
+#begin Shaders/PbrSkinnedBasic.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Shaders/PbrSkinnedBasic.fx

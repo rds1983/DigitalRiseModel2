@@ -16,7 +16,6 @@ namespace DigitalRiseModel.Viewer;
 internal sealed class ViewerGame : Game
 {
 	private readonly string _modelPath;
-	private readonly bool _usePbr;
 	private readonly string? _screenshotPath;
 	private readonly ShaderDebugView _debugView;
 	private readonly float _exposure;
@@ -49,14 +48,12 @@ internal sealed class ViewerGame : Game
 	public ViewerGame(
 		string modelPath,
 		bool shaderTest = false,
-		bool usePbr = false,
 		string? screenshotPath = null,
 		ShaderDebugView debugView = ShaderDebugView.Shaded,
 		float exposure = 1f)
 	{
 		_modelPath = modelPath;
 		_showShaderSmokeTest = shaderTest;
-		_usePbr = usePbr;
 		_screenshotPath = screenshotPath;
 		_debugView = debugView;
 		_exposure = exposure;
@@ -82,12 +79,15 @@ internal sealed class ViewerGame : Game
 		string fileName = Path.GetFileName(fullPath);
 
 		_assetManager = AssetManager.CreateFileAssetManager(directory);
-		_model = _assetManager.LoadDrModel(GraphicsDevice, fileName);
+		_model = _assetManager.LoadDrModel(
+			GraphicsDevice,
+			fileName,
+			ModelLoadFlags.EnsureUVs);
 		_instance = new DrModelInstance(_model);
 		_animation = new AnimationController(_instance);
 
 		_content = new ContentManager(Services, "Content");
-		_renderer = new Renderer(GraphicsDevice, _instance, _content, _usePbr);
+		_renderer = new Renderer(GraphicsDevice, _instance, _content);
 		_renderer.Settings.DebugView = _debugView;
 		_renderer.Settings.Exposure = _exposure;
 		_shaderSmokeTest = new FullscreenColorEffect(GraphicsDevice, _content);

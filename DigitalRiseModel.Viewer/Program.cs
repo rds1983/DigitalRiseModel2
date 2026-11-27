@@ -12,7 +12,6 @@ internal static class Program
 		string? modelPath = null;
 		string? screenshotPath = null;
 		bool shaderTest = false;
-		bool usePbr = false;
 		ShaderDebugView debugView = ShaderDebugView.Shaded;
 		float exposure = 1f;
 
@@ -24,9 +23,6 @@ internal static class Program
 			{
 				case "--shader-test":
 					shaderTest = true;
-					break;
-				case "--pbr":
-					usePbr = true;
 					break;
 				case "--screenshot":
 					if (++i >= args.Length)
@@ -107,7 +103,6 @@ internal static class Program
 		using var game = new ViewerGame(
 			path,
 			shaderTest,
-			usePbr,
 			screenshotPath,
 			debugView,
 			exposure);
@@ -118,7 +113,7 @@ internal static class Program
 	private static void PrintUsage()
 	{
 		Console.Error.WriteLine(
-			"Usage: drm-viewer <path-to-gltf-or-glb> [--pbr] [--shader-test] " +
+			"Usage: drm-viewer <path-to-gltf-or-glb> [--shader-test] " +
 			"[--debug-view <name>] [--exposure <value>] [--screenshot <file.png>]");
 	}
 }

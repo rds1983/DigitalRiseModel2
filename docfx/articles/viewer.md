@@ -16,11 +16,12 @@ drm-viewer "path/to/model.glb"
 
 Command-line options:
 
-- `--pbr` — use the custom metallic-roughness shader for opaque/mask/blend static and skinned mesh parts, including normal/occlusion/emissive maps, alpha masking/blending and double-sided materials.
 - `--shader-test` — start with the fullscreen shader smoke test enabled.
 - `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion` or `emissive`.
 - `--exposure <value>` — set the shaded-output exposure scale.
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
+
+The main viewer always uses the custom PBR path. `Samples/SimpleViewer` remains the stock-effect reference.
 
 `F2` toggles the shader smoke test; `F3` cycles PBR debug views and updates the window title.
 
