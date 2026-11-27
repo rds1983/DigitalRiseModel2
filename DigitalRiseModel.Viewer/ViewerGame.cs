@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AssetManagementBase;
 using DigitalRiseModel.Animation;
 using DigitalRiseModel.Viewer.Graphics;
@@ -9,6 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
 using Myra.Graphics2D;
+using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
 
 namespace DigitalRiseModel.Viewer;
@@ -35,6 +37,9 @@ internal sealed class ViewerGame : Game
 	private bool _showShaderSmokeTest;
 	private bool _screenshotCaptured;
 	private int _drawFrame;
+	private Label? _statsLabel;
+	private long _lastFrameTimestamp;
+	private double _smoothedFrameTimeMs;
 
 	private BoundingSphere _bounds;
 	private Vector3 _target;
@@ -185,6 +190,7 @@ internal sealed class ViewerGame : Game
 			_shaderSmokeTest?.Draw();
 		}
 
+		UpdateStats();
 		_desktop?.Render();
 
 		if (_screenshotPath is not null && !_screenshotCaptured && ++_drawFrame >= 3)
@@ -195,6 +201,37 @@ internal sealed class ViewerGame : Game
 		}
 
 		base.Draw(gameTime);
+	}
+
+	private void UpdateStats()
+	{
+		long now = Stopwatch.GetTimestamp();
+
+		if (_lastFrameTimestamp != 0)
+		{
+			double frameTimeMs = Stopwatch
+				.GetElapsedTime(_lastFrameTimestamp, now)
+				.TotalMilliseconds;
+			_smoothedFrameTimeMs = _smoothedFrameTimeMs <= 0
+				? frameTimeMs
+				: _smoothedFrameTimeMs * 0.9 + frameTimeMs * 0.1;
+		}
+
+		_lastFrameTimestamp = now;
+
+		if (_statsLabel is null)
+		{
+			return;
+		}
+
+		int drawCalls = _renderer?.DrawCalls ?? 0;
+		int triangles = _renderer?.Triangles ?? 0;
+		double fps = _smoothedFrameTimeMs > 0
+			? 1000.0 / _smoothedFrameTimeMs
+			: 0.0;
+
+		_statsLabel.Text = FormattableString.Invariant(
+			$"{fps:0.0} FPS  {_smoothedFrameTimeMs:0.0} ms\nDraw calls: {drawCalls}\nTriangles: {triangles:N0}");
 	}
 
 	private void SaveScreenshot(string path)
@@ -262,6 +299,22 @@ internal sealed class ViewerGame : Game
 		};
 
 		root.Widgets.Add(controlsPanel);
+
+		_statsLabel = new Label
+		{
+			Text = "0.0 FPS  0.0 ms\nDraw calls: 0\nTriangles: 0"
+		};
+
+		var statsPanel = new VerticalStackPanel
+		{
+			HorizontalAlignment = HorizontalAlignment.Right,
+			VerticalAlignment = VerticalAlignment.Top,
+			Margin = new Thickness(8),
+			Padding = new Thickness(8),
+			Background = new SolidBrush("Black")
+		};
+		statsPanel.Widgets.Add(_statsLabel);
+		root.Widgets.Add(statsPanel);
 
 		if (_model!.Animations.Count > 0)
 		{
