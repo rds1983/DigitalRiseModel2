@@ -20,6 +20,8 @@ DigitalRiseModel/
   Animation/                               # DigitalRiseModel.Animation (clips, channels, samplers)
 DigitalRiseModel.Tests/                    # xUnit test project
 DigitalRiseModel.Viewer/                   # MonoGame glTF viewer and drm-viewer tool
+Samples/
+  SimpleViewer/                            # stock-effect reference viewer
 docfx/                                     # DocFX config and articles
 README.md
 AGENTS.md
@@ -141,12 +143,14 @@ Rules:
 
 ## Samples and documentation
 
-- Each sample is a separate runnable MonoGame project at the repository root and references the library project.
+- Samples live under `Samples/` and are separate runnable MonoGame projects that reference the library project.
+- `Samples/SimpleViewer` is the stock-effect reference viewer. Keep it runnable as a baseline while the main viewer moves to the custom shader system.
 - `DigitalRiseModel.Viewer` takes one glTF/GLB path argument and renders with stock effects. Its executable/assembly name is `drm-viewer`; it is also packaged as the `drm-viewer` tool (`PackAsTool`, `ToolCommandName=drm-viewer`). Keep it runnable and packable with the current public API.
 - Keep low-level 3D rendering in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`: effects, device state, lighting, draw calls and counters. The renderer owns reusable `BasicEffect` and `SkinnedEffect` instances and selects one per `DrModelMeshPart` based on whether `Skin` is null. `ViewerGame` owns model loading, the `DrModelInstance`/`AnimationController`, camera input, bounds and Myra UI. The animation panel appears only for animated models, auto-plays the first clip and provides clip selection, play/pause/stop, seek, loop, reverse-playback and speed controls. Camera orbit and zoom are ignored while `Desktop.IsMouseOverGUI` is true. The renderer draws from the instance's current pose and recomputes skinned bone transforms every frame.
 - glTF winding is normalized by the loader using the node global-transform determinant (`positive` = glTF CCW, `negative` = glTF CW). The viewer then uses `CullCounterClockwise`, or `CullNone` for double-sided materials.
 - The viewer UI is Myra. Edit the `.xmmp` sources in `DigitalRiseModel.Viewer/UI` and regenerate with `myra-export`. Only the `*.Generated.cs` file is overwritten; keep custom behavior in the companion `.cs` file and do not hand-edit generated files.
 - The viewer uses Myra `1.6.8` in addition to the library dependencies.
+- Custom shader content is built through `DigitalRiseModel.Viewer/Content/Content.mgcb`; `dotnet-mgcb` is pinned in `.config/dotnet-tools.json`. Put shader sources under `Content/Shaders` and register them in `Content.mgcb`. `--shader-test` (or `F2`) draws the current fullscreen shader smoke test.
 - Samples must compile and run with the current API; update them when the API changes.
 - Public API changes require matching XML docs and, when user-visible behavior changes, a README or DocFX update.
 - Keep README claims honest: mark unimplemented features as planned, not shipped.

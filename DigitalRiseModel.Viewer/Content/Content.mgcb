@@ -1,0 +1,19 @@
+#----------------------------- Global Properties ----------------------------#
+
+/outputDir:bin/$(Platform)/Content
+/intermediateDir:obj/$(Platform)/Content
+/platform:DesktopGL
+/config:
+/profile:Reach
+/compress:False
+
+#-------------------------------- References --------------------------------#
+
+
+#---------------------------------- Content ---------------------------------#
+
+#begin Shaders/FullscreenColor.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Shaders/FullscreenColor.fx

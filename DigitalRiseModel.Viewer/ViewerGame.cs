@@ -1,8 +1,10 @@
 using AssetManagementBase;
 using DigitalRiseModel.Animation;
 using DigitalRiseModel.Viewer.Graphics;
+using DigitalRiseModel.Viewer.Graphics.Shaders;
 using DigitalRiseModel.Viewer.UI;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
@@ -22,6 +24,10 @@ internal sealed class ViewerGame : Game
 	private Renderer? _renderer;
 	private Desktop? _desktop;
 	private AnimationPanel? _animationPanel;
+	private ContentManager? _content;
+	private FullscreenColorEffect? _shaderSmokeTest;
+	private KeyboardState _previousKeyboard;
+	private bool _showShaderSmokeTest;
 
 	private BoundingSphere _bounds;
 	private Vector3 _target;
@@ -34,9 +40,10 @@ internal sealed class ViewerGame : Game
 	private float _pitch = -0.25f;
 	private MouseState _previousMouse;
 
-	public ViewerGame(string modelPath)
+	public ViewerGame(string modelPath, bool shaderTest = false)
 	{
 		_modelPath = modelPath;
+		_showShaderSmokeTest = shaderTest;
 		MyraEnvironment.Game = this;
 
 		_ = new GraphicsDeviceManager(this)
@@ -64,6 +71,9 @@ internal sealed class ViewerGame : Game
 		_animation = new AnimationController(_instance);
 		_renderer = new Renderer(GraphicsDevice, _instance);
 
+		_content = new ContentManager(Services, "Content");
+		_shaderSmokeTest = new FullscreenColorEffect(GraphicsDevice, _content);
+
 		CreateUI();
 		ResetCamera();
 		_previousMouse = Mouse.GetState();
@@ -79,6 +89,11 @@ internal sealed class ViewerGame : Game
 		if (keyboard.IsKeyDown(Keys.Escape))
 		{
 			Exit();
+		}
+
+		if (keyboard.IsKeyDown(Keys.F2) && _previousKeyboard.IsKeyUp(Keys.F2))
+		{
+			_showShaderSmokeTest = !_showShaderSmokeTest;
 		}
 
 		MouseState mouse = Mouse.GetState();
@@ -101,6 +116,7 @@ internal sealed class ViewerGame : Game
 		}
 
 		_previousMouse = mouse;
+		_previousKeyboard = keyboard;
 
 		base.Update(gameTime);
 	}
@@ -128,6 +144,11 @@ internal sealed class ViewerGame : Game
 			}
 		}
 
+		if (_showShaderSmokeTest)
+		{
+			_shaderSmokeTest?.Draw();
+		}
+
 		_desktop?.Render();
 		base.Draw(gameTime);
 	}
@@ -139,6 +160,12 @@ internal sealed class ViewerGame : Game
 
 		_renderer?.Dispose();
 		_renderer = null;
+
+		_shaderSmokeTest?.Dispose();
+		_shaderSmokeTest = null;
+
+		_content?.Dispose();
+		_content = null;
 
 		_animationPanel = null;
 		_animation = null;

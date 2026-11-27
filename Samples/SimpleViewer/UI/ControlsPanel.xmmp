@@ -1,0 +1,8 @@
+<Project>
+  <VerticalStackPanel Spacing="4" Padding="8" Background="Black">
+    <Label Text="Controls" TextColor="White" />
+    <Label Text="Left-drag: orbit" TextColor="White" />
+    <Label Text="Mouse wheel: zoom" TextColor="White" />
+    <Label Text="Escape: exit" TextColor="White" />
+  </VerticalStackPanel>
+</Project>

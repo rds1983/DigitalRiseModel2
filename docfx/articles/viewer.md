@@ -12,6 +12,8 @@ dotnet tool install --global DigitalRiseModel.Viewer --add-source artifacts
 drm-viewer "path/to/model.glb"
 ```
 
+`Samples/SimpleViewer` is a stock-effect reference viewer. It mirrors the main viewer while the main viewer gains the custom shader system.
+
 ## Controls
 
 - Left-drag: orbit the camera.
@@ -36,6 +38,8 @@ Low-level rendering is isolated in `DigitalRiseModel.Viewer/Graphics/Renderer.cs
 - glTF winding is normalized using the node global-transform determinant and drawn with `CullCounterClockwise`; double-sided materials use `CullNone`.
 
 `ViewerGame` owns model loading, camera input, bounds and the Myra UI. The camera frames the merged model bounds on startup.
+
+Custom shader content is built through `DigitalRiseModel.Viewer/Content/Content.mgcb`. A trivial fullscreen shader smoke test can be started with `--shader-test` or toggled with `F2`.
 
 ## UI panels
 

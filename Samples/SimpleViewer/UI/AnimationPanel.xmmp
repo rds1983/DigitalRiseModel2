@@ -1,0 +1,29 @@
+<Project>
+  <VerticalStackPanel Spacing="4" Padding="8" Background="Black" Width="320">
+    <Label Text="Animation" TextColor="White" />
+    <ComboView Id="_animationCombo" Width="240" />
+    <HorizontalStackPanel Spacing="4">
+      <Button Id="_playPauseButton" Padding="8, 0">
+        <Label Text="Play" />
+      </Button>
+      <Button Id="_stopButton" Padding="8, 0">
+        <Label Text="Stop" />
+      </Button>
+    </HorizontalStackPanel>
+    <HorizontalStackPanel Spacing="8">
+      <CheckButton Id="_loopButton">
+        <Label Text="Loop" />
+      </CheckButton>
+      <CheckButton Id="_playBackwardsButton">
+        <Label Text="Play Backwards" />
+      </CheckButton>
+    </HorizontalStackPanel>
+    <HorizontalStackPanel Spacing="4">
+      <Label Text="Speed" TextColor="White" />
+      <Label Id="_speedLabel" Text="1.00x" TextColor="White" />
+    </HorizontalStackPanel>
+    <HorizontalSlider Id="_speedSlider" Minimum="0" Maximum="3" Value="1" />
+    <HorizontalSlider Id="_timeSlider" Minimum="0" Maximum="1" />
+    <Label Id="_timeLabel" Text="0.00 / 0.00" TextColor="White" />
+  </VerticalStackPanel>
+</Project>
