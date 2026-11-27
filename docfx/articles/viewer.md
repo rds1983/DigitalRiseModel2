@@ -29,7 +29,7 @@ Low-level rendering is isolated in `DigitalRiseModel.Viewer/Graphics/Renderer.cs
 - Parts with skin data are drawn with `SkinnedEffect`.
 - `DrMaterial` supplies the base color, base-color texture and alpha-blend state.
 - Basic ambient and directional lighting keeps the model visible.
-- Backface culling is disabled so rooms and other single-sided scenes do not look transparent when viewed from outside.
+- glTF winding is normalized using the node global-transform determinant and drawn with `CullCounterClockwise`; double-sided materials use `CullNone`.
 
 `ViewerGame` owns model loading, camera input, bounds and the Myra UI. The camera frames the merged model bounds on startup.
 

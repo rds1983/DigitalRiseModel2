@@ -147,9 +147,10 @@ internal static class GltfLoader
 	{
 		GltfNode[] nodes = document.Nodes ?? [];
 		var nodeBones = new DrModelBone?[nodes.Length];
+		var nodeGlobalTransforms = new Dictionary<int, Matrix>();
 		var bufferCache = new Dictionary<int, byte[]>();
 
-		DrModelBone CreateBone(int nodeIndex)
+		DrModelBone CreateBone(int nodeIndex, Matrix parentGlobal)
 		{
 			if ((uint)nodeIndex >= (uint)nodes.Length)
 			{
@@ -163,16 +164,22 @@ internal static class GltfLoader
 			}
 
 			GltfNode node = nodes[nodeIndex];
+			Matrix localTransform = GetNodeTransform(node);
+			Matrix globalTransform = localTransform * parentGlobal;
+
 			var bone = new DrModelBone(string.IsNullOrEmpty(node.Name) ? $"Node{nodeIndex}" : node.Name)
 			{
-				Transform = GetNodeTransform(node)
+				Transform = localTransform
 			};
 
 			nodeBones[nodeIndex] = bone;
+			nodeGlobalTransforms[nodeIndex] = globalTransform;
 
 			if (node.Children is { Length: > 0 })
 			{
-				bone.Children = node.Children.Select(CreateBone).ToArray();
+				bone.Children = node.Children
+					.Select(childIndex => CreateBone(childIndex, globalTransform))
+					.ToArray();
 			}
 
 			return bone;
@@ -183,7 +190,9 @@ internal static class GltfLoader
 
 		if (rootNodeIndices.Length > 0)
 		{
-			rootBone.Children = rootNodeIndices.Select(CreateBone).ToArray();
+			rootBone.Children = rootNodeIndices
+				.Select(rootIndex => CreateBone(rootIndex, Matrix.Identity))
+				.ToArray();
 		}
 
 		DrMaterial[] materials = ConvertMaterials(document, textureProvider);
@@ -203,12 +212,21 @@ internal static class GltfLoader
 				? GetSkin(skins, skinIndex)
 				: null;
 
+			Matrix globalTransform = nodeGlobalTransforms[nodeIndex];
+
+			// glTF uses counter-clockwise front faces when the node's global transform has
+			// a positive determinant. MonoGame's CullCounterClockwise state uses clockwise
+			// front faces, so reverse those triangles. Negative-determinant nodes are already
+			// clockwise and need no conversion.
+			bool flipWinding = globalTransform.Determinant() > 0f;
+
 			bone.Mesh = ConvertMesh(
 				graphicsDevice,
 				document,
 				meshIndex,
 				materials,
 				skin,
+				flipWinding,
 				bufferProvider,
 				bufferCache);
 		}
@@ -382,6 +400,7 @@ internal static class GltfLoader
 		int meshIndex,
 		DrMaterial[] materials,
 		DrSkin? skin,
+		bool flipWinding,
 		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
@@ -404,6 +423,7 @@ internal static class GltfLoader
 				primitives[i],
 				materials,
 				skin,
+				flipWinding,
 				bufferProvider,
 				bufferCache);
 		}
@@ -420,6 +440,7 @@ internal static class GltfLoader
 		GltfPrimitive primitive,
 		DrMaterial[] materials,
 		DrSkin? skin,
+		bool flipWinding,
 		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
@@ -519,6 +540,11 @@ internal static class GltfLoader
 		}
 
 		int[] indices = BuildTriangleList(sourceIndices, primitive.Mode);
+
+		if (flipWinding)
+		{
+			ReverseWinding(indices);
+		}
 
 		foreach (int index in indices)
 		{
@@ -1220,6 +1246,14 @@ internal static class GltfLoader
 			default:
 				throw new NotSupportedException(
 					$"The glTF primitive mode '{mode}' is not supported. Only triangle primitives are loaded.");
+		}
+	}
+
+	private static void ReverseWinding(int[] indices)
+	{
+		for (int i = 0; i + 2 < indices.Length; i += 3)
+		{
+			(indices[i + 1], indices[i + 2]) = (indices[i + 2], indices[i + 1]);
 		}
 	}
 

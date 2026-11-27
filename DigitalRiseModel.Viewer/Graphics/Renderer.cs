@@ -21,7 +21,7 @@ internal sealed class Renderer : IDisposable
 
 	private BlendState _savedBlendState = BlendState.Opaque;
 	private DepthStencilState _savedDepthStencilState = DepthStencilState.Default;
-	private RasterizerState _savedRasterizerState = RasterizerState.CullNone;
+	private RasterizerState _savedRasterizerState = RasterizerState.CullCounterClockwise;
 	private SamplerState _savedSamplerState = SamplerState.LinearWrap;
 	private Rectangle _savedScissorRectangle;
 
@@ -73,7 +73,7 @@ internal sealed class Renderer : IDisposable
 
 		_device.BlendState = BlendState.Opaque;
 		_device.DepthStencilState = DepthStencilState.Default;
-		_device.RasterizerState = RasterizerState.CullNone;
+		_device.RasterizerState = RasterizerState.CullCounterClockwise;
 		_device.SamplerStates[0] = SamplerState.LinearWrap;
 		_device.ScissorRectangle = _device.Viewport.Bounds;
 	}
@@ -108,7 +108,12 @@ internal sealed class Renderer : IDisposable
 				? BlendState.AlphaBlend
 				: BlendState.Opaque;
 			_device.DepthStencilState = DepthStencilState.Default;
-			_device.RasterizerState = RasterizerState.CullNone;
+
+			// The glTF loader converts front-facing triangles to MonoGame's clockwise
+			// convention, so the standard counter-clockwise cull state is correct.
+			_device.RasterizerState = material?.DoubleSided == true
+				? RasterizerState.CullNone
+				: RasterizerState.CullCounterClockwise;
 
 			if (drawable.IsSkinned)
 			{

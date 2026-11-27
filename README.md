@@ -149,7 +149,9 @@ myra-export DigitalRiseModel.Viewer/UI/ControlsPanel.xmmp \
   --output DigitalRiseModel.Viewer/UI
 ```
 
-Low-level 3D drawing lives in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`. The renderer owns the stock effects, device state, lighting, mesh traversal and draw calls; `ViewerGame` handles loading, camera input, bounds and the Myra UI. Backface culling is disabled so single-sided rooms and scenes remain visible when the automatic camera is outside them.
+Low-level 3D drawing lives in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`. The renderer owns the stock effects, device state, lighting, mesh traversal and draw calls; `ViewerGame` handles loading, camera input, bounds and the Myra UI.
+
+glTF triangle winding depends on the sign of the node's global transform determinant. The loader converts it to MonoGame's clockwise front-face convention, so the viewer renders with `CullCounterClockwise`; double-sided materials use `CullNone`.
 
 ## Repository layout
 
