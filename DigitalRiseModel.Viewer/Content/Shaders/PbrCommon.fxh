@@ -31,6 +31,19 @@ float UseUV1MetallicRoughness;
 float UseUV1Normal;
 float UseUV1Occlusion;
 float UseUV1Emissive;
+
+// xy = offset, zw = scale.
+float4 BaseColorTransform;
+float BaseColorRotation;
+float4 MetallicRoughnessTransform;
+float MetallicRoughnessRotation;
+float4 NormalTransform;
+float NormalRotation;
+float4 OcclusionTransform;
+float OcclusionRotation;
+float4 EmissiveTransform;
+float EmissiveRotation;
+
 int DebugView;
 
 Texture2D BaseColorTexture;
@@ -165,6 +178,20 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 f0, float roughness)
 	return f0 + (f90 - f0) * pow(1.0 - cosTheta, 5.0);
 }
 
+float2 ApplyTextureTransform(float2 uv, float4 offsetScale, float rotation)
+{
+	// glTF applies scale, then rotation, then translation:
+	// uv' = R * (S * uv) + offset, with R using the glTF sign convention.
+	float sinRotation = sin(rotation);
+	float cosRotation = cos(rotation);
+	float2 scaled = uv * offsetScale.zw;
+	float2 rotated = float2(
+		scaled.x * cosRotation + scaled.y * sinRotation,
+		-scaled.x * sinRotation + scaled.y * cosRotation);
+
+	return rotated + offsetScale.xy;
+}
+
 float4 ShadeSurface(
 	float3 worldPosition,
 	float3 normal,
@@ -174,9 +201,25 @@ float4 ShadeSurface(
 	float4 vertexColor)
 {
 	float2 baseColorUV = UseUV1BaseColor > 0.5 ? texCoord1 : texCoord;
+	baseColorUV = ApplyTextureTransform(
+		baseColorUV,
+		BaseColorTransform,
+		BaseColorRotation);
 	float2 metallicRoughnessUV = UseUV1MetallicRoughness > 0.5 ? texCoord1 : texCoord;
+	metallicRoughnessUV = ApplyTextureTransform(
+		metallicRoughnessUV,
+		MetallicRoughnessTransform,
+		MetallicRoughnessRotation);
 	float2 occlusionUV = UseUV1Occlusion > 0.5 ? texCoord1 : texCoord;
+	occlusionUV = ApplyTextureTransform(
+		occlusionUV,
+		OcclusionTransform,
+		OcclusionRotation);
 	float2 emissiveUV = UseUV1Emissive > 0.5 ? texCoord1 : texCoord;
+	emissiveUV = ApplyTextureTransform(
+		emissiveUV,
+		EmissiveTransform,
+		EmissiveRotation);
 
 	float4 baseColor = BaseColorFactor;
 

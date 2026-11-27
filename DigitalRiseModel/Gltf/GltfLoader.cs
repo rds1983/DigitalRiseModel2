@@ -342,14 +342,94 @@ internal static partial class GltfLoader
 			return null;
 		}
 
+		(DrTextureTransform? textureTransform, int texCoord) =
+			ReadTextureTransform(info);
+
 		return new DrTextureInfo
 		{
 			TextureIndex = info.Index,
-			TexCoord = info.TexCoord,
+			TexCoord = texCoord,
+			TextureTransform = textureTransform,
 			Scale = scale,
 			Strength = strength,
 			Texture = textureProvider?.Invoke(info.Index)
 		};
+	}
+
+	private static (DrTextureTransform? Transform, int TexCoord) ReadTextureTransform(
+		TextureInfo info)
+	{
+		if (info.Extensions is null
+			|| !info.Extensions.TryGetValue(
+				"KHR_texture_transform",
+				out object? extension)
+			|| extension is not JsonElement element
+			|| element.ValueKind != JsonValueKind.Object)
+		{
+			return (null, info.TexCoord);
+		}
+
+		var transform = new DrTextureTransform();
+		int texCoord = info.TexCoord;
+
+		if (element.TryGetProperty("texCoord", out JsonElement texCoordElement))
+		{
+			if (texCoordElement.ValueKind != JsonValueKind.Number
+				|| !texCoordElement.TryGetInt32(out texCoord)
+				|| texCoord < 0)
+			{
+				throw new InvalidDataException(
+					"KHR_texture_transform has an invalid texCoord value.");
+			}
+		}
+
+		if (element.TryGetProperty("offset", out JsonElement offset))
+		{
+			transform.Offset = ReadTextureTransformVector2(offset, "offset");
+		}
+
+		if (element.TryGetProperty("rotation", out JsonElement rotation))
+		{
+			transform.Rotation = ReadTextureTransformScalar(rotation, "rotation");
+		}
+
+		if (element.TryGetProperty("scale", out JsonElement scale))
+		{
+			transform.Scale = ReadTextureTransformVector2(scale, "scale");
+		}
+
+		return (transform, texCoord);
+	}
+
+	private static Vector2 ReadTextureTransformVector2(
+		JsonElement element,
+		string name)
+	{
+		if (element.ValueKind != JsonValueKind.Array
+			|| element.GetArrayLength() != 2)
+		{
+			throw new InvalidDataException(
+				$"KHR_texture_transform {name} must be an array of two numbers.");
+		}
+
+		return new Vector2(
+			ReadTextureTransformScalar(element[0], name),
+			ReadTextureTransformScalar(element[1], name));
+	}
+
+	private static float ReadTextureTransformScalar(
+		JsonElement element,
+		string name)
+	{
+		if (element.ValueKind != JsonValueKind.Number
+			|| !element.TryGetSingle(out float value)
+			|| !float.IsFinite(value))
+		{
+			throw new InvalidDataException(
+				$"KHR_texture_transform {name} must contain finite numbers.");
+		}
+
+		return value;
 	}
 
 	private static DrAlphaMode ConvertAlphaMode(GltfMaterial.AlphaModeEnum alphaMode)

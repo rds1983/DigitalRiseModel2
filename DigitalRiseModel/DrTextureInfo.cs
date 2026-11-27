@@ -18,6 +18,12 @@ public sealed class DrTextureInfo
 	public int TexCoord { get; set; }
 
 	/// <summary>
+	/// Gets or sets the <c>KHR_texture_transform</c> applied to the texture
+	/// coordinates, or <see langword="null"/> when no transform is defined.
+	/// </summary>
+	public DrTextureTransform? TextureTransform { get; set; }
+
+	/// <summary>
 	/// Gets or sets the normal-map scale. This value is used only for normal textures.
 	/// </summary>
 	public float Scale { get; set; } = 1f;

@@ -36,6 +36,16 @@ internal sealed class PbrEffect
 	private readonly EffectParameter? _useUV1Normal;
 	private readonly EffectParameter _useUV1Occlusion;
 	private readonly EffectParameter _useUV1Emissive;
+	private readonly EffectParameter? _baseColorTransform;
+	private readonly EffectParameter? _baseColorRotation;
+	private readonly EffectParameter? _metallicRoughnessTransform;
+	private readonly EffectParameter? _metallicRoughnessRotation;
+	private readonly EffectParameter? _normalTransform;
+	private readonly EffectParameter? _normalRotation;
+	private readonly EffectParameter? _occlusionTransform;
+	private readonly EffectParameter? _occlusionRotation;
+	private readonly EffectParameter? _emissiveTransform;
+	private readonly EffectParameter? _emissiveRotation;
 	private readonly EffectParameter _debugView;
 	private readonly EffectParameter? _baseColorTexture;
 	private readonly EffectParameter? _metallicRoughnessTexture;
@@ -81,6 +91,16 @@ internal sealed class PbrEffect
 		_useUV1Normal = _effect.Parameters["UseUV1Normal"];
 		_useUV1Occlusion = _effect.Parameters["UseUV1Occlusion"];
 		_useUV1Emissive = _effect.Parameters["UseUV1Emissive"];
+		_baseColorTransform = _effect.Parameters["BaseColorTransform"];
+		_baseColorRotation = _effect.Parameters["BaseColorRotation"];
+		_metallicRoughnessTransform = _effect.Parameters["MetallicRoughnessTransform"];
+		_metallicRoughnessRotation = _effect.Parameters["MetallicRoughnessRotation"];
+		_normalTransform = _effect.Parameters["NormalTransform"];
+		_normalRotation = _effect.Parameters["NormalRotation"];
+		_occlusionTransform = _effect.Parameters["OcclusionTransform"];
+		_occlusionRotation = _effect.Parameters["OcclusionRotation"];
+		_emissiveTransform = _effect.Parameters["EmissiveTransform"];
+		_emissiveRotation = _effect.Parameters["EmissiveRotation"];
 		_debugView = _effect.Parameters["DebugView"];
 		_baseColorTexture = FindTextureParameter(_effect, "BaseColorTexture");
 		_metallicRoughnessTexture = FindTextureParameter(_effect, "MetallicRoughnessTexture");
@@ -204,11 +224,53 @@ internal sealed class PbrEffect
 		_useUV1Normal?.SetValue(material?.NormalTexture is { TexCoord: 1 } ? 1f : 0f);
 		_useUV1Occlusion.SetValue(material?.OcclusionTexture is { TexCoord: 1 } ? 1f : 0f);
 		_useUV1Emissive.SetValue(material?.EmissiveTexture is { TexCoord: 1 } ? 1f : 0f);
+		SetTextureTransform(
+			_baseColorTransform,
+			_baseColorRotation,
+			material?.BaseColorTexture);
+		SetTextureTransform(
+			_metallicRoughnessTransform,
+			_metallicRoughnessRotation,
+			material?.MetallicRoughnessTexture);
+		SetTextureTransform(
+			_normalTransform,
+			_normalRotation,
+			material?.NormalTexture);
+		SetTextureTransform(
+			_occlusionTransform,
+			_occlusionRotation,
+			material?.OcclusionTexture);
+		SetTextureTransform(
+			_emissiveTransform,
+			_emissiveRotation,
+			material?.EmissiveTexture);
 		_baseColorTexture?.SetValue(baseColorTexture ?? fallbackTexture);
 		_metallicRoughnessTexture?.SetValue(metallicRoughnessTexture ?? fallbackTexture);
 		_normalTexture?.SetValue(normalTexture ?? fallbackTexture);
 		_occlusionTexture?.SetValue(occlusionTexture ?? fallbackTexture);
 		_emissiveTexture?.SetValue(emissiveTexture ?? fallbackTexture);
+	}
+
+	private static void SetTextureTransform(
+		EffectParameter? transformParameter,
+		EffectParameter? rotationParameter,
+		DrTextureInfo? texture)
+	{
+		DrTextureTransform? transform = texture?.TextureTransform;
+
+		if (transform is null)
+		{
+			transformParameter?.SetValue(new Vector4(0f, 0f, 1f, 1f));
+			rotationParameter?.SetValue(0f);
+			return;
+		}
+
+		transformParameter?.SetValue(new Vector4(
+			transform.Offset.X,
+			transform.Offset.Y,
+			transform.Scale.X,
+			transform.Scale.Y));
+		rotationParameter?.SetValue(transform.Rotation);
 	}
 
 	private static EffectParameter? FindTextureParameter(Effect effect, string textureName)

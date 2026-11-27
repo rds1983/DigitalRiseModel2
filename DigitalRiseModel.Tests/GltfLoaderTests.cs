@@ -83,6 +83,7 @@ public sealed class GltfLoaderTests
 		Assert.NotNull(red.BaseColorTexture);
 		Assert.Equal(0, red.BaseColorTexture!.TextureIndex);
 		Assert.Equal(1, red.BaseColorTexture.TexCoord);
+		Assert.Null(red.BaseColorTexture.TextureTransform);
 		Assert.Null(red.BaseColorTexture.Texture);
 		Assert.NotNull(red.NormalTexture);
 		Assert.Equal(0.5f, red.NormalTexture!.Scale, 5);
@@ -104,6 +105,23 @@ public sealed class GltfLoaderTests
 
 		Assert.Equal(new Vector3(0.1f, 0.2f, 0.3f), material.EmissiveFactor);
 		Assert.Equal(4f, material.EmissiveStrength, 5);
+	}
+
+	[Fact]
+	public void Load_TextureTransformExtension_ReadsTransformAndTexCoord()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("texture-transform.gltf"));
+		DrModelMeshPart part = Assert.Single(Assert.Single(model.Meshes).MeshParts);
+		DrMaterial material = Assert.IsType<DrMaterial>(part.Material);
+		DrTextureInfo texture = Assert.IsType<DrTextureInfo>(
+			material.BaseColorTexture);
+		DrTextureTransform transform = Assert.IsType<DrTextureTransform>(
+			texture.TextureTransform);
+
+		Assert.Equal(1, texture.TexCoord);
+		Assert.Equal(new Vector2(0.1f, 0.2f), transform.Offset);
+		Assert.Equal(0.5f, transform.Rotation, 5);
+		Assert.Equal(new Vector2(2f, 3f), transform.Scale);
 	}
 
 	[Fact]
