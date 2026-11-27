@@ -77,9 +77,10 @@ public sealed class DrModelMesh : IDisposable
 	public string Name { get; set; } = string.Empty;
 
 	/// <summary>
-	/// Gets or sets the bone that controls the position of this mesh.
+	/// Gets the bone that controls the position of this mesh. Set this through
+	/// <see cref="DrModelBone.Mesh"/> to keep both references synchronized.
 	/// </summary>
-	public DrModelBone? ParentBone { get; set; }
+	public DrModelBone? ParentBone { get; internal set; }
 
 	/// <summary>
 	/// Gets or sets an object that identifies this mesh.

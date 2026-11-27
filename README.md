@@ -10,7 +10,6 @@ The current foundation contains:
 - `DrModelBone`
 - `DrModelMesh`
 - `DrModelMeshPart`
-- `DrModelBoneCollection`
 - `DrModelMeshCollection`
 
 The `Dr` prefix keeps these types distinct from MonoGame's own `Model`, `ModelMesh` and `ModelMeshPart` classes while preserving familiar XNA member names and behavior.
@@ -34,11 +33,10 @@ All model types live in the root namespace `DigitalRiseModel`.
 
 | Type | Purpose |
 | --- | --- |
-| `DrModel` | A model composed of bones and meshes; bone transform helpers |
-| `DrModelBone` | A bone with a local transform, parent and children |
+| `DrModel` | A model composed of a bone array and meshes; bone transform helpers |
+| `DrModelBone` | A bone with a name, optional mesh, local transform, parent, children array and tag |
 | `DrModelMesh` | A mesh with a cached, on-demand bounding sphere, parent bone and parts |
 | `DrModelMeshPart` | A draw range with vertex/index buffers, counts, a bounding sphere and an owning-mesh back-reference |
-| `DrModelBoneCollection` | Read-only bone collection with name lookup |
 | `DrModelMeshCollection` | Read-only mesh collection with name lookup |
 
 `DrModelMeshPart` stores the MonoGame `VertexBuffer` and `IndexBuffer` references plus the range to draw. Effects, materials and draw calls belong to your renderer.
@@ -51,10 +49,9 @@ All model types live in the root namespace `DigitalRiseModel`.
 using DigitalRiseModel;
 using Microsoft.Xna.Framework;
 
-var rootBone = new DrModelBone
+var rootBone = new DrModelBone("Root")
 {
     Index = 0,
-    Name = "Root",
     Transform = Matrix.Identity
 };
 
@@ -70,9 +67,10 @@ var part = new DrModelMeshPart
 
 var mesh = new DrModelMesh(new[] { part })
 {
-    Name = "Body",
-    ParentBone = rootBone
+    Name = "Body"
 };
+
+rootBone.Mesh = mesh;
 
 var model = new DrModel(new[] { rootBone }, new[] { mesh })
 {
@@ -83,7 +81,7 @@ var model = new DrModel(new[] { rootBone }, new[] { mesh })
 Bone transforms can be read and written in bulk, just like XNA:
 
 ```csharp
-var absoluteTransforms = new Matrix[model.Bones.Count];
+var absoluteTransforms = new Matrix[model.Bones.Length];
 model.CopyAbsoluteBoneTransformsTo(absoluteTransforms);
 
 model.CopyBoneTransformsFrom(animatedLocalTransforms);
@@ -114,7 +112,7 @@ Samples/                             # one folder per sample (planned)
 3. **XNA-shaped, independently implemented.** The public shape follows the XNA 4.0 model classes, but the implementation is written for this project and does not copy upstream source.
 4. **Render-ready, not rendering.** The library produces model data and bone transforms; the developer decides how and when to render.
 5. **Fail loudly.** Invalid bone ordering and other setup errors throw descriptive exceptions.
-6. **Read-only where mutation is not intended.** Bone and mesh collections are read-only; `DrModelMesh.MeshParts` is a simple settable array.
+6. **Simple arrays where order and ownership are explicit.** `DrModel.Bones`, `DrModelBone.Children` and `DrModelMesh.MeshParts` are arrays. `DrModel.Meshes` remains a read-only collection.
 7. **Stay deterministic.** Bone transform ordering and name lookup have stable, documented behavior.
 8. **Test the data side.** Unit tests must not require a window or GPU device.
 

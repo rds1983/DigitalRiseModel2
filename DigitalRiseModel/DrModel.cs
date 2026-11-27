@@ -8,7 +8,7 @@ namespace DigitalRiseModel;
 /// </summary>
 public sealed class DrModel
 {
-	private readonly List<DrModelBone> _bones;
+	private readonly DrModelBone[] _bones;
 	private readonly List<DrModelMesh> _meshes;
 
 	/// <summary>
@@ -24,12 +24,14 @@ public sealed class DrModel
 		ArgumentNullException.ThrowIfNull(bones);
 		ArgumentNullException.ThrowIfNull(meshes);
 
-		_bones = new List<DrModelBone>(bones.Count);
+		var boneList = new List<DrModelBone>(bones.Count);
 		foreach (DrModelBone bone in bones)
 		{
 			ArgumentNullException.ThrowIfNull(bone);
-			_bones.Add(bone);
+			boneList.Add(bone);
 		}
+
+		_bones = boneList.ToArray();
 
 		_meshes = new List<DrModelMesh>(meshes.Count);
 		foreach (DrModelMesh mesh in meshes)
@@ -38,7 +40,7 @@ public sealed class DrModel
 			_meshes.Add(mesh);
 		}
 
-		Bones = new DrModelBoneCollection(_bones);
+		Bones = _bones;
 		Meshes = new DrModelMeshCollection(_meshes);
 
 		foreach (DrModelBone bone in _bones)
@@ -54,7 +56,7 @@ public sealed class DrModel
 	/// <summary>
 	/// Gets the bones of this model.
 	/// </summary>
-	public DrModelBoneCollection Bones { get; }
+	public DrModelBone[] Bones { get; }
 
 	/// <summary>
 	/// Gets the meshes of this model.
@@ -84,7 +86,7 @@ public sealed class DrModel
 	{
 		ArgumentNullException.ThrowIfNull(destinationBoneTransforms);
 
-		if (destinationBoneTransforms.Length < Bones.Count)
+		if (destinationBoneTransforms.Length < Bones.Length)
 		{
 			throw new ArgumentOutOfRangeException(
 				nameof(destinationBoneTransforms),
@@ -92,7 +94,7 @@ public sealed class DrModel
 				"The destination array must be at least as long as the bone collection.");
 		}
 
-		for (int i = 0; i < Bones.Count; i++)
+		for (int i = 0; i < Bones.Length; i++)
 		{
 			DrModelBone bone = Bones[i];
 
@@ -125,7 +127,7 @@ public sealed class DrModel
 	{
 		ArgumentNullException.ThrowIfNull(sourceBoneTransforms);
 
-		if (sourceBoneTransforms.Length < Bones.Count)
+		if (sourceBoneTransforms.Length < Bones.Length)
 		{
 			throw new ArgumentOutOfRangeException(
 				nameof(sourceBoneTransforms),
@@ -133,7 +135,7 @@ public sealed class DrModel
 				"The source array must be at least as long as the bone collection.");
 		}
 
-		for (int i = 0; i < Bones.Count; i++)
+		for (int i = 0; i < Bones.Length; i++)
 		{
 			Bones[i].Transform = sourceBoneTransforms[i];
 		}
@@ -151,7 +153,7 @@ public sealed class DrModel
 	{
 		ArgumentNullException.ThrowIfNull(destinationBoneTransforms);
 
-		if (destinationBoneTransforms.Length < Bones.Count)
+		if (destinationBoneTransforms.Length < Bones.Length)
 		{
 			throw new ArgumentOutOfRangeException(
 				nameof(destinationBoneTransforms),
@@ -159,7 +161,7 @@ public sealed class DrModel
 				"The destination array must be at least as long as the bone collection.");
 		}
 
-		for (int i = 0; i < Bones.Count; i++)
+		for (int i = 0; i < Bones.Length; i++)
 		{
 			destinationBoneTransforms[i] = Bones[i].Transform;
 		}
