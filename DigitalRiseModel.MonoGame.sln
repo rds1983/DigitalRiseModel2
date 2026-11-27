@@ -7,6 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigitalRiseModel.MonoGame",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigitalRiseModel.MonoGame.Tests", "DigitalRiseModel.Tests\DigitalRiseModel.MonoGame.Tests.csproj", "{E79151D7-BD62-48B0-B232-91378EB71A12}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{5D20AA90-6969-D8BD-9DCD-8634F4692FDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigitalRiseModel.Viewer", "Samples\DigitalRiseModel.Viewer\DigitalRiseModel.Viewer.csproj", "{823AA583-44CA-44BF-984A-C494E1F74E19}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DigitalRiseModel", "DigitalRiseModel", "{107190CE-4E75-70F1-349F-E3D48B66EBD0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,8 +47,23 @@ Global
 		{E79151D7-BD62-48B0-B232-91378EB71A12}.Release|x64.Build.0 = Release|Any CPU
 		{E79151D7-BD62-48B0-B232-91378EB71A12}.Release|x86.ActiveCfg = Release|Any CPU
 		{E79151D7-BD62-48B0-B232-91378EB71A12}.Release|x86.Build.0 = Release|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Debug|x64.Build.0 = Debug|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Debug|x86.Build.0 = Debug|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Release|x64.ActiveCfg = Release|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Release|x64.Build.0 = Release|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Release|x86.ActiveCfg = Release|Any CPU
+		{823AA583-44CA-44BF-984A-C494E1F74E19}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{823AA583-44CA-44BF-984A-C494E1F74E19} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 	EndGlobalSection
 EndGlobal

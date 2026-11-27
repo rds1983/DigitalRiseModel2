@@ -118,6 +118,22 @@ The loader:
 
 Animations are not loaded yet. Sparse accessors and non-triangle primitive modes throw `NotSupportedException`.
 
+## Viewer
+
+`Samples/DigitalRiseModel.Viewer` is a small MonoGame window viewer that loads a glTF model through `AssetManager` and renders it with stock effects.
+
+```bash
+dotnet run --project Samples/DigitalRiseModel.Viewer -- "path/to/model.glb"
+```
+
+Controls:
+
+- Left-drag: orbit the camera.
+- Mouse wheel: zoom.
+- Escape: exit.
+
+Non-skinned parts use `BasicEffect`; parts with skin data use `SkinnedEffect`. Materials, base-color textures and double-sided/alpha-blend state are applied from `DrMaterial`.
+
 ## Repository layout
 
 ```text
@@ -131,8 +147,8 @@ DigitalRiseModel/
   Gltf/                              # DigitalRiseModel.Gltf (loader)
 DigitalRiseModel.Tests/              # xUnit tests
 docfx/                               # DocFX configuration, articles and API output
-Samples/                             # one folder per sample (planned)
-  <SampleName>/
+Samples/
+  DigitalRiseModel.Viewer/           # MonoGame glTF viewer
 .config/dotnet-tools.json            # local DocFX tool manifest
 ```
 
@@ -198,7 +214,8 @@ The site includes a getting-started guide, model-data concepts and the generated
 - [ ] Import/export: OBJ and a versioned native format.
 - [ ] Animation: clips, sampling and blending.
 - [x] DocFX documentation site with guides and API reference.
-- [ ] Runnable samples.
+- [x] Runnable MonoGame viewer sample.
+- [ ] Additional samples and tooling.
 
 ## Contributing
 
