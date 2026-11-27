@@ -1,19 +1,25 @@
 using AssetManagementBase;
+using DigitalRiseModel.Viewer.Graphics;
+using DigitalRiseModel.Viewer.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Myra;
+using Myra.Graphics2D;
+using Myra.Graphics2D.UI;
 
 namespace DigitalRiseModel.Viewer;
 
 internal sealed class ViewerGame : Game
 {
 	private readonly string _modelPath;
-	private readonly List<Drawable> _drawables = [];
-	private Matrix[] _absoluteBoneTransforms = [];
 
 	private AssetManager? _assetManager;
 	private DrModel? _model;
-	private Texture2D? _whiteTexture;
+	private Renderer? _renderer;
+	private Desktop? _desktop;
+	private ControlsPanel? _controlsPanel;
+
 	private BoundingSphere _bounds;
 	private Vector3 _target;
 	private float _cameraDistance = 1f;
@@ -28,6 +34,7 @@ internal sealed class ViewerGame : Game
 	public ViewerGame(string modelPath)
 	{
 		_modelPath = modelPath;
+		MyraEnvironment.Game = this;
 
 		_ = new GraphicsDeviceManager(this)
 		{
@@ -50,17 +57,9 @@ internal sealed class ViewerGame : Game
 
 		_assetManager = AssetManager.CreateFileAssetManager(directory);
 		_model = _assetManager.LoadDrModel(GraphicsDevice, fileName);
-		_absoluteBoneTransforms = new Matrix[_model.Bones.Length];
+		_renderer = new Renderer(GraphicsDevice, _model);
 
-		if (_model.Bones.Length > 0)
-		{
-			_model.CopyAbsoluteBoneTransformsTo(_absoluteBoneTransforms);
-		}
-
-		_whiteTexture = new Texture2D(GraphicsDevice, 1, 1);
-		_whiteTexture.SetData([Color.White]);
-
-		CreateDrawables();
+		CreateUI();
 		ResetCamera();
 		_previousMouse = Mouse.GetState();
 	}
@@ -76,7 +75,7 @@ internal sealed class ViewerGame : Game
 
 		MouseState mouse = Mouse.GetState();
 
-		if (mouse.LeftButton == ButtonState.Pressed)
+		if (mouse.LeftButton == ButtonState.Pressed && !IsMouseOverControls(mouse))
 		{
 			int dx = mouse.X - _previousMouse.X;
 			int dy = mouse.Y - _previousMouse.Y;
@@ -87,7 +86,7 @@ internal sealed class ViewerGame : Game
 
 		int scrollDelta = mouse.ScrollWheelValue - _previousMouse.ScrollWheelValue;
 
-		if (scrollDelta != 0)
+		if (scrollDelta != 0 && !IsMouseOverControls(mouse))
 		{
 			_cameraDistance *= MathF.Pow(0.9f, scrollDelta / 120f);
 			_cameraDistance = Math.Clamp(_cameraDistance, _minCameraDistance, _maxCameraDistance);
@@ -100,85 +99,38 @@ internal sealed class ViewerGame : Game
 
 	protected override void Draw(GameTime gameTime)
 	{
-		GraphicsDevice.Clear(new Color(28, 32, 40));
-
-		if (_model is null || _model.Bones.Length == 0)
+		if (_renderer is not null)
 		{
-			base.Draw(gameTime);
-			return;
-		}
+			Matrix view = Matrix.CreateLookAt(GetCameraPosition(), _target, Vector3.Up);
+			Matrix projection = Matrix.CreatePerspectiveFieldOfView(
+				MathHelper.PiOver4,
+				GraphicsDevice.Viewport.AspectRatio,
+				_nearPlane,
+				_farPlane);
 
-		_model.CopyAbsoluteBoneTransformsTo(_absoluteBoneTransforms);
-
-		Matrix view = Matrix.CreateLookAt(GetCameraPosition(), _target, Vector3.Up);
-		Matrix projection = Matrix.CreatePerspectiveFieldOfView(
-			MathHelper.PiOver4,
-			GraphicsDevice.Viewport.AspectRatio,
-			_nearPlane,
-			_farPlane);
-
-		foreach (Drawable drawable in _drawables)
-		{
-			DrModelMeshPart part = drawable.Part;
-
-			if (part.VertexBuffer is null || part.IndexBuffer is null)
+			_renderer.BeginFrame(view, projection);
+			try
 			{
-				continue;
+				_renderer.Clear(new Color(28, 32, 40));
+				_renderer.DrawModel();
 			}
-
-			DrMaterial? material = part.Material;
-			bool doubleSided = material?.DoubleSided == true;
-			bool alphaBlend = material?.AlphaMode == DrAlphaMode.Blend;
-
-			GraphicsDevice.RasterizerState = doubleSided
-				? RasterizerState.CullNone
-				: RasterizerState.CullCounterClockwise;
-			GraphicsDevice.BlendState = alphaBlend
-				? BlendState.AlphaBlend
-				: BlendState.Opaque;
-			GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-			GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
-
-			if (drawable.IsSkinned)
+			finally
 			{
-				var effect = (SkinnedEffect)drawable.Effect;
-				effect.World = Matrix.Identity;
-				effect.View = view;
-				effect.Projection = projection;
-			}
-			else
-			{
-				var effect = (BasicEffect)drawable.Effect;
-				effect.World = GetMeshWorld(part);
-				effect.View = view;
-				effect.Projection = projection;
-			}
-
-			GraphicsDevice.SetVertexBuffer(part.VertexBuffer);
-			GraphicsDevice.Indices = part.IndexBuffer;
-
-			foreach (EffectPass pass in drawable.Effect.CurrentTechnique.Passes)
-			{
-				pass.Apply();
-				GraphicsDevice.DrawIndexedPrimitives(
-					PrimitiveType.TriangleList,
-					part.VertexOffset,
-					part.StartIndex,
-					part.PrimitiveCount);
+				_renderer.EndFrame();
 			}
 		}
 
+		_desktop?.Render();
 		base.Draw(gameTime);
 	}
 
 	protected override void UnloadContent()
 	{
-		foreach (Drawable drawable in _drawables)
-		{
-			drawable.Effect.Dispose();
-		}
+		_desktop?.Dispose();
+		_desktop = null;
 
-		_drawables.Clear();
+		_renderer?.Dispose();
+		_renderer = null;
 
 		if (_model is not null)
 		{
@@ -188,106 +140,35 @@ internal sealed class ViewerGame : Game
 			}
 		}
 
-		_whiteTexture?.Dispose();
 		_assetManager?.Unload();
-
 		base.UnloadContent();
 	}
 
-	private void CreateDrawables()
+	private void CreateUI()
 	{
-		if (_model is null)
+		_desktop = new Desktop();
+
+		var root = new Panel();
+		_controlsPanel = new ControlsPanel
 		{
-			return;
-		}
-
-		foreach (DrModelMesh mesh in _model.Meshes)
-		{
-			foreach (DrModelMeshPart part in mesh.MeshParts)
-			{
-				if (part.VertexBuffer is null || part.IndexBuffer is null)
-				{
-					continue;
-				}
-
-				_drawables.Add(CreateDrawable(part));
-			}
-		}
-	}
-
-	private Drawable CreateDrawable(DrModelMeshPart part)
-	{
-		Texture2D? texture = part.Material?.BaseColorTexture?.Texture;
-		Vector4 color = part.Material?.BaseColorFactor ?? Vector4.One;
-		VertexDeclaration declaration = part.VertexDeclaration
-			?? part.VertexBuffer!.VertexDeclaration;
-
-		bool hasNormals = HasElement(declaration, VertexElementUsage.Normal);
-		Matrix[]? boneTransforms = CreateBoneTransforms(part);
-		bool isSkinned = boneTransforms is not null
-			&& HasElement(declaration, VertexElementUsage.BlendIndices)
-			&& HasElement(declaration, VertexElementUsage.BlendWeight);
-
-		if (isSkinned)
-		{
-			var effect = new SkinnedEffect(GraphicsDevice)
-			{
-				DiffuseColor = new Vector3(color.X, color.Y, color.Z),
-				Alpha = color.W,
-				Texture = texture ?? _whiteTexture!,
-				PreferPerPixelLighting = true,
-				World = Matrix.Identity
-			};
-
-			effect.SetBoneTransforms(boneTransforms!);
-			return new Drawable(part, effect, true);
-		}
-
-		var basicEffect = new BasicEffect(GraphicsDevice)
-		{
-			DiffuseColor = new Vector3(color.X, color.Y, color.Z),
-			Alpha = color.W,
-			LightingEnabled = hasNormals,
-			TextureEnabled = texture is not null,
-			Texture = texture,
-			PreferPerPixelLighting = true
+			HorizontalAlignment = HorizontalAlignment.Left,
+			VerticalAlignment = VerticalAlignment.Top,
+			Margin = new Thickness(8)
 		};
 
-		return new Drawable(part, basicEffect, false);
+		root.Widgets.Add(_controlsPanel);
+		_desktop.Root = root;
 	}
 
-	private Matrix[]? CreateBoneTransforms(DrModelMeshPart part)
+	private bool IsMouseOverControls(MouseState mouse)
 	{
-		DrSkin? skin = part.Skin;
-
-		if (skin is null
-			|| skin.Joints.Length == 0
-			|| skin.Joints.Length > SkinnedEffect.MaxBones
-			|| skin.InverseBindMatrices.Length != skin.Joints.Length)
-		{
-			return null;
-		}
-
-		var transforms = new Matrix[skin.Joints.Length];
-
-		for (int i = 0; i < transforms.Length; i++)
-		{
-			int boneIndex = skin.Joints[i].Index;
-
-			if ((uint)boneIndex >= (uint)_absoluteBoneTransforms.Length)
-			{
-				return null;
-			}
-
-			transforms[i] = skin.InverseBindMatrices[i] * _absoluteBoneTransforms[boneIndex];
-		}
-
-		return transforms;
+		return _controlsPanel is not null
+			&& _controlsPanel.Bounds.Contains(new Point(mouse.X, mouse.Y));
 	}
 
 	private void ResetCamera()
 	{
-		_bounds = ComputeBounds();
+		_bounds = _renderer?.ComputeBounds() ?? default;
 
 		if (_bounds.Radius <= 0f)
 		{
@@ -312,46 +193,6 @@ internal sealed class ViewerGame : Game
 		_pitch = -0.25f;
 	}
 
-	private BoundingSphere ComputeBounds()
-	{
-		BoundingSphere result = default;
-		bool hasBounds = false;
-
-		if (_model is null)
-		{
-			return result;
-		}
-
-		foreach (DrModelMesh mesh in _model.Meshes)
-		{
-			Matrix meshTransform = mesh.ParentBone is { } parentBone
-				&& (uint)parentBone.Index < (uint)_absoluteBoneTransforms.Length
-				? _absoluteBoneTransforms[parentBone.Index]
-				: Matrix.Identity;
-
-			foreach (DrModelMeshPart part in mesh.MeshParts)
-			{
-				BoundingSphere sphere = part.BoundingSphere.Transform(meshTransform);
-				result = hasBounds
-					? BoundingSphere.CreateMerged(result, sphere)
-					: sphere;
-				hasBounds = true;
-			}
-		}
-
-		return result;
-	}
-
-	private Matrix GetMeshWorld(DrModelMeshPart part)
-	{
-		DrModelBone? parentBone = part.Mesh?.ParentBone;
-
-		return parentBone is not null
-			&& (uint)parentBone.Index < (uint)_absoluteBoneTransforms.Length
-			? _absoluteBoneTransforms[parentBone.Index]
-			: Matrix.Identity;
-	}
-
 	private Vector3 GetCameraPosition()
 	{
 		float cosPitch = MathF.Cos(_pitch);
@@ -362,34 +203,5 @@ internal sealed class ViewerGame : Game
 			_cameraDistance * cosPitch * MathF.Cos(_yaw));
 
 		return _target + offset;
-	}
-
-	private static bool HasElement(VertexDeclaration declaration, VertexElementUsage usage)
-	{
-		foreach (VertexElement element in declaration.GetVertexElements())
-		{
-			if (element.VertexElementUsage == usage)
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private sealed class Drawable
-	{
-		public Drawable(DrModelMeshPart part, Effect effect, bool isSkinned)
-		{
-			Part = part;
-			Effect = effect;
-			IsSkinned = isSkinned;
-		}
-
-		public DrModelMeshPart Part { get; }
-
-		public Effect Effect { get; }
-
-		public bool IsSkinned { get; }
 	}
 }

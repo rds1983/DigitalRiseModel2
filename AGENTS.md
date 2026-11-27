@@ -134,6 +134,9 @@ Rules:
 
 - Each sample is a separate runnable MonoGame project at the repository root and references the library project.
 - `DigitalRiseModel.Viewer` takes one glTF/GLB path argument and renders with stock effects. It is packaged as the `drm-viewer` tool (`PackAsTool`, `ToolCommandName=drm-viewer`). Keep it runnable and packable with the current public API.
+- Keep low-level 3D rendering in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`: effects, device state, lighting, draw calls and counters. `ViewerGame` owns model loading, camera input, bounds and Myra UI. The viewer draws with culling disabled so auto-framed single-sided scenes remain visible.
+- The viewer UI is Myra. Edit `DigitalRiseModel.Viewer/UI/ControlsPanel.xmmp`, then regenerate `ControlsPanel.cs` and `ControlsPanel.Generated.cs` with `myra-export`; do not hand-edit the generated files.
+- The viewer uses Myra `1.6.8` in addition to the library dependencies.
 - Samples must compile and run with the current API; update them when the API changes.
 - Public API changes require matching XML docs and, when user-visible behavior changes, a README or DocFX update.
 - Keep README claims honest: mark unimplemented features as planned, not shipped.

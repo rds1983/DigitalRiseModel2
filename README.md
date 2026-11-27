@@ -140,7 +140,16 @@ Controls:
 - Mouse wheel: zoom.
 - Escape: exit.
 
-Non-skinned parts use `BasicEffect`; parts with skin data use `SkinnedEffect`. Materials, base-color textures and double-sided/alpha-blend state are applied from `DrMaterial`.
+The controls block is a Myra `VerticalStackPanel` authored in `DigitalRiseModel.Viewer/UI/ControlsPanel.xmmp` and exported to C# with `myra-export`:
+
+```bash
+myra-export DigitalRiseModel.Viewer/UI/ControlsPanel.xmmp \
+  --namespace DigitalRiseModel.Viewer.UI \
+  --class ControlsPanel \
+  --output DigitalRiseModel.Viewer/UI
+```
+
+Low-level 3D drawing lives in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`. The renderer owns the stock effects, device state, lighting, mesh traversal and draw calls; `ViewerGame` handles loading, camera input, bounds and the Myra UI. Backface culling is disabled so single-sided rooms and scenes remain visible when the automatic camera is outside them.
 
 ## Repository layout
 
@@ -176,6 +185,7 @@ docfx/                               # DocFX configuration, articles and API out
 - MonoGame `MonoGame.Framework.DesktopGL` 3.8.6.1 (managed through NuGet)
 - Khronos `glTF2Loader` 2.0.0 (managed through NuGet)
 - `XNAssets.MonoGame` 0.8.9 (managed through NuGet)
+- `Myra` 1.6.8 for the viewer UI
 - An IDE or CLI that can build a `.sln`
 
 ## Build and test
