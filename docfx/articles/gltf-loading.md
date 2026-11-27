@@ -57,6 +57,7 @@ This fills `DrModelMeshPart.SourceIndices` and `DrModelMeshPart.SourceVertices`;
 - Metallic-roughness materials as `DrMaterial` with `DrTextureInfo` references.
 - Textures as `Texture2D` in `DrTextureInfo.Texture`.
 - Node skins as `DrSkin`, assigned to the parts of that node's mesh.
+- Animation clips as `AnimationClip` instances in `DrModel.Animations`.
 
 ## Vertex layout
 
@@ -107,9 +108,39 @@ External image files are loaded with `AssetManager.LoadTexture2D`; embedded imag
 
 A glTF skin belongs to a node, so it is assigned to every part of that node's mesh.
 
+## Animations
+
+`DrModel.Animations` maps clip names to `DigitalRiseModel.Animation.AnimationClip` values. Each clip contains:
+
+- `Name` — the glTF animation name, or `Animation{n}` when omitted.
+- `Duration` — the largest keyframe time in seconds across its channels.
+- `Channels` — one channel per animated bone.
+
+Each `AnimationChannel` contains:
+
+- `BoneIndex` — the index of the animated bone in `DrModel.Bones`.
+- `Keyframes` — `AnimationChannelKeyframe` values with a `TimeSpan` time and a complete `SrtTransform` pose.
+- `TranslationInterpolation`, `RotationInterpolation`, `ScaleInterpolation` — the glTF interpolation mode per component (`Step`, `Linear` or `CubicSpline`).
+
+glTF translation, rotation and scale tracks are merged into one keyframe array per bone. The loader collects the union of all key times for that bone and samples each track at every time. Rotation uses shortest-path slerp for linear interpolation; cubic spline tracks use the glTF in-tangent, value and out-tangent layout. Components without a track use the bone's local transform, so a rotation-only clip does not reset translation or scale.
+
+```csharp
+DrModel model = assets.LoadDrModel(graphicsDevice, "models/robot.glb");
+
+if (model.Animations.TryGetValue("Walk", out AnimationClip clip))
+{
+    AnimationChannel channel = clip.Channels[0];
+    DrModelBone bone = model.Bones[channel.BoneIndex];
+    SrtTransform pose = channel.Keyframes[0].Pose;
+}
+```
+
+The loader is data-only: it does not modify bone transforms or drive playback. Playback is the caller's responsibility.
+
+Duplicate clip names are made unique by appending `_1`, `_2`, and so on. A channel that targets a node outside the loaded scene is rejected with `InvalidDataException`. Morph target weight animation is not supported and throws `NotSupportedException`.
+
 ## Limitations
 
-- Animations are not loaded.
 - Sparse accessors are not supported.
 - Non-triangle primitive modes are not supported.
 - Texture samplers are not represented.

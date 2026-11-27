@@ -13,10 +13,11 @@ The current foundation contains:
 - `DrMaterial`
 - `DrSkin`
 - `DrTextureInfo`
+- `AnimationClip`
 
 glTF 2.0 loading is available through the recursive `AssetManager.LoadDrModel(device, path)` extension. The `Dr` prefix keeps these types distinct from MonoGame's own `Model`, `ModelMesh` and `ModelMeshPart` classes while preserving familiar XNA member names and behavior.
 
-> **Status:** foundational data classes and glTF 2.0 loading are implemented and covered by unit tests. Animations, OBJ import, mesh processing and serialization are planned.
+> **Status:** foundational data classes and glTF 2.0 loading, including animation clips, are implemented and covered by unit tests. Animation sampling, OBJ import, mesh processing and serialization are planned.
 
 ## Why Dr-prefixed model classes?
 
@@ -27,7 +28,7 @@ MonoGame already ships the XNA `Model` API. This library adds a parallel, data-f
 - **No rendering API.** There is no `Draw`, `Effect`, `GraphicsDevice`, shader or render-state surface in the model classes.
 - **Bone hierarchy.** Absolute and relative bone transform copying matches XNA semantics.
 - **Simple part storage.** `DrModelMesh.MeshParts` is a `DrModelMeshPart[]` property; its setter clears the old parts' `Mesh` references and sets the new ones.
-- **glTF 2.0 import.** Khronos `glTF2Loader` reads `.gltf` and `.glb`; meshes, materials, scenes, bones and skins are converted to Dr types.
+- **glTF 2.0 import.** Khronos `glTF2Loader` reads `.gltf` and `.glb`; meshes, materials, scenes, bones, skins and animation clips are converted to Dr types.
 - **Testable.** All data-side behavior can be tested without a window.
 
 ## Current API
@@ -43,6 +44,10 @@ Model types live in the root namespace `DigitalRiseModel`. glTF loading is expos
 | `DrMaterial` | Metallic-roughness material data, including texture references and alpha mode |
 | `DrTextureInfo` | A texture index, UV set, normal scale, occlusion strength and loaded `Texture2D` |
 | `DrSkin` | Joints, skeleton root and inverse bind matrices |
+| `SrtTransform` | A scale, rotation and translation pose with value equality |
+| `AnimationClip` | A full clip: name, duration, channels and tag |
+| `AnimationChannel` | A bone index, keyframes and per-path interpolation modes |
+| `AnimationChannelKeyframe` | A keyframe time and complete `SrtTransform` pose |
 | `ModelLoadFlags` | Loading options; readable buffers and source geometry for debug/testing |
 | `DrModelAssetManagerExtensions` | `AssetManager.LoadDrModel(device, path)` glTF loading |
 
@@ -136,9 +141,10 @@ The loader:
 - Converts metallic-roughness materials to `DrMaterial` and texture references to `DrTextureInfo`.
 - Loads referenced textures through XNAssets and assigns them to `DrTextureInfo.Texture`.
 - Converts node skins to `DrSkin` and assigns them to the node mesh's parts.
+- Converts glTF animations to `AnimationClip` instances in `DrModel.Animations`.
 - Loads triangle lists, triangle strips and triangle fans.
 
-Animations are not loaded yet. Sparse accessors and non-triangle primitive modes throw `NotSupportedException`.
+Animation clips are data-only. Each `AnimationChannel` references a bone by index and contains `AnimationChannelKeyframe` values with a `TimeSpan` time and a complete `SrtTransform` pose. glTF translation, rotation and scale tracks are merged and resampled at the union of their key times, using `Step`, `Linear` (slerp for rotation) or `CubicSpline` interpolation. Unanimated components use the bone's local transform. Morph target weight animation is not supported. Sampling and blending are left to the renderer. Duplicate clip names are made unique with `_1`, `_2`, and so on. Sparse accessors and non-triangle primitive modes throw `NotSupportedException`.
 
 ## Viewer
 
@@ -250,10 +256,10 @@ The site includes a getting-started guide, model-data concepts and the generated
 - [x] Solution, library project and xUnit test project.
 - [x] XNA-shaped `DrModel` data object graph and collections.
 - [x] Bone transform copy helpers.
-- [x] glTF 2.0 import: scenes, meshes, materials and skins (no animations).
+- [x] glTF 2.0 import: scenes, meshes, materials, skins and animation clips.
 - [ ] Mesh processing: normals, tangents, vertex welding, optimization, simplification.
 - [ ] Import/export: OBJ and a versioned native format.
-- [ ] Animation: clips, sampling and blending.
+- [ ] Animation sampling, blending and playback helpers.
 - [x] DocFX documentation site with guides and API reference.
 - [x] MonoGame viewer packaged as the `drm-viewer` .NET tool.
 - [ ] Additional samples and tooling.

@@ -22,11 +22,12 @@ namespace DigitalRiseModel.Gltf;
 /// <c>glTF2Loader</c> library.
 /// </summary>
 /// <remarks>
-/// Animations are not loaded. Only triangle lists, triangle strips and triangle fans are
-/// supported. Vertex buffers use a dynamic declaration generated from the primitive's
-/// glTF attributes, including multiple texture coordinate and color sets.
+/// Animation clips are loaded as raw keyframes into <see cref="DrModel.Animations"/>; the
+/// loader does not sample or apply them. Only triangle lists, triangle strips and triangle
+/// fans are supported. Vertex buffers use a dynamic declaration generated from the
+/// primitive's glTF attributes, including multiple texture coordinate and color sets.
 /// </remarks>
-internal static class GltfLoader
+internal static partial class GltfLoader
 {
 	internal static DrModel Load(
 		AssetManager assetManager,
@@ -240,7 +241,12 @@ internal static class GltfLoader
 				bufferCache);
 		}
 
-		return new DrModel(rootBone);
+		var model = new DrModel(rootBone)
+		{
+			Animations = ConvertAnimations(document, nodeBones, bufferProvider, bufferCache)
+		};
+
+		return model;
 	}
 
 	private static DrMaterial[] ConvertMaterials(

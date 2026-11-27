@@ -10,6 +10,9 @@ Small, generated glTF 2.0 files used by `GltfLoaderTests`. They are checked in s
 | `two-uvs.gltf` | Positions, normals and two texture coordinate sets |
 | `skinned.gltf` | Two-bone hierarchy, `JOINTS_0`, `WEIGHTS_0`, an identity inverse bind matrix |
 | `materials.gltf` | Two primitives, two materials, texture references, alpha mask |
+| `animated-translation.gltf` | One node animated with a linear translation clip (`Move`) |
+| `animated-duplicate-names.gltf` | Two animations with the same name targeting different nodes |
+| `animated-resampled.gltf` | Step translation and linear scale tracks with different key times on one bone |
 | `white.png` | 1×1 white PNG referenced by `materials.gltf` |
 | `empty-scene.gltf` | Node hierarchy with no meshes; used for AssetManager tests |
 | `triangle-strip.gltf` | Four-vertex triangle strip that must convert to two triangles |

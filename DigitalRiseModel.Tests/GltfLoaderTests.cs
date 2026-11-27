@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using AssetManagementBase;
 using DigitalRiseModel;
+using DigitalRiseModel.Animation;
 using DigitalRiseModel.Gltf;
 using DigitalRiseModel.Vertices;
 using Microsoft.Xna.Framework;
@@ -318,6 +319,94 @@ public sealed class GltfLoaderTests
 	public void Load_NullPath_ThrowsArgumentNullException()
 	{
 		Assert.Throws<ArgumentNullException>(() => GltfLoader.Load((string)null!));
+	}
+
+	[Fact]
+	public void Load_AnimatedGltf_LoadsClip()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("animated-translation.gltf"));
+
+		AnimationClip clip = Assert.Single(model.Animations).Value;
+		Assert.Equal("Move", clip.Name);
+		Assert.Equal(1f, clip.Duration);
+		Assert.Equal("Move", Assert.Single(model.Animations).Key);
+	}
+
+	[Fact]
+	public void Load_AnimatedGltf_BakesTranslationKeyframes()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("animated-translation.gltf"));
+		AnimationClip clip = model.Animations["Move"];
+		AnimationChannel channel = Assert.Single(clip.Channels);
+
+		Assert.Equal("Bone", model.Bones[channel.BoneIndex].Name);
+		Assert.Equal(AnimationInterpolation.Linear, channel.TranslationInterpolation);
+		Assert.Equal(AnimationInterpolation.Linear, channel.RotationInterpolation);
+		Assert.Equal(AnimationInterpolation.Linear, channel.ScaleInterpolation);
+		Assert.Equal(2, channel.Keyframes.Length);
+
+		Assert.Equal(TimeSpan.Zero, channel.Keyframes[0].Time);
+		Assert.Equal(
+			new SrtTransform(Vector3.Zero, Quaternion.Identity, Vector3.One),
+			channel.Keyframes[0].Pose);
+
+		Assert.Equal(TimeSpan.FromSeconds(1), channel.Keyframes[1].Time);
+		Assert.Equal(
+			new SrtTransform(new Vector3(1, 2, 3), Quaternion.Identity, Vector3.One),
+			channel.Keyframes[1].Pose);
+	}
+
+	[Fact]
+	public void Load_AnimatedGltf_ResamplesMixedTracksAtUnionOfTimes()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("animated-resampled.gltf"));
+		AnimationClip clip = model.Animations["Mixed"];
+		AnimationChannel channel = Assert.Single(clip.Channels);
+
+		Assert.Equal(3f, clip.Duration);
+		Assert.Equal(AnimationInterpolation.Step, channel.TranslationInterpolation);
+		Assert.Equal(AnimationInterpolation.Linear, channel.RotationInterpolation);
+		Assert.Equal(AnimationInterpolation.Linear, channel.ScaleInterpolation);
+		Assert.Equal(4, channel.Keyframes.Length);
+
+		Assert.Equal(TimeSpan.Zero, channel.Keyframes[0].Time);
+		Assert.Equal(Vector3.Zero, channel.Keyframes[0].Pose.Translation);
+		Assert.Equal(Vector3.One, channel.Keyframes[0].Pose.Scale);
+
+		Assert.Equal(TimeSpan.FromSeconds(1), channel.Keyframes[1].Time);
+		Assert.Equal(Vector3.Zero, channel.Keyframes[1].Pose.Translation);
+		Assert.Equal(Vector3.One, channel.Keyframes[1].Pose.Scale);
+
+		Assert.Equal(TimeSpan.FromSeconds(2), channel.Keyframes[2].Time);
+		Assert.Equal(new Vector3(2, 0, 0), channel.Keyframes[2].Pose.Translation);
+		Assert.Equal(new Vector3(2, 2, 2), channel.Keyframes[2].Pose.Scale);
+
+		Assert.Equal(TimeSpan.FromSeconds(3), channel.Keyframes[3].Time);
+		Assert.Equal(new Vector3(2, 0, 0), channel.Keyframes[3].Pose.Translation);
+		Assert.Equal(new Vector3(3, 3, 3), channel.Keyframes[3].Pose.Scale);
+	}
+
+	[Fact]
+	public void Load_WithoutAnimations_ReturnsEmptyDictionary()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("triangle.gltf"));
+
+		Assert.Empty(model.Animations);
+	}
+
+	[Fact]
+	public void Load_DuplicateAnimationNames_GeneratesUniqueKeys()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("animated-duplicate-names.gltf"));
+
+		Assert.Equal(2, model.Animations.Count);
+		Assert.True(model.Animations.ContainsKey("Move"));
+		Assert.True(model.Animations.ContainsKey("Move_1"));
+
+		AnimationChannel first = Assert.Single(model.Animations["Move"].Channels);
+		AnimationChannel second = Assert.Single(model.Animations["Move_1"].Channels);
+		Assert.Equal("BoneA", model.Bones[first.BoneIndex].Name);
+		Assert.Equal("BoneB", model.Bones[second.BoneIndex].Name);
 	}
 
 	private static DrModelMeshPart LoadFirstPart(

@@ -1,3 +1,4 @@
+using DigitalRiseModel.Animation;
 using Microsoft.Xna.Framework;
 
 namespace DigitalRiseModel;
@@ -49,6 +50,11 @@ public sealed class DrModel
 	/// Gets or sets the root bone of this model.
 	/// </summary>
 	public DrModelBone? Root { get; set; }
+
+	/// <summary>
+	/// Gets or sets the animation clips of this model, keyed by clip name.
+	/// </summary>
+	public Dictionary<string, AnimationClip> Animations { get; set; } = new(StringComparer.Ordinal);
 
 	/// <summary>
 	/// Gets or sets an object that identifies or describes this model.

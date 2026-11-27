@@ -17,6 +17,7 @@ DigitalRiseModel/
   *.cs                                     # root model types at the project root
   Gltf/                                    # DigitalRiseModel.Gltf (internal loader)
   Vertices/                                # DigitalRiseModel.Vertices (VertexSkinned)
+  Animation/                               # DigitalRiseModel.Animation (clips, channels, samplers)
 DigitalRiseModel.Tests/                    # xUnit test project
 DigitalRiseModel.Viewer/                   # MonoGame glTF viewer and drm-viewer tool
 docfx/                                     # DocFX config and articles
@@ -28,6 +29,7 @@ LICENSE
 - Namespace root: `DigitalRiseModel`.
 - Model types use the `DigitalRiseModel` namespace. Library source files live directly in the project root; do not add a `code/` or `Graphics/` source subfolder.
 - glTF-specific types use the `DigitalRiseModel.Gltf` namespace and live under `Gltf/`.
+- Animation types use the `DigitalRiseModel.Animation` namespace and live under `Animation/`.
 - One public type per file, file name matches the type name.
 - Test sources live directly in `DigitalRiseModel.Tests/` and use the `DigitalRiseModel.Tests` namespace.
 
@@ -97,10 +99,12 @@ Rules:
 - `DrModel` is constructed from a non-null root bone. Its constructor traverses the hierarchy, collects bones and `DrModelBone.Mesh` references, and assigns sequential bone indices by default (`autoAssignIndices: true`).
 - `DrModelMeshPart` carries `DrMaterial` and `DrSkin` references. `DrMaterial` mirrors glTF metallic-roughness data; `DrSkin` mirrors glTF joint, skeleton and inverse-bind-matrix data.
 - `GltfLoader` is internal. Public glTF loading is `AssetManager.LoadDrModel(device, path)`, which must use `AssetManager.UseLoader` so buffers and textures resolve recursively relative to the model asset. Do not expose `GltfLoader` publicly.
-- `GltfLoader` uses Khronos `glTF2Loader` for parsing only. Decode accessors and create buffers in this repository; do not add a second glTF parser. Animations are intentionally out of scope for now.
+- `GltfLoader` uses Khronos `glTF2Loader` for parsing only. Decode accessors and create buffers in this repository; do not add a second glTF parser.
+- `GltfLoader` is `partial`. Keep animation conversion in `GltfLoader.Animation.cs`; do not put it back in the main loader file.
+- `DrModel.Animations` maps clip names to `AnimationClip`. Each `AnimationChannel` references a bone by `BoneIndex` and stores full `SrtTransform` poses in `AnimationChannelKeyframe` values; keep `TimeSpan` times and per-path interpolation modes. glTF TRS tracks are resampled at the union of their key times. Animation data is keyframes only: do not add sampling, blending, playback or bone-mutation APIs to the model classes. Clip duration is the maximum keyframe time; duplicate names get `_1`, `_2`, suffixes. Morph target weight animation is out of scope.
 - Textures are loaded through XNAssets (`AssetManager.LoadTexture2D`). External images use the recursive model manager; embedded glTF images use an in-memory `IAssetAccessor`. Assign the result to `DrTextureInfo.Texture`.
 - `ModelLoadFlags.None` creates `BufferUsage.WriteOnly` buffers. `ModelLoadFlags.ReadableBuffers` creates `BufferUsage.None` buffers so tests and debug tools can call `GetData`. `ModelLoadFlags.KeepSourceGeometry` fills `DrModelMeshPart.SourceIndices` and `SourceVertices`; those properties stay null otherwise. `ModelLoadFlags.EnsureUVs` adds a zero `TEXCOORD_0` channel when missing. Include the flags in the `AssetManager` cache key.
-- `GltfLoader.Load(path)` is the internal data-only path: it fills vertex declarations, counts, bounds, materials and skins but leaves `VertexBuffer`/`IndexBuffer` null. Use it only for tests and inspection.
+- `GltfLoader.Load(path)` is the internal data-only path: it fills vertex declarations, counts, bounds, materials, skins and animations but leaves `VertexBuffer`/`IndexBuffer` null. Use it only for tests and inspection.
 - glTF fixtures live in `DigitalRiseModel.Tests/TestData` and are copied to the test output. Keep them tiny and offline; do not add external binary dependencies.
 - Preserve XNA semantics for `CopyBoneTransformsTo`, `CopyBoneTransformsFrom` and `CopyAbsoluteBoneTransformsTo`. Parent bones must appear before their children; document and enforce this.
 - Every public type and member gets XML documentation. Explain units, coordinate conventions and handedness when relevant.
