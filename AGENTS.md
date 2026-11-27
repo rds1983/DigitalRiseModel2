@@ -16,6 +16,7 @@ DigitalRiseModel/
   DigitalRiseModel.MonoGame.csproj         # library project
   *.cs                                     # root model types at the project root
   Gltf/                                    # DigitalRiseModel.Gltf (internal loader)
+  Vertices/                                # DigitalRiseModel.Vertices (VertexSkinned)
 DigitalRiseModel.Tests/                    # xUnit test project
 DigitalRiseModel.Viewer/                   # MonoGame glTF viewer and drm-viewer tool
 docfx/                                     # DocFX config and articles

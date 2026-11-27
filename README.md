@@ -39,7 +39,7 @@ Model types live in the root namespace `DigitalRiseModel`. glTF loading is expos
 | `DrModel` | A model composed of bone and mesh arrays; bone transform helpers |
 | `DrModelBone` | A bone with a name, optional mesh, local transform, parent, children array and tag |
 | `DrModelMesh` | A mesh with a cached, on-demand bounding sphere, parent bone and parts |
-| `DrModelMeshPart` | A draw range with vertex/index buffers, vertex declaration, counts, material, skin, bounding sphere, owning-mesh back-reference and optional source geometry |
+| `DrModelMeshPart` | A draw range with vertex/index buffers, vertex declaration, counts, material, skin, bounding sphere, owning-mesh back-reference and optional `VertexSkinned` source geometry |
 | `DrMaterial` | Metallic-roughness material data, including texture references and alpha mode |
 | `DrTextureInfo` | A texture index, UV set, normal scale, occlusion strength and loaded `Texture2D` |
 | `DrSkin` | Joints, skeleton root and inverse bind matrices |
@@ -112,6 +112,16 @@ DrModel readable = assets.LoadDrModel(
     graphicsDevice,
     "models/robot.glb",
     ModelLoadFlags.ReadableBuffers | ModelLoadFlags.KeepSourceGeometry);
+```
+
+`SourceVertices` uses `DigitalRiseModel.Vertices.VertexSkinned`:
+
+```csharp
+public Vector3 Position;
+public Vector3 Normal;
+public Vector2 TextureCoordinate;
+public Byte4 BlendIndices;
+public Vector4 BlendWeights;
 ```
 
 The loader:

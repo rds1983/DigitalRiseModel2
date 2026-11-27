@@ -4,6 +4,8 @@ using glTFLoader;
 using glTFLoader.Schema;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics.PackedVector;
+using DigitalRiseModel.Vertices;
 using GltfDocument = glTFLoader.Schema.Gltf;
 using GltfImage = glTFLoader.Schema.Image;
 using GltfMaterial = glTFLoader.Schema.Material;
@@ -645,7 +647,7 @@ internal static class GltfLoader
 			: null;
 
 		int[]? partSourceIndices = null;
-		VertexPositionColorNormalTexture[]? partSourceVertices = null;
+		VertexSkinned[]? partSourceVertices = null;
 
 		if (flags.HasFlag(ModelLoadFlags.KeepSourceGeometry))
 		{
@@ -1270,17 +1272,18 @@ internal static class GltfLoader
 		}
 	}
 
-	private static VertexPositionColorNormalTexture[] CreateSourceVertices(
+	private static VertexSkinned[] CreateSourceVertices(
 		List<VertexAttribute> attributes,
 		int vertexCount)
 	{
 		VertexAttribute position = FindAttribute(attributes, VertexElementUsage.Position)
 			?? throw new InvalidDataException("A mesh primitive has no POSITION attribute.");
 		VertexAttribute? normal = FindAttribute(attributes, VertexElementUsage.Normal);
-		VertexAttribute? color = FindAttribute(attributes, VertexElementUsage.Color);
 		VertexAttribute? texCoord = FindAttribute(attributes, VertexElementUsage.TextureCoordinate);
+		VertexAttribute? joints = FindAttribute(attributes, VertexElementUsage.BlendIndices);
+		VertexAttribute? weights = FindAttribute(attributes, VertexElementUsage.BlendWeight);
 
-		var result = new VertexPositionColorNormalTexture[vertexCount];
+		var result = new VertexSkinned[vertexCount];
 
 		for (int i = 0; i < vertexCount; i++)
 		{
@@ -1300,22 +1303,6 @@ internal static class GltfLoader
 					normal.Values[normalOffset + 2]);
 			}
 
-			Color colorValue = Color.White;
-			if (color is not null)
-			{
-				int colorOffset = i * color.Components;
-				colorValue = color.Components >= 4
-					? new Color(
-						color.Values[colorOffset],
-						color.Values[colorOffset + 1],
-						color.Values[colorOffset + 2],
-						color.Values[colorOffset + 3])
-					: new Color(
-						color.Values[colorOffset],
-						color.Values[colorOffset + 1],
-						color.Values[colorOffset + 2]);
-			}
-
 			Vector2 texCoordValue = Vector2.Zero;
 			if (texCoord is not null)
 			{
@@ -1325,11 +1312,34 @@ internal static class GltfLoader
 					texCoord.Values[texCoordOffset + 1]);
 			}
 
-			result[i] = new VertexPositionColorNormalTexture(
+			var blendIndices = default(Byte4);
+			if (joints is not null)
+			{
+				int jointsOffset = i * joints.Components;
+				blendIndices = new Byte4(
+					joints.Values[jointsOffset],
+					joints.Values[jointsOffset + 1],
+					joints.Values[jointsOffset + 2],
+					joints.Values[jointsOffset + 3]);
+			}
+
+			Vector4 blendWeights = Vector4.Zero;
+			if (weights is not null)
+			{
+				int weightsOffset = i * weights.Components;
+				blendWeights = new Vector4(
+					weights.Values[weightsOffset],
+					weights.Values[weightsOffset + 1],
+					weights.Values[weightsOffset + 2],
+					weights.Values[weightsOffset + 3]);
+			}
+
+			result[i] = new VertexSkinned(
 				positionValue,
-				colorValue,
 				normalValue,
-				texCoordValue);
+				texCoordValue,
+				blendIndices,
+				blendWeights);
 		}
 
 		return result;

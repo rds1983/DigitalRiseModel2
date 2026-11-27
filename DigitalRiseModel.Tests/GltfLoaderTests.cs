@@ -2,8 +2,10 @@ using System.Runtime.CompilerServices;
 using AssetManagementBase;
 using DigitalRiseModel;
 using DigitalRiseModel.Gltf;
+using DigitalRiseModel.Vertices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics.PackedVector;
 
 namespace DigitalRiseModel.Tests;
 
@@ -113,14 +115,27 @@ public sealed class GltfLoaderTests
 		Assert.Equal(3, part.SourceIndices!.Length);
 		Assert.Equal(3, part.SourceVertices!.Length);
 
-		VertexPositionColorNormalTexture vertex = part.SourceVertices[1];
+		VertexSkinned vertex = part.SourceVertices[1];
 		Assert.Equal(new Vector3(1, 0, 0), vertex.Position);
 		Assert.Equal(Vector3.UnitZ, vertex.Normal);
 		Assert.Equal(new Vector2(1, 0), vertex.TextureCoordinate);
-		Assert.Equal(Color.White, vertex.Color);
+		Assert.Equal(new Vector4(0, 0, 0, 0), vertex.BlendWeights);
 
 		// Positive determinant: glTF CCW is normalized to MonoGame's CW convention.
 		Assert.Equal(new[] { 0, 2, 1 }, part.SourceIndices);
+	}
+
+	[Fact]
+	public void Load_KeepSourceGeometry_PopulatesSkinningData()
+	{
+		DrModelMeshPart part = LoadFirstPart(
+			"skinned.gltf",
+			ModelLoadFlags.KeepSourceGeometry);
+
+		Assert.NotNull(part.SourceVertices);
+		VertexSkinned vertex = part.SourceVertices![0];
+		Assert.Equal(default(Byte4), vertex.BlendIndices);
+		Assert.Equal(new Vector4(1, 0, 0, 0), vertex.BlendWeights);
 	}
 
 	[Fact]

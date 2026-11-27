@@ -42,7 +42,7 @@ DrModel model = assets.LoadDrModel(
     ModelLoadFlags.KeepSourceGeometry);
 ```
 
-This fills `DrModelMeshPart.SourceIndices` and `DrModelMeshPart.SourceVertices`; both remain `null` without the flag.
+This fills `DrModelMeshPart.SourceIndices` and `DrModelMeshPart.SourceVertices`; both remain `null` without the flag. Source vertices use `DigitalRiseModel.Vertices.VertexSkinned` with position, normal, UV0, `Byte4` blend indices and `Vector4` blend weights.
 
 ## What is loaded
 
