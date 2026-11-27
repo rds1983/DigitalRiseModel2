@@ -1,4 +1,3 @@
-using DigitalRiseModel.Viewer.Graphics.Materials;
 using DigitalRiseModel.Viewer.Graphics.Shaders;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -17,7 +16,6 @@ internal sealed class Renderer : IDisposable
 	private readonly DrModel _model;
 	private readonly PbrEffect[] _pbrEffects;
 	private readonly Texture2D _fallbackTexture;
-	private readonly Dictionary<DrMaterial, MaterialBinding> _materialBindings = [];
 
 	private Matrix _viewProjection;
 	private Vector3 _cameraPosition;
@@ -138,19 +136,16 @@ internal sealed class Renderer : IDisposable
 					? _instance.GetSkinTransforms(skin.Index)
 					: null;
 				Vector3 center = Vector3.Transform(part.BoundingSphere.Center, world);
-				MaterialBinding material = part.Material is { } sourceMaterial
-					? GetMaterialBinding(sourceMaterial)
-					: MaterialBinding.Default;
 				var item = new RenderItem
 				{
 					Part = part,
-					Material = material,
+					Material = part.Material,
 					World = world,
 					SkinTransforms = skinTransforms,
 					DistanceSquared = Vector3.DistanceSquared(center, _cameraPosition)
 				};
 
-				if (item.Material.AlphaMode == DrAlphaMode.Blend)
+				if (item.Material?.AlphaMode == DrAlphaMode.Blend)
 				{
 					transparentItems.Add(item);
 				}
@@ -207,16 +202,16 @@ internal sealed class Renderer : IDisposable
 	private void DrawItem(RenderItem item)
 	{
 		DrModelMeshPart part = item.Part;
-		MaterialBinding material = item.Material;
+		DrMaterial? material = item.Material;
 
-		_device.BlendState = material.AlphaMode == DrAlphaMode.Blend
+		_device.BlendState = material?.AlphaMode == DrAlphaMode.Blend
 			? BlendState.AlphaBlend
 			: BlendState.Opaque;
 		_device.DepthStencilState = DepthStencilState.Default;
 
 		// The glTF loader converts front-facing triangles to MonoGame's clockwise
 		// convention, so the standard counter-clockwise cull state is correct.
-		_device.RasterizerState = material.DoubleSided
+		_device.RasterizerState = material?.DoubleSided == true
 			? RasterizerState.CullNone
 			: RasterizerState.CullCounterClockwise;
 
@@ -288,17 +283,6 @@ internal sealed class Renderer : IDisposable
 		_fallbackTexture.Dispose();
 	}
 
-	private MaterialBinding GetMaterialBinding(DrMaterial material)
-	{
-		if (!_materialBindings.TryGetValue(material, out MaterialBinding? binding))
-		{
-			binding = new MaterialBinding(material);
-			_materialBindings.Add(material, binding);
-		}
-
-		return binding;
-	}
-
 	private static Matrix GetMeshWorld(
 		DrModelMeshPart part,
 		Matrix[] absoluteBoneTransforms)
@@ -354,7 +338,7 @@ internal sealed class Renderer : IDisposable
 	{
 		public required DrModelMeshPart Part { get; init; }
 
-		public required MaterialBinding Material { get; init; }
+		public DrMaterial? Material { get; init; }
 
 		public Matrix World { get; init; }
 

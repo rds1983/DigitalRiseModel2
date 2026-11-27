@@ -1,4 +1,4 @@
-using DigitalRiseModel.Viewer.Graphics.Materials;
+using DigitalRiseModel;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -95,28 +95,33 @@ internal sealed class PbrEffect
 		_exposure.SetValue(settings.Exposure);
 	}
 
-	public void SetMaterial(MaterialBinding material, Texture2D fallbackTexture)
+	public void SetMaterial(DrMaterial? material, Texture2D fallbackTexture)
 	{
-		_baseColorFactor.SetValue(material.BaseColorFactor);
-		_metallicFactor.SetValue(material.MetallicFactor);
-		_roughnessFactor.SetValue(material.RoughnessFactor);
-		_hasBaseColorTexture.SetValue(material.BaseColorTexture is not null ? 1f : 0f);
-		_hasMetallicRoughnessTexture.SetValue(
-			material.MetallicRoughnessTexture is not null ? 1f : 0f);
-		_hasNormalTexture?.SetValue(material.NormalTexture is not null ? 1f : 0f);
-		_normalScale?.SetValue(material.NormalScale);
-		_hasOcclusionTexture.SetValue(material.OcclusionTexture is not null ? 1f : 0f);
-		_occlusionStrength.SetValue(material.OcclusionStrength);
-		_hasEmissiveTexture.SetValue(material.EmissiveTexture is not null ? 1f : 0f);
-		_emissiveFactor.SetValue(material.EmissiveFactor);
-		_alphaCutoff.SetValue(material.AlphaCutoff);
-		_useBaseColorAlpha.SetValue(material.UseBaseColorAlpha ? 1f : 0f);
-		_baseColorTexture?.SetValue(material.BaseColorTexture ?? fallbackTexture);
-		_metallicRoughnessTexture?.SetValue(
-			material.MetallicRoughnessTexture ?? fallbackTexture);
-		_normalTexture?.SetValue(material.NormalTexture ?? fallbackTexture);
-		_occlusionTexture?.SetValue(material.OcclusionTexture ?? fallbackTexture);
-		_emissiveTexture?.SetValue(material.EmissiveTexture ?? fallbackTexture);
+		Texture2D? baseColorTexture = material?.BaseColorTexture?.Texture;
+		Texture2D? metallicRoughnessTexture = material?.MetallicRoughnessTexture?.Texture;
+		Texture2D? normalTexture = material?.NormalTexture?.Texture;
+		Texture2D? occlusionTexture = material?.OcclusionTexture?.Texture;
+		Texture2D? emissiveTexture = material?.EmissiveTexture?.Texture;
+
+		_baseColorFactor.SetValue(material?.BaseColorFactor ?? Vector4.One);
+		_metallicFactor.SetValue(material?.MetallicFactor ?? 1f);
+		_roughnessFactor.SetValue(material?.RoughnessFactor ?? 1f);
+		_hasBaseColorTexture.SetValue(baseColorTexture is not null ? 1f : 0f);
+		_hasMetallicRoughnessTexture.SetValue(metallicRoughnessTexture is not null ? 1f : 0f);
+		_hasNormalTexture?.SetValue(normalTexture is not null ? 1f : 0f);
+		_normalScale?.SetValue(material?.NormalTexture?.Scale ?? 1f);
+		_hasOcclusionTexture.SetValue(occlusionTexture is not null ? 1f : 0f);
+		_occlusionStrength.SetValue(material?.OcclusionTexture?.Strength ?? 1f);
+		_hasEmissiveTexture.SetValue(emissiveTexture is not null ? 1f : 0f);
+		_emissiveFactor.SetValue(material?.EmissiveFactor ?? Vector3.Zero);
+		_alphaCutoff.SetValue(material?.AlphaCutoff ?? 0.5f);
+		_useBaseColorAlpha.SetValue(
+			material?.AlphaMode == DrAlphaMode.Blend ? 1f : 0f);
+		_baseColorTexture?.SetValue(baseColorTexture ?? fallbackTexture);
+		_metallicRoughnessTexture?.SetValue(metallicRoughnessTexture ?? fallbackTexture);
+		_normalTexture?.SetValue(normalTexture ?? fallbackTexture);
+		_occlusionTexture?.SetValue(occlusionTexture ?? fallbackTexture);
+		_emissiveTexture?.SetValue(emissiveTexture ?? fallbackTexture);
 	}
 
 	private static EffectParameter? FindTextureParameter(Effect effect, string textureName)
