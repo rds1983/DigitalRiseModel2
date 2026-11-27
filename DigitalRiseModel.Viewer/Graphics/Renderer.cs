@@ -17,6 +17,7 @@ internal sealed class Renderer : IDisposable
 	private readonly BasicEffect _basicEffect;
 	private readonly SkinnedEffect _skinnedEffect;
 	private readonly PbrEffect? _pbrEffect;
+	private readonly PbrEffect? _pbrSkinnedEffect;
 	private readonly Texture2D _fallbackTexture;
 
 	private Matrix _viewProjection;
@@ -45,7 +46,8 @@ internal sealed class Renderer : IDisposable
 		if (usePbr)
 		{
 			ArgumentNullException.ThrowIfNull(content);
-			_pbrEffect = new PbrEffect(content);
+			_pbrEffect = new PbrEffect(content, "Shaders/Pbr");
+			_pbrSkinnedEffect = new PbrEffect(content, "Shaders/PbrSkinned");
 		}
 
 		_basicEffect = new BasicEffect(device)
@@ -149,13 +151,35 @@ internal sealed class Renderer : IDisposable
 
 				if (part.Skin is { } skin)
 				{
-					_skinnedEffect.World = Matrix.Identity;
-					_skinnedEffect.DiffuseColor = new Vector3(color.X, color.Y, color.Z);
-					_skinnedEffect.Alpha = color.W;
-					_skinnedEffect.Texture = texture ?? _fallbackTexture;
-					_skinnedEffect.SetBoneTransforms(
-						_instance.GetSkinTransforms(skin.Index));
-					effect = _skinnedEffect;
+					if (_pbrSkinnedEffect is not null
+						&& material?.AlphaMode != DrAlphaMode.Blend
+						&& UsesUv0(material?.BaseColorTexture)
+						&& UsesUv0(material?.MetallicRoughnessTexture)
+						&& UsesUv0(material?.OcclusionTexture)
+						&& UsesUv0(material?.EmissiveTexture)
+						&& HasElement(declaration, VertexElementUsage.Normal)
+						&& HasElement(declaration, VertexElementUsage.BlendIndices)
+						&& HasElement(declaration, VertexElementUsage.BlendWeight)
+						&& HasElement(declaration, VertexElementUsage.TextureCoordinate))
+					{
+						_pbrSkinnedEffect.SetWorld(Matrix.Identity);
+						_pbrSkinnedEffect.SetWorldViewProjection(_viewProjection);
+						_pbrSkinnedEffect.SetCameraPosition(_cameraPosition);
+						_pbrSkinnedEffect.SetMaterial(material, _fallbackTexture);
+						_pbrSkinnedEffect.SetSkinTransforms(
+							_instance.GetSkinTransforms(skin.Index));
+						effect = _pbrSkinnedEffect.Effect;
+					}
+					else
+					{
+						_skinnedEffect.World = Matrix.Identity;
+						_skinnedEffect.DiffuseColor = new Vector3(color.X, color.Y, color.Z);
+						_skinnedEffect.Alpha = color.W;
+						_skinnedEffect.Texture = texture ?? _fallbackTexture;
+						_skinnedEffect.SetBoneTransforms(
+							_instance.GetSkinTransforms(skin.Index));
+						effect = _skinnedEffect;
+					}
 				}
 				else if (_pbrEffect is not null
 					&& material?.AlphaMode != DrAlphaMode.Blend
