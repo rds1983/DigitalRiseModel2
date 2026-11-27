@@ -22,6 +22,7 @@ internal sealed class Renderer : IDisposable
 	private readonly DrModel _model;
 	private readonly ContentManager _content;
 	private readonly Dictionary<int, PbrEffect> _pbrEffects = [];
+	private readonly IblResources _ibl;
 	private readonly Texture2D _fallbackTexture;
 
 	private Matrix _viewProjection;
@@ -51,6 +52,7 @@ internal sealed class Renderer : IDisposable
 		_instance = instance;
 		_model = instance.Model;
 		_content = content;
+		_ibl = new IblResources(device);
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
@@ -80,6 +82,7 @@ internal sealed class Renderer : IDisposable
 		{
 			effect.SetSettings(Settings);
 			effect.SetLights(Lights);
+			effect.SetIbl(_ibl);
 		}
 
 		_savedBlendState = _device.BlendState;
@@ -192,6 +195,7 @@ internal sealed class Renderer : IDisposable
 			effect = new PbrEffect(_content, "Shaders/" + GetEffectName(flags));
 			effect.SetSettings(Settings);
 			effect.SetLights(Lights);
+			effect.SetIbl(_ibl);
 			_pbrEffects[flags] = effect;
 		}
 
@@ -311,6 +315,7 @@ internal sealed class Renderer : IDisposable
 	public void Dispose()
 	{
 		_fallbackTexture.Dispose();
+		_ibl.Dispose();
 	}
 
 	private static Matrix GetMeshWorld(

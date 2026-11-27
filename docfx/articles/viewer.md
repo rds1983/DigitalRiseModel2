@@ -17,11 +17,11 @@ drm-viewer "path/to/model.glb"
 Command-line options:
 
 - `--shader-test` — start with the fullscreen shader smoke test enabled.
-- `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion`, `emissive`, `diffuse` or `specular`.
+- `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion`, `emissive`, `diffuse`, `specular`, `ibldiffuse` or `iblspecular`.
 - `--exposure <value>` — set the shaded-output exposure scale.
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
 
-The main viewer always uses the custom PBR path. `Samples/SimpleViewer` remains the stock-effect reference.
+The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment. `Samples/SimpleViewer` remains the stock-effect reference.
 
 `F2` toggles the shader smoke test; `F3` cycles PBR debug views and updates the window title.
 

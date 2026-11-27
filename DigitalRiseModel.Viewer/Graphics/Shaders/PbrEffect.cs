@@ -45,8 +45,9 @@ internal sealed class PbrEffect
 	private readonly EffectParameter _directionalLightDirections;
 	private readonly EffectParameter _directionalLightColors;
 	private readonly EffectParameter _directionalLightCount;
-	private readonly EffectParameter _ambientSkyColor;
-	private readonly EffectParameter _ambientGroundColor;
+	private readonly EffectParameter? _irradianceTexture;
+	private readonly EffectParameter? _prefilteredSpecularTexture;
+	private readonly EffectParameter? _brdfLutTexture;
 	private readonly Vector4[] _packedLightDirections =
 		new Vector4[LightSet.MaxDirectionalLights];
 	private readonly Vector4[] _packedLightColors =
@@ -89,8 +90,11 @@ internal sealed class PbrEffect
 		_directionalLightDirections = _effect.Parameters["DirectionalLightDirections"];
 		_directionalLightColors = _effect.Parameters["DirectionalLightColors"];
 		_directionalLightCount = _effect.Parameters["DirectionalLightCount"];
-		_ambientSkyColor = _effect.Parameters["AmbientSkyColor"];
-		_ambientGroundColor = _effect.Parameters["AmbientGroundColor"];
+		_irradianceTexture = FindTextureParameter(_effect, "IrradianceTexture");
+		_prefilteredSpecularTexture = FindTextureParameter(
+			_effect,
+			"PrefilteredSpecularTexture");
+		_brdfLutTexture = FindTextureParameter(_effect, "BrdfLutTexture");
 	}
 
 	public Effect Effect => _effect;
@@ -161,8 +165,15 @@ internal sealed class PbrEffect
 		_directionalLightDirections.SetValue(_packedLightDirections);
 		_directionalLightColors.SetValue(_packedLightColors);
 		_directionalLightCount.SetValue(count);
-		_ambientSkyColor.SetValue(lights.SkyColor);
-		_ambientGroundColor.SetValue(lights.GroundColor);
+	}
+
+	public void SetIbl(IblResources ibl)
+	{
+		ArgumentNullException.ThrowIfNull(ibl);
+
+		_irradianceTexture?.SetValue(ibl.Irradiance);
+		_prefilteredSpecularTexture?.SetValue(ibl.PrefilteredSpecular);
+		_brdfLutTexture?.SetValue(ibl.BrdfLut);
 	}
 
 	public void SetMaterial(DrMaterial? material, Texture2D fallbackTexture)

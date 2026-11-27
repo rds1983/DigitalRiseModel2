@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 namespace DigitalRiseModel.Viewer.Graphics.Lighting;
 
 /// <summary>
-/// Directional lights and hemisphere ambient colors used by the PBR shader.
+/// Directional lights used by the PBR shader.
 /// </summary>
 internal sealed class LightSet
 {
@@ -18,16 +18,6 @@ internal sealed class LightSet
 	/// Gets the directional lights in the order they are packed into the shader.
 	/// </summary>
 	public IReadOnlyList<DirectionalLight> DirectionalLights => _directionalLights;
-
-	/// <summary>
-	/// Gets or sets the linear ambient color for surfaces facing up.
-	/// </summary>
-	public Vector3 SkyColor { get; set; } = new(0.18f, 0.22f, 0.30f);
-
-	/// <summary>
-	/// Gets or sets the linear ambient color for surfaces facing down.
-	/// </summary>
-	public Vector3 GroundColor { get; set; } = new(0.04f, 0.035f, 0.03f);
 
 	/// <summary>
 	/// Adds a directional light.
@@ -56,11 +46,7 @@ internal sealed class LightSet
 	/// </summary>
 	public static LightSet CreateStudio()
 	{
-		var lights = new LightSet
-		{
-			SkyColor = new Vector3(0.14f, 0.17f, 0.23f),
-			GroundColor = new Vector3(0.03f, 0.028f, 0.026f)
-		};
+		var lights = new LightSet();
 
 		lights.Add(new DirectionalLight
 		{

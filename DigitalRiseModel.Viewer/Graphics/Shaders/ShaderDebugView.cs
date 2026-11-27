@@ -10,5 +10,7 @@ internal enum ShaderDebugView
 	Occlusion,
 	Emissive,
 	Diffuse,
-	Specular
+	Specular,
+	IblDiffuse,
+	IblSpecular
 }
