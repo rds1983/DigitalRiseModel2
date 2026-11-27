@@ -18,6 +18,8 @@ internal sealed class ViewerGame : Game
 	private readonly string _modelPath;
 	private readonly bool _usePbr;
 	private readonly string? _screenshotPath;
+	private readonly ShaderDebugView _debugView;
+	private readonly float _exposure;
 
 	private AssetManager? _assetManager;
 	private DrModel? _model;
@@ -48,12 +50,16 @@ internal sealed class ViewerGame : Game
 		string modelPath,
 		bool shaderTest = false,
 		bool usePbr = false,
-		string? screenshotPath = null)
+		string? screenshotPath = null,
+		ShaderDebugView debugView = ShaderDebugView.Shaded,
+		float exposure = 1f)
 	{
 		_modelPath = modelPath;
 		_showShaderSmokeTest = shaderTest;
 		_usePbr = usePbr;
 		_screenshotPath = screenshotPath;
+		_debugView = debugView;
+		_exposure = exposure;
 		MyraEnvironment.Game = this;
 
 		_ = new GraphicsDeviceManager(this)
@@ -82,10 +88,13 @@ internal sealed class ViewerGame : Game
 
 		_content = new ContentManager(Services, "Content");
 		_renderer = new Renderer(GraphicsDevice, _instance, _content, _usePbr);
+		_renderer.Settings.DebugView = _debugView;
+		_renderer.Settings.Exposure = _exposure;
 		_shaderSmokeTest = new FullscreenColorEffect(GraphicsDevice, _content);
 
 		CreateUI();
 		ResetCamera();
+		UpdateWindowTitle();
 		_previousMouse = Mouse.GetState();
 	}
 
@@ -104,6 +113,14 @@ internal sealed class ViewerGame : Game
 		if (keyboard.IsKeyDown(Keys.F2) && _previousKeyboard.IsKeyUp(Keys.F2))
 		{
 			_showShaderSmokeTest = !_showShaderSmokeTest;
+		}
+
+		if (_renderer is not null
+			&& keyboard.IsKeyDown(Keys.F3)
+			&& _previousKeyboard.IsKeyUp(Keys.F3))
+		{
+			_renderer.Settings.DebugView = NextDebugView(_renderer.Settings.DebugView);
+			UpdateWindowTitle();
 		}
 
 		MouseState mouse = Mouse.GetState();
@@ -254,6 +271,23 @@ internal sealed class ViewerGame : Game
 	private bool IsMouseOverGui()
 	{
 		return _desktop?.IsMouseOverGUI == true;
+	}
+
+	private void UpdateWindowTitle()
+	{
+		ShaderDebugView debugView = _renderer?.Settings.DebugView ?? ShaderDebugView.Shaded;
+		string suffix = debugView == ShaderDebugView.Shaded
+			? string.Empty
+			: $" [{debugView}]";
+
+		Window.Title = $"drm-viewer - {Path.GetFileName(_modelPath)}{suffix}";
+	}
+
+	private static ShaderDebugView NextDebugView(ShaderDebugView view)
+	{
+		ShaderDebugView[] values = Enum.GetValues<ShaderDebugView>();
+		int index = Array.IndexOf(values, view);
+		return values[(index + 1) % values.Length];
 	}
 
 	private void ResetCamera()

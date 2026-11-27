@@ -14,6 +14,8 @@ float OcclusionStrength;
 float HasEmissiveTexture;
 float3 EmissiveFactor;
 float AlphaCutoff;
+int DebugView;
+float Exposure;
 
 Texture2D BaseColorTexture;
 sampler2D BaseColorSampler = sampler_state
@@ -166,6 +168,31 @@ float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 		emissive *= pow(saturate(emissiveTexture), 2.2);
 	}
 
+	if (DebugView == 1)
+	{
+		return float4(pow(saturate(baseColor.rgb), 1.0 / 2.2), 1.0);
+	}
+	else if (DebugView == 2)
+	{
+		return float4(metallic, metallic, metallic, 1.0);
+	}
+	else if (DebugView == 3)
+	{
+		return float4(roughness, roughness, roughness, 1.0);
+	}
+	else if (DebugView == 4)
+	{
+		return float4(normal * 0.5 + 0.5, 1.0);
+	}
+	else if (DebugView == 5)
+	{
+		return float4(occlusion, occlusion, occlusion, 1.0);
+	}
+	else if (DebugView == 6)
+	{
+		return float4(pow(saturate(emissive), 1.0 / 2.2), 1.0);
+	}
+
 	float3 view = normalize(CameraPosition - input.WorldPosition);
 	float3 light = normalize(float3(0.5, 1.0, 0.5));
 	float3 halfVector = normalize(view + light);
@@ -194,7 +221,7 @@ float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 	float3 color = (diffuse + specular) * nDotL;
 	color += baseColor.rgb * 0.12 * occlusion;
 	color += emissive;
-	color = pow(saturate(color), 1.0 / 2.2);
+	color = pow(saturate(color * Exposure), 1.0 / 2.2);
 
 	return float4(color, 1.0);
 }

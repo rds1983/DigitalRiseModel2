@@ -5,5 +5,6 @@
     <Label Text="Mouse wheel: zoom" TextColor="White" />
     <Label Text="Escape: exit" TextColor="White" />
     <Label Text="F2: shader test" TextColor="White" />
+    <Label Text="F3: debug view" TextColor="White" />
   </VerticalStackPanel>
 </Project>

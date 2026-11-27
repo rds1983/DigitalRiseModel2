@@ -18,7 +18,11 @@ Command-line options:
 
 - `--pbr` — use the custom metallic-roughness shader for opaque/mask static and skinned mesh parts, including normal/occlusion/emissive maps, alpha masking and double-sided materials.
 - `--shader-test` — start with the fullscreen shader smoke test enabled.
+- `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion` or `emissive`.
+- `--exposure <value>` — set the shaded-output exposure scale.
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
+
+`F2` toggles the shader smoke test; `F3` cycles PBR debug views and updates the window title.
 
 ## Controls
 

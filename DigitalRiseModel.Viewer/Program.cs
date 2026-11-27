@@ -1,4 +1,6 @@
-﻿using AssetManagementBase;
+﻿using System.Globalization;
+using AssetManagementBase;
+using DigitalRiseModel.Viewer.Graphics.Shaders;
 
 namespace DigitalRiseModel.Viewer;
 
@@ -11,6 +13,8 @@ internal static class Program
 		string? screenshotPath = null;
 		bool shaderTest = false;
 		bool usePbr = false;
+		ShaderDebugView debugView = ShaderDebugView.Shaded;
+		float exposure = 1f;
 
 		for (int i = 0; i < args.Length; i++)
 		{
@@ -33,6 +37,32 @@ internal static class Program
 					}
 
 					screenshotPath = args[i];
+					break;
+				case "--debug-view":
+					if (++i >= args.Length
+						|| !Enum.TryParse(args[i], true, out debugView))
+					{
+						Console.Error.WriteLine(
+							"--debug-view requires a view name: shaded, basecolor, metallic, roughness, normal, occlusion, emissive.");
+						PrintUsage();
+						return 1;
+					}
+
+					break;
+				case "--exposure":
+					if (++i >= args.Length
+						|| !float.TryParse(
+							args[i],
+							NumberStyles.Float,
+							CultureInfo.InvariantCulture,
+							out exposure)
+						|| exposure <= 0f)
+					{
+						Console.Error.WriteLine("--exposure requires a positive number.");
+						PrintUsage();
+						return 1;
+					}
+
 					break;
 				case "--help":
 				case "-h":
@@ -74,7 +104,13 @@ internal static class Program
 
 		AMBConfiguration.Logger = Console.WriteLine;
 
-		using var game = new ViewerGame(path, shaderTest, usePbr, screenshotPath);
+		using var game = new ViewerGame(
+			path,
+			shaderTest,
+			usePbr,
+			screenshotPath,
+			debugView,
+			exposure);
 		game.Run();
 		return 0;
 	}
@@ -82,6 +118,7 @@ internal static class Program
 	private static void PrintUsage()
 	{
 		Console.Error.WriteLine(
-			"Usage: drm-viewer <path-to-gltf-or-glb> [--pbr] [--shader-test] [--screenshot <file.png>]");
+			"Usage: drm-viewer <path-to-gltf-or-glb> [--pbr] [--shader-test] " +
+			"[--debug-view <name>] [--exposure <value>] [--screenshot <file.png>]");
 	}
 }

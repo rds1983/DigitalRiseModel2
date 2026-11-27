@@ -30,6 +30,8 @@ internal sealed class Renderer : IDisposable
 	private SamplerState _savedSamplerState = SamplerState.LinearWrap;
 	private Rectangle _savedScissorRectangle;
 
+	public ShaderSettings Settings { get; } = new();
+
 	public Renderer(
 		GraphicsDevice device,
 		DrModelInstance instance,
@@ -92,6 +94,8 @@ internal sealed class Renderer : IDisposable
 		_basicEffect.Projection = projection;
 		_skinnedEffect.View = view;
 		_skinnedEffect.Projection = projection;
+		_pbrEffect?.SetSettings(Settings);
+		_pbrSkinnedEffect?.SetSettings(Settings);
 
 		_savedBlendState = _device.BlendState;
 		_savedDepthStencilState = _device.DepthStencilState;

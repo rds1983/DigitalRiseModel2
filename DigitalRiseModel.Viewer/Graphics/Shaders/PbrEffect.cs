@@ -27,6 +27,8 @@ internal sealed class PbrEffect
 	private readonly EffectParameter _hasEmissiveTexture;
 	private readonly EffectParameter _emissiveFactor;
 	private readonly EffectParameter _alphaCutoff;
+	private readonly EffectParameter _debugView;
+	private readonly EffectParameter _exposure;
 	private readonly EffectParameter? _baseColorTexture;
 	private readonly EffectParameter? _metallicRoughnessTexture;
 	private readonly EffectParameter? _normalTexture;
@@ -54,6 +56,8 @@ internal sealed class PbrEffect
 		_hasEmissiveTexture = _effect.Parameters["HasEmissiveTexture"];
 		_emissiveFactor = _effect.Parameters["EmissiveFactor"];
 		_alphaCutoff = _effect.Parameters["AlphaCutoff"];
+		_debugView = _effect.Parameters["DebugView"];
+		_exposure = _effect.Parameters["Exposure"];
 		_baseColorTexture = FindTextureParameter(_effect, "BaseColorTexture");
 		_metallicRoughnessTexture = FindTextureParameter(_effect, "MetallicRoughnessTexture");
 		_normalTexture = FindTextureParameter(_effect, "NormalTexture");
@@ -81,6 +85,12 @@ internal sealed class PbrEffect
 	public void SetSkinTransforms(Matrix[] transforms)
 	{
 		_bones?.SetValue(transforms);
+	}
+
+	public void SetSettings(ShaderSettings settings)
+	{
+		_debugView.SetValue((int)settings.DebugView);
+		_exposure.SetValue(settings.Exposure);
 	}
 
 	public void SetMaterial(DrMaterial? material, Texture2D fallbackTexture)
