@@ -20,6 +20,7 @@ internal sealed class Renderer : IDisposable
 	private readonly Texture2D _fallbackTexture;
 
 	private Matrix _viewProjection;
+	private Vector3 _cameraPosition;
 	private bool _frameOpen;
 
 	private BlendState _savedBlendState = BlendState.Opaque;
@@ -83,6 +84,7 @@ internal sealed class Renderer : IDisposable
 		Triangles = 0;
 		_frameOpen = true;
 		_viewProjection = view * projection;
+		_cameraPosition = Matrix.Invert(view).Translation;
 
 		_basicEffect.View = view;
 		_basicEffect.Projection = projection;
@@ -141,6 +143,8 @@ internal sealed class Renderer : IDisposable
 					? RasterizerState.CullNone
 					: RasterizerState.CullCounterClockwise;
 
+				VertexDeclaration declaration = part.VertexDeclaration
+					?? part.VertexBuffer.VertexDeclaration;
 				Effect effect;
 
 				if (part.Skin is { } skin)
@@ -154,18 +158,25 @@ internal sealed class Renderer : IDisposable
 					effect = _skinnedEffect;
 				}
 				else if (_pbrEffect is not null
-					&& (material is null || material.AlphaMode == DrAlphaMode.Opaque))
+					&& (material is null || material.AlphaMode == DrAlphaMode.Opaque)
+					&& UsesUv0(material?.BaseColorTexture)
+					&& UsesUv0(material?.MetallicRoughnessTexture)
+					&& UsesUv0(material?.NormalTexture)
+					&& UsesUv0(material?.OcclusionTexture)
+					&& UsesUv0(material?.EmissiveTexture)
+					&& HasElement(declaration, VertexElementUsage.Normal)
+					&& HasElement(declaration, VertexElementUsage.Tangent)
+					&& HasElement(declaration, VertexElementUsage.TextureCoordinate))
 				{
-					_pbrEffect.SetWorldViewProjection(
-						GetMeshWorld(part, absoluteBoneTransforms) * _viewProjection);
-					_pbrEffect.SetBaseColor(color);
+					Matrix world = GetMeshWorld(part, absoluteBoneTransforms);
+					_pbrEffect.SetWorld(world);
+					_pbrEffect.SetWorldViewProjection(world * _viewProjection);
+					_pbrEffect.SetCameraPosition(_cameraPosition);
+					_pbrEffect.SetMaterial(material, _fallbackTexture);
 					effect = _pbrEffect.Effect;
 				}
 				else
 				{
-					VertexDeclaration declaration = part.VertexDeclaration
-						?? part.VertexBuffer.VertexDeclaration;
-
 					_basicEffect.World = GetMeshWorld(part, absoluteBoneTransforms);
 					_basicEffect.DiffuseColor = new Vector3(color.X, color.Y, color.Z);
 					_basicEffect.Alpha = color.W;
@@ -244,11 +255,19 @@ internal sealed class Renderer : IDisposable
 		lights.DirectionalLight2.Enabled = false;
 	}
 
-	private static bool HasElement(VertexDeclaration declaration, VertexElementUsage usage)
+	private static bool UsesUv0(DrTextureInfo? texture)
+	{
+		return texture is null || texture.TexCoord == 0;
+	}
+
+	private static bool HasElement(
+		VertexDeclaration declaration,
+		VertexElementUsage usage,
+		int usageIndex = 0)
 	{
 		foreach (VertexElement element in declaration.GetVertexElements())
 		{
-			if (element.VertexElementUsage == usage)
+			if (element.VertexElementUsage == usage && element.UsageIndex == usageIndex)
 			{
 				return true;
 			}

@@ -16,7 +16,7 @@ drm-viewer "path/to/model.glb"
 
 Command-line options:
 
-- `--pbr` — use the custom shader for opaque static mesh parts.
+- `--pbr` — use the custom metallic-roughness shader for opaque static mesh parts, including normal, occlusion and emissive maps.
 - `--shader-test` — start with the fullscreen shader smoke test enabled.
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
 
