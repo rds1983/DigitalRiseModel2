@@ -17,6 +17,7 @@ struct VertexInput
 	float4 Color : COLOR0;
 #endif
 	float2 TexCoord : TEXCOORD0;
+	float2 TexCoord1 : TEXCOORD1;
 #ifdef SKINNED
 	int4 BlendIndices : BLENDINDICES0;
 	float4 BlendWeights : BLENDWEIGHT0;
@@ -38,6 +39,7 @@ struct VertexOutput
 	float4 Color : COLOR0;
 #endif
 	float2 TexCoord : TEXCOORD4;
+	float2 TexCoord1 : TEXCOORD5;
 };
 
 VertexOutput MainVS(VertexInput input)
@@ -88,6 +90,7 @@ VertexOutput MainVS(VertexInput input)
 #endif
 
 	output.TexCoord = input.TexCoord;
+	output.TexCoord1 = input.TexCoord1;
 	return output;
 }
 
@@ -102,7 +105,8 @@ float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 #ifdef HAS_TANGENT
 	if (HasNormalTexture > 0.5)
 	{
-		float3 sampledNormal = tex2D(NormalSampler, input.TexCoord).xyz * 2.0 - 1.0;
+		float2 normalUV = UseUV1Normal > 0.5 ? input.TexCoord1 : input.TexCoord;
+		float3 sampledNormal = tex2D(NormalSampler, normalUV).xyz * 2.0 - 1.0;
 		sampledNormal.xy *= NormalScale;
 		float3 tangent = normalize(input.Tangent);
 		float3 bitangent = normalize(input.Bitangent);
@@ -117,7 +121,13 @@ float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 	float4 vertexColor = float4(1.0, 1.0, 1.0, 1.0);
 #endif
 
-	return ShadeSurface(input.WorldPosition, normal, input.TexCoord, facing, vertexColor);
+	return ShadeSurface(
+		input.WorldPosition,
+		normal,
+		input.TexCoord,
+		input.TexCoord1,
+		facing,
+		vertexColor);
 }
 
 technique

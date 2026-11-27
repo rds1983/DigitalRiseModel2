@@ -195,6 +195,40 @@ public sealed class GltfLoaderTests
 	}
 
 	[Fact]
+	public void Load_EnsureUV1_AddsZeroSecondaryTextureCoordinateSet()
+	{
+		DrModelMeshPart part = LoadFirstPart(
+			"triangle.gltf",
+			ModelLoadFlags.EnsureUVs | ModelLoadFlags.EnsureUV1);
+
+		VertexElement[] textureCoordinates = part.VertexDeclaration!
+			.GetVertexElements()
+			.Where(element => element.VertexElementUsage == VertexElementUsage.TextureCoordinate)
+			.OrderBy(element => element.UsageIndex)
+			.ToArray();
+
+		Assert.Equal(2, textureCoordinates.Length);
+		Assert.Equal(0, textureCoordinates[0].UsageIndex);
+		Assert.Equal(1, textureCoordinates[1].UsageIndex);
+		Assert.Equal(VertexElementFormat.Vector2, textureCoordinates[1].VertexElementFormat);
+	}
+
+	[Fact]
+	public void Load_EnsureUV1_PreservesExistingSecondaryTextureCoordinates()
+	{
+		DrModelMeshPart part = LoadFirstPart(
+			"two-uvs.gltf",
+			ModelLoadFlags.EnsureUV1);
+
+		VertexElement[] textureCoordinates = part.VertexDeclaration!
+			.GetVertexElements()
+			.Where(element => element.VertexElementUsage == VertexElementUsage.TextureCoordinate)
+			.ToArray();
+
+		Assert.Equal(2, textureCoordinates.Length);
+	}
+
+	[Fact]
 	public void Load_WithoutKeepSourceGeometry_LeavesSourceDataNull()
 	{
 		DrModel model = GltfLoader.Load(TestDataPath("triangle.gltf"));

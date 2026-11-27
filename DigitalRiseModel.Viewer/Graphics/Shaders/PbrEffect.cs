@@ -28,6 +28,11 @@ internal sealed class PbrEffect
 	private readonly EffectParameter _emissiveFactor;
 	private readonly EffectParameter _alphaCutoff;
 	private readonly EffectParameter _useBaseColorAlpha;
+	private readonly EffectParameter _useUV1BaseColor;
+	private readonly EffectParameter _useUV1MetallicRoughness;
+	private readonly EffectParameter _useUV1Normal;
+	private readonly EffectParameter _useUV1Occlusion;
+	private readonly EffectParameter _useUV1Emissive;
 	private readonly EffectParameter _debugView;
 	private readonly EffectParameter _exposure;
 	private readonly EffectParameter? _baseColorTexture;
@@ -58,6 +63,11 @@ internal sealed class PbrEffect
 		_emissiveFactor = _effect.Parameters["EmissiveFactor"];
 		_alphaCutoff = _effect.Parameters["AlphaCutoff"];
 		_useBaseColorAlpha = _effect.Parameters["UseBaseColorAlpha"];
+		_useUV1BaseColor = _effect.Parameters["UseUV1BaseColor"];
+		_useUV1MetallicRoughness = _effect.Parameters["UseUV1MetallicRoughness"];
+		_useUV1Normal = _effect.Parameters["UseUV1Normal"];
+		_useUV1Occlusion = _effect.Parameters["UseUV1Occlusion"];
+		_useUV1Emissive = _effect.Parameters["UseUV1Emissive"];
 		_debugView = _effect.Parameters["DebugView"];
 		_exposure = _effect.Parameters["Exposure"];
 		_baseColorTexture = FindTextureParameter(_effect, "BaseColorTexture");
@@ -117,6 +127,12 @@ internal sealed class PbrEffect
 		_alphaCutoff.SetValue(material?.AlphaCutoff ?? 0.5f);
 		_useBaseColorAlpha.SetValue(
 			material?.AlphaMode == DrAlphaMode.Blend ? 1f : 0f);
+		_useUV1BaseColor.SetValue(material?.BaseColorTexture is { TexCoord: 1 } ? 1f : 0f);
+		_useUV1MetallicRoughness.SetValue(
+			material?.MetallicRoughnessTexture is { TexCoord: 1 } ? 1f : 0f);
+		_useUV1Normal.SetValue(material?.NormalTexture is { TexCoord: 1 } ? 1f : 0f);
+		_useUV1Occlusion.SetValue(material?.OcclusionTexture is { TexCoord: 1 } ? 1f : 0f);
+		_useUV1Emissive.SetValue(material?.EmissiveTexture is { TexCoord: 1 } ? 1f : 0f);
 		_baseColorTexture?.SetValue(baseColorTexture ?? fallbackTexture);
 		_metallicRoughnessTexture?.SetValue(metallicRoughnessTexture ?? fallbackTexture);
 		_normalTexture?.SetValue(normalTexture ?? fallbackTexture);

@@ -27,5 +27,10 @@ public enum ModelLoadFlags
 	/// <summary>
 	/// Add a zero-valued <c>TEXCOORD_0</c> attribute to mesh parts that do not have one.
 	/// </summary>
-	EnsureUVs = 4
+	EnsureUVs = 4,
+
+	/// <summary>
+	/// Add a zero-valued <c>TEXCOORD_1</c> attribute to mesh parts that do not have one.
+	/// </summary>
+	EnsureUV1 = 8
 }

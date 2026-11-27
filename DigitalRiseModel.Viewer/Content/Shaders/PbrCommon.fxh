@@ -15,6 +15,11 @@ float HasEmissiveTexture;
 float3 EmissiveFactor;
 float AlphaCutoff;
 float UseBaseColorAlpha;
+float UseUV1BaseColor;
+float UseUV1MetallicRoughness;
+float UseUV1Normal;
+float UseUV1Occlusion;
+float UseUV1Emissive;
 int DebugView;
 float Exposure;
 
@@ -83,14 +88,20 @@ float4 ShadeSurface(
 	float3 worldPosition,
 	float3 normal,
 	float2 texCoord,
+	float2 texCoord1,
 	float facing,
 	float4 vertexColor)
 {
+	float2 baseColorUV = UseUV1BaseColor > 0.5 ? texCoord1 : texCoord;
+	float2 metallicRoughnessUV = UseUV1MetallicRoughness > 0.5 ? texCoord1 : texCoord;
+	float2 occlusionUV = UseUV1Occlusion > 0.5 ? texCoord1 : texCoord;
+	float2 emissiveUV = UseUV1Emissive > 0.5 ? texCoord1 : texCoord;
+
 	float4 baseColor = BaseColorFactor;
 
 	if (HasBaseColorTexture > 0.5)
 	{
-		float4 textureColor = tex2D(BaseColorSampler, texCoord);
+		float4 textureColor = tex2D(BaseColorSampler, baseColorUV);
 		baseColor.rgb *= pow(saturate(textureColor.rgb), 2.2);
 		baseColor.a *= textureColor.a;
 	}
@@ -108,7 +119,7 @@ float4 ShadeSurface(
 
 	if (HasMetallicRoughnessTexture > 0.5)
 	{
-		float4 metallicRoughness = tex2D(MetallicRoughnessSampler, texCoord);
+		float4 metallicRoughness = tex2D(MetallicRoughnessSampler, metallicRoughnessUV);
 		roughness *= metallicRoughness.g;
 		metallic *= metallicRoughness.b;
 	}
@@ -127,7 +138,7 @@ float4 ShadeSurface(
 
 	if (HasOcclusionTexture > 0.5)
 	{
-		float sampledOcclusion = tex2D(OcclusionSampler, texCoord).r;
+		float sampledOcclusion = tex2D(OcclusionSampler, occlusionUV).r;
 		occlusion = lerp(1.0, sampledOcclusion, OcclusionStrength);
 	}
 
@@ -135,7 +146,7 @@ float4 ShadeSurface(
 
 	if (HasEmissiveTexture > 0.5)
 	{
-		float3 emissiveTexture = tex2D(EmissiveSampler, texCoord).rgb;
+		float3 emissiveTexture = tex2D(EmissiveSampler, emissiveUV).rgb;
 		emissive *= pow(saturate(emissiveTexture), 2.2);
 	}
 

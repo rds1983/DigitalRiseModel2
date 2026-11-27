@@ -82,7 +82,7 @@ internal sealed class ViewerGame : Game
 		_model = _assetManager.LoadDrModel(
 			GraphicsDevice,
 			fileName,
-			ModelLoadFlags.EnsureUVs);
+			ModelLoadFlags.EnsureUVs | ModelLoadFlags.EnsureUV1);
 		_instance = new DrModelInstance(_model);
 		_animation = new AnimationController(_instance);
 

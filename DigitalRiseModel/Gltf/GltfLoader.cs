@@ -555,6 +555,21 @@ internal static partial class GltfLoader
 				zeroUVs));
 		}
 
+		if (flags.HasFlag(ModelLoadFlags.EnsureUV1)
+			&& !vertexAttributes.Any(
+				attribute => attribute.Usage == VertexElementUsage.TextureCoordinate
+					&& attribute.UsageIndex == 1))
+		{
+			var zeroUVs = new float[vertexCount * 2];
+
+			vertexAttributes.Add(new VertexAttribute(
+				"TEXCOORD_1",
+				VertexElementUsage.TextureCoordinate,
+				1,
+				2,
+				zeroUVs));
+		}
+
 		uint[] sourceIndices;
 
 		if (primitive.Indices is int indexAccessor)
