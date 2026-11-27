@@ -22,28 +22,32 @@
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/build:Shaders/Pbr.fx
+/processorParam:Defines=HAS_NORMAL;HAS_TANGENT
+/build:Shaders/Pbr.fx;Shaders/Pbr.xnb
 
-#begin Shaders/PbrSkinned.fx
+#begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/build:Shaders/PbrSkinned.fx
+/processorParam:Defines=HAS_NORMAL
+/build:Shaders/Pbr.fx;Shaders/PbrNoTangent.xnb
 
-#begin Shaders/PbrNoTangent.fx
+#begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/build:Shaders/PbrNoTangent.fx
+/build:Shaders/Pbr.fx;Shaders/PbrBasic.xnb
 
-#begin Shaders/PbrBasic.fx
+#begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/build:Shaders/PbrBasic.fx
+/processorParam:Defines=SKINNED;HAS_NORMAL
+/build:Shaders/Pbr.fx;Shaders/PbrSkinned.xnb
 
-#begin Shaders/PbrSkinnedBasic.fx
+#begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/build:Shaders/PbrSkinnedBasic.fx
+/processorParam:Defines=SKINNED
+/build:Shaders/Pbr.fx;Shaders/PbrSkinnedBasic.xnb
