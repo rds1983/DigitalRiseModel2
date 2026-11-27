@@ -23,6 +23,29 @@ public object? Tag { get; set; }
 
 Bone indices are assigned sequentially by default. Pass `autoAssignIndices: false` to keep existing indices.
 
+## DrModelInstance
+
+`DrModelInstance` gives a model an independent mutable pose while sharing its mesh and buffer data:
+
+```csharp
+var instance = new DrModelInstance(model);
+
+public DrModel Model { get; }
+public int BoneCount { get; }
+public Matrix GetLocalTransform(int boneIndex);
+public void SetLocalTransform(int boneIndex, Matrix matrix);
+public Matrix[] AbsoluteBoneTransforms { get; }
+public BoundingSphere BoundingSphere { get; }
+```
+
+The constructor copies the model's current bone transforms as the initial local pose. `GetLocalTransform` and `SetLocalTransform` access the local transform of a bone, relative to its parent. Setting a transform marks the absolute transforms and bounding sphere dirty.
+
+`AbsoluteBoneTransforms` recalculates on the next query. `BoundingSphere` recalculates on the next query by transforming each mesh's bounding sphere with its parent bone's absolute transform and merging the spheres. Bone indices refer to positions in `DrModel.Bones`.
+
+`AbsoluteBoneTransforms` returns the instance-owned array. Treat it as read-only.
+
+`DrModelInstance` does not contain animation playback or sampling APIs. Animation code writes local transforms with `SetLocalTransform` and reads absolute transforms or bounds when needed.
+
 ## DrModelBone
 
 ```csharp
@@ -77,7 +100,7 @@ Parts are owned by a mesh and are disposed with it.
 
 `DrMaterial` mirrors glTF metallic-roughness material data: base color, metallic/roughness factors, texture references, emissive color, alpha mode and double-sided flag.
 
-`DrSkin` mirrors glTF skinning data: joint bones, an optional skeleton root and inverse bind matrices.
+`DrSkin` mirrors glTF skinning data: a `DrSkinJoint[]` plus an optional skeleton root. Each `DrSkinJoint` pairs a joint bone with its inverse bind matrix.
 
 See [Loading glTF](gltf-loading.md) for the mapping details.
 

@@ -12,27 +12,26 @@ public sealed class DrSkinTests
 
 		Assert.Null(skin.Skeleton);
 		Assert.Empty(skin.Joints);
-		Assert.Empty(skin.InverseBindMatrices);
 	}
 
 	[Fact]
 	public void Properties_Set_ReturnsAssignedValues()
 	{
 		var skeleton = new DrModelBone("Skeleton");
-		var joint = new DrModelBone("Joint");
-		var inverseBind = new[] { Matrix.Identity };
+		var bone = new DrModelBone("Joint");
+		var joint = new DrSkinJoint(bone, Matrix.Identity);
+		var joints = new[] { joint };
 
 		var skin = new DrSkin
 		{
 			Name = "Skin",
 			Skeleton = skeleton,
-			Joints = [joint],
-			InverseBindMatrices = inverseBind
+			Joints = joints
 		};
 
 		Assert.Equal("Skin", skin.Name);
 		Assert.Same(skeleton, skin.Skeleton);
+		Assert.Same(joints, skin.Joints);
 		Assert.Same(joint, skin.Joints[0]);
-		Assert.Same(inverseBind, skin.InverseBindMatrices);
 	}
 }

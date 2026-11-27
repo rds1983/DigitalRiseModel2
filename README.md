@@ -38,12 +38,14 @@ Model types live in the root namespace `DigitalRiseModel`. glTF loading is expos
 | Type | Purpose |
 | --- | --- |
 | `DrModel` | A model composed of bone and mesh arrays; bone transform helpers |
+| `DrModelInstance` | An instance backed by a `DrModel` with local-transform accessors, lazily recalculated absolute transforms and a current-pose bounding sphere |
 | `DrModelBone` | A bone with a name, optional mesh, local transform, parent, children array and tag |
 | `DrModelMesh` | A mesh with a cached, on-demand bounding sphere, parent bone and parts |
 | `DrModelMeshPart` | A draw range with vertex/index buffers, vertex declaration, counts, material, skin, bounding sphere, owning-mesh back-reference and optional `VertexSkinned` source geometry |
 | `DrMaterial` | Metallic-roughness material data, including texture references and alpha mode |
 | `DrTextureInfo` | A texture index, UV set, normal scale, occlusion strength and loaded `Texture2D` |
-| `DrSkin` | Joints, skeleton root and inverse bind matrices |
+| `DrSkin` | Skin joints and skeleton root |
+| `DrSkinJoint` | A joint bone paired with its inverse bind matrix |
 | `SrtTransform` | A scale, rotation and translation pose with value equality |
 | `AnimationClip` | A full clip: name, duration, channels and tag |
 | `AnimationChannel` | A bone index, keyframes and per-path interpolation modes |
@@ -97,6 +99,24 @@ model.CopyBoneTransformsFrom(animatedLocalTransforms);
 ```
 
 Rendering is then up to you: iterate `model.Meshes`, read each part's buffers and draw range, apply your own effect, and use the bone transforms for skinning.
+
+## Model instances
+
+`DrModelInstance` gives a model its own mutable pose while sharing the model data:
+
+```csharp
+var instance = new DrModelInstance(model);
+
+// Read or write a local bone transform.
+Matrix local = instance.GetLocalTransform(boneIndex);
+instance.SetLocalTransform(boneIndex, newLocalTransform);
+
+// Absolute transforms and bounds are recalculated lazily after local changes.
+Matrix[] absoluteBones = instance.AbsoluteBoneTransforms;
+BoundingSphere bounds = instance.BoundingSphere;
+```
+
+The constructor copies the model's current bone transforms as the initial local pose. `GetLocalTransform` and `SetLocalTransform` access local transforms relative to each bone's parent; setting one marks the absolute transforms and bounding sphere dirty. `AbsoluteBoneTransforms` is indexed like `DrModel.Bones` and recalculates on the next query after a change. `BoundingSphere` is the world-space bound of the current pose, computed by transforming each mesh's bounding sphere by its parent bone's absolute transform and merging the results. `BoneCount` returns the number of bones.
 
 ## Loading glTF
 

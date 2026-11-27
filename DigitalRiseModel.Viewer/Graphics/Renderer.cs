@@ -264,8 +264,7 @@ internal sealed class Renderer : IDisposable
 
 		if (skin is null
 			|| skin.Joints.Length == 0
-			|| skin.Joints.Length > SkinnedEffect.MaxBones
-			|| skin.InverseBindMatrices.Length != skin.Joints.Length)
+			|| skin.Joints.Length > SkinnedEffect.MaxBones)
 		{
 			return null;
 		}
@@ -274,14 +273,15 @@ internal sealed class Renderer : IDisposable
 
 		for (int i = 0; i < transforms.Length; i++)
 		{
-			int boneIndex = skin.Joints[i].Index;
+			DrSkinJoint joint = skin.Joints[i];
+			int boneIndex = joint.Bone.Index;
 
 			if ((uint)boneIndex >= (uint)_absoluteBoneTransforms.Length)
 			{
 				return null;
 			}
 
-			transforms[i] = skin.InverseBindMatrices[i] * _absoluteBoneTransforms[boneIndex];
+			transforms[i] = joint.InverseBindMatrix * _absoluteBoneTransforms[boneIndex];
 		}
 
 		return transforms;

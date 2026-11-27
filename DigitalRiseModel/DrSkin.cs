@@ -1,10 +1,7 @@
-using Microsoft.Xna.Framework;
-
 namespace DigitalRiseModel;
 
 /// <summary>
-/// Describes the skinning data of a mesh part: the joint bones, the optional skeleton
-/// root and the inverse bind matrices.
+/// Describes the skinning data of a mesh part: the joints and the optional skeleton root.
 /// </summary>
 public sealed class DrSkin
 {
@@ -19,14 +16,9 @@ public sealed class DrSkin
 	public DrModelBone? Skeleton { get; set; }
 
 	/// <summary>
-	/// Gets or sets the joint bones.
+	/// Gets or sets the joints, each pairing a bone with its inverse bind matrix.
 	/// </summary>
-	public DrModelBone[] Joints { get; set; } = [];
-
-	/// <summary>
-	/// Gets or sets the inverse bind matrices, one per joint.
-	/// </summary>
-	public Matrix[] InverseBindMatrices { get; set; } = [];
+	public DrSkinJoint[] Joints { get; set; } = [];
 
 	/// <summary>
 	/// Gets or sets an object that identifies this skin.

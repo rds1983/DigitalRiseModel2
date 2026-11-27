@@ -102,9 +102,8 @@ External image files are loaded with `AssetManager.LoadTexture2D`; embedded imag
 
 `DrModelMeshPart.Skin` contains:
 
-- `Joints` — the joint bones
+- `Joints` — `DrSkinJoint` values, each pairing a joint bone with its inverse bind matrix
 - `Skeleton` — the optional skeleton root
-- `InverseBindMatrices` — one matrix per joint
 
 A glTF skin belongs to a node, so it is assigned to every part of that node's mesh.
 

@@ -357,42 +357,43 @@ internal static partial class GltfLoader
 			}
 
 			int[] jointNodeIndices = skin.Joints ?? [];
-			var joints = new DrModelBone[jointNodeIndices.Length];
-
-			for (int jointIndex = 0; jointIndex < jointNodeIndices.Length; jointIndex++)
-			{
-				joints[jointIndex] = GetBone(jointNodeIndices[jointIndex]);
-			}
-
-			DrModelBone? skeleton = skin.Skeleton is int skeletonIndex
-				? GetBone(skeletonIndex)
-				: null;
-
 			Matrix[] inverseBindMatrices;
 
 			if (skin.InverseBindMatrices is int inverseBindAccessor)
 			{
 				inverseBindMatrices = ReadMatrices(document, inverseBindAccessor, bufferProvider, bufferCache);
 
-				if (inverseBindMatrices.Length != joints.Length)
+				if (inverseBindMatrices.Length != jointNodeIndices.Length)
 				{
 					throw new InvalidDataException(
-						$"Skin {i} has {joints.Length} joints but {inverseBindMatrices.Length} inverse bind matrices.");
+						$"Skin {i} has {jointNodeIndices.Length} joints but " +
+						$"{inverseBindMatrices.Length} inverse bind matrices.");
 				}
 			}
 			else
 			{
 				inverseBindMatrices = Enumerable
-					.Repeat(Matrix.Identity, joints.Length)
+					.Repeat(Matrix.Identity, jointNodeIndices.Length)
 					.ToArray();
 			}
+
+			var joints = new DrSkinJoint[jointNodeIndices.Length];
+
+			for (int jointIndex = 0; jointIndex < jointNodeIndices.Length; jointIndex++)
+			{
+				DrModelBone bone = GetBone(jointNodeIndices[jointIndex]);
+				joints[jointIndex] = new DrSkinJoint(bone, inverseBindMatrices[jointIndex]);
+			}
+
+			DrModelBone? skeleton = skin.Skeleton is int skeletonIndex
+				? GetBone(skeletonIndex)
+				: null;
 
 			skins[i] = new DrSkin
 			{
 				Name = string.IsNullOrEmpty(skin.Name) ? $"Skin{i}" : skin.Name,
 				Skeleton = skeleton,
-				Joints = joints,
-				InverseBindMatrices = inverseBindMatrices
+				Joints = joints
 			};
 		}
 
