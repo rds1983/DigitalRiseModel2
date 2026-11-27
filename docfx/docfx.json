@@ -1,0 +1,47 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../DigitalRiseModel",
+          "files": [
+            "DigitalRiseModel.MonoGame.csproj"
+          ]
+        }
+      ],
+      "dest": "api",
+      "disableGitFeatures": true,
+      "properties": {
+        "TargetFramework": "net8.0"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "*.md",
+          "toc.yml",
+          "articles/*.md",
+          "api/**/*.yml"
+        ],
+        "src": "."
+      }
+    ],
+    "dest": "_site",
+    "template": [
+      "default"
+    ],
+    "globalMetadata": {
+      "_appName": "DigitalRiseModel.MonoGame",
+      "_appTitle": "DigitalRiseModel.MonoGame",
+      "_appFooter": "DigitalRiseModel.MonoGame — MIT licensed",
+      "_enableSearch": true,
+      "_disableContribution": true
+    },
+    "markdownEngineName": "markdig",
+    "noLangKeyword": false,
+    "keepFileLink": false,
+    "cleanFileCache": true
+  }
+}

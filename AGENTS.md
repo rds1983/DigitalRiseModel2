@@ -46,6 +46,14 @@ dotnet build DigitalRiseModel.MonoGame.sln -c Debug
 dotnet test DigitalRiseModel.MonoGame.sln
 ```
 
+Documentation:
+
+```bash
+dotnet tool restore
+dotnet docfx metadata docfx/docfx.json
+dotnet docfx build docfx/docfx.json
+```
+
 Useful variants:
 
 ```bash

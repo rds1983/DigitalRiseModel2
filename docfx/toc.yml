@@ -1,0 +1,8 @@
+- name: Introduction
+  href: articles/introduction.md
+- name: Getting started
+  href: articles/getting-started.md
+- name: Model data
+  href: articles/model-data.md
+- name: API reference
+  href: api/DigitalRiseModel.yml

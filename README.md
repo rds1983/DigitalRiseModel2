@@ -95,9 +95,10 @@ DigitalRiseModel/
   DigitalRiseModel.MonoGame.csproj
   *.cs                               # library sources (DrModel, DrModelMesh, ...)
 DigitalRiseModel.Tests/              # xUnit tests
-docfx/                               # DocFX configuration and articles (planned)
+docfx/                               # DocFX configuration, articles and API output
 Samples/                             # one folder per sample (planned)
   <SampleName>/
+.config/dotnet-tools.json            # local DocFX tool manifest
 ```
 
 ## Design principles
@@ -108,7 +109,7 @@ Samples/                             # one folder per sample (planned)
 4. **Render-ready, not rendering.** The library produces model data and bone transforms; the developer decides how and when to render.
 5. **Fail loudly.** Invalid bone ordering and other setup errors throw descriptive exceptions.
 6. **Simple arrays where order and ownership are explicit.** `DrModel.Bones`, `DrModel.Meshes`, `DrModelBone.Children` and `DrModelMesh.MeshParts` are arrays.
-7. **Stay deterministic.** Bone transform ordering and name lookup have stable, documented behavior.
+7. **Stay deterministic.** Bone traversal, array ordering and transform calculations have stable, documented behavior.
 8. **Test the data side.** Unit tests must not require a window or GPU device.
 
 ## Requirements
@@ -128,7 +129,25 @@ dotnet build DigitalRiseModel.MonoGame.sln
 dotnet test DigitalRiseModel.MonoGame.sln
 ```
 
-The current test suite covers bone hierarchy rules, name-based lookups, model bone transform copies and mesh part storage.
+The current test suite covers bone hierarchy rules, array back-references, model bone transform copies, bounding-sphere caching and disposal.
+
+## Documentation
+
+The documentation site is built with [DocFX](https://dotnet.github.io/docfx/) from `docfx/`:
+
+```bash
+dotnet tool restore
+dotnet docfx metadata docfx/docfx.json
+dotnet docfx build docfx/docfx.json
+```
+
+The generated site is written to `docfx/_site`. To preview it locally:
+
+```bash
+dotnet docfx serve docfx/_site
+```
+
+The site includes a getting-started guide, model-data concepts and the generated API reference.
 
 ## Roadmap
 
@@ -138,7 +157,8 @@ The current test suite covers bone hierarchy rules, name-based lookups, model bo
 - [ ] Mesh processing: normals, tangents, vertex welding, optimization, simplification.
 - [ ] Import/export: glTF 2.0, OBJ and a versioned native format.
 - [ ] Animation: skeletons, clips, sampling and blending.
-- [ ] DocFX documentation site and runnable samples.
+- [x] DocFX documentation site with guides and API reference.
+- [ ] Runnable samples.
 
 ## Contributing
 
