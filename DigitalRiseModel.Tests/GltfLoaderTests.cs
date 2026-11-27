@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using AssetManagementBase;
 using DigitalRiseModel;
 using DigitalRiseModel.Gltf;
 using Microsoft.Xna.Framework;
@@ -78,6 +80,7 @@ public sealed class GltfLoaderTests
 		Assert.NotNull(red.BaseColorTexture);
 		Assert.Equal(0, red.BaseColorTexture!.TextureIndex);
 		Assert.Equal(1, red.BaseColorTexture.TexCoord);
+		Assert.Null(red.BaseColorTexture.Texture);
 		Assert.NotNull(red.NormalTexture);
 		Assert.Equal(0.5f, red.NormalTexture!.Scale, 5);
 		Assert.NotNull(red.OcclusionTexture);
@@ -175,9 +178,31 @@ public sealed class GltfLoaderTests
 	}
 
 	[Fact]
-	public void Load_NullGraphicsDevice_ThrowsArgumentNullException()
+	public void LoadDrModel_AssetManager_LoadsAndCachesModel()
 	{
-		Assert.Throws<ArgumentNullException>(() => GltfLoader.Load((GraphicsDevice)null!, "model.gltf"));
+		var graphicsDevice = (GraphicsDevice)RuntimeHelpers.GetUninitializedObject(typeof(GraphicsDevice));
+		AssetManager assets = AssetManager.CreateFileAssetManager(TestDataDirectory());
+
+		DrModel model = assets.LoadDrModel(graphicsDevice, "empty-scene.gltf");
+		DrModel cached = assets.LoadDrModel(graphicsDevice, "empty-scene.gltf");
+
+		Assert.Equal(3, model.Bones.Length);
+		Assert.Same(model, cached);
+	}
+
+	[Fact]
+	public void LoadDrModel_NullAssetManager_ThrowsArgumentNullException()
+	{
+		Assert.Throws<ArgumentNullException>(
+			() => DrModelAssetManagerExtensions.LoadDrModel(null!, null!, "model.gltf"));
+	}
+
+	[Fact]
+	public void LoadDrModel_NullGraphicsDevice_ThrowsArgumentNullException()
+	{
+		AssetManager assetManager = AssetManager.CreateFileAssetManager(AppContext.BaseDirectory);
+
+		Assert.Throws<ArgumentNullException>(() => assetManager.LoadDrModel(null!, "model.gltf"));
 	}
 
 	[Fact]
@@ -195,6 +220,11 @@ public sealed class GltfLoaderTests
 
 	private static string TestDataPath(string fileName)
 	{
-		return Path.Combine(AppContext.BaseDirectory, "TestData", fileName);
+		return Path.Combine(TestDataDirectory(), fileName);
+	}
+
+	private static string TestDataDirectory()
+	{
+		return Path.Combine(AppContext.BaseDirectory, "TestData");
 	}
 }

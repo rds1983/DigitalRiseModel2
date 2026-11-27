@@ -1,24 +1,24 @@
 # Loading glTF
 
-glTF 2.0 files are loaded through `DigitalRiseModel.Gltf.GltfLoader`, which uses the Khronos **glTF2Loader** package for parsing.
+glTF 2.0 files are loaded through the recursive `AssetManager` loader. The public entry point is the `LoadDrModel` extension method:
 
 ```csharp
-using DigitalRiseModel.Gltf;
+using AssetManagementBase;
+using DigitalRiseModel;
 
-DrModel model = GltfLoader.Load(graphicsDevice, "models/robot.glb");
+var assets = AssetManager.CreateFileAssetManager("Content");
+DrModel model = assets.LoadDrModel(graphicsDevice, "models/robot.glb");
 ```
 
-The graphics device is required only when the loader should create MonoGame `VertexBuffer` and `IndexBuffer` objects.
+The graphics device is required because the loader creates MonoGame buffers and textures. The loader itself is internal; use `AssetManager` for loading.
 
-## Data-only loading
+## Recursive assets
 
-Omit the graphics device to load the model data without creating GPU resources:
+`LoadDrModel` uses `AssetManager.UseLoader`, so relative paths inside the glTF resolve against the model's folder:
 
-```csharp
-DrModel model = GltfLoader.Load("models/robot.glb");
-```
-
-`VertexBuffer` and `IndexBuffer` are `null` in this mode, but `VertexDeclaration`, counts, bounds, materials and skins are still populated. The unit tests use this path to load the bundled glTF fixtures without a graphics device.
+- External `.bin` buffers.
+- External image files referenced by materials.
+- Rooted and resource-based asset managers created through XNAssets.
 
 ## What is loaded
 
@@ -27,13 +27,14 @@ DrModel model = GltfLoader.Load("models/robot.glb");
 - Scene nodes converted to `DrModelBone` instances under a synthetic root bone.
 - Each glTF mesh primitive converted to a `DrModelMeshPart`.
 - Triangle lists, triangle strips and triangle fans, converted to triangle lists.
-- POSITION, NORMAL, TANGENT, TEXCOORD_0, COLOR_0, JOINTS_0 and WEIGHTS_0 vertex attributes.
+- POSITION, NORMAL, TANGENT, TEXCOORD_n, COLOR_n, JOINTS_n and WEIGHTS_n vertex attributes.
 - Metallic-roughness materials as `DrMaterial` with `DrTextureInfo` references.
+- Textures as `Texture2D` in `DrTextureInfo.Texture`.
 - Node skins as `DrSkin`, assigned to the parts of that node's mesh.
 
 ## Vertex layout
 
-Vertex buffers reflect the primitive's actual glTF attributes. The loader creates a `VertexDeclaration` and writes a matching interleaved buffer. Read the layout from `DrModelMeshPart.VertexBuffer.VertexDeclaration`.
+Vertex buffers reflect the primitive's actual glTF attributes. The loader creates a `VertexDeclaration` and writes a matching interleaved buffer. Read the layout from `DrModelMeshPart.VertexDeclaration` or `DrModelMeshPart.VertexBuffer.VertexDeclaration`.
 
 | glTF attribute | Vertex element usage |
 | --- | --- |
@@ -57,7 +58,7 @@ var data = new byte[part.NumVertices * declaration.VertexStride];
 part.VertexBuffer.GetData(data);
 ```
 
-## Materials
+## Materials and textures
 
 `DrModelMeshPart.Material` contains the glTF material data:
 
@@ -68,7 +69,7 @@ part.VertexBuffer.GetData(data);
 - alpha mode and cutoff
 - double-sided flag
 
-`DrTextureInfo.TextureIndex` refers to the glTF texture index. The loader does not decode image files; texture loading belongs to the renderer.
+External image files are loaded with `AssetManager.LoadTexture2D`; embedded images in `.glb` or data URIs are decoded from their buffer views. The result is assigned to `DrTextureInfo.Texture`.
 
 ## Skins
 
@@ -85,5 +86,5 @@ A glTF skin belongs to a node, so it is assigned to every part of that node's me
 - Animations are not loaded.
 - Sparse accessors are not supported.
 - Non-triangle primitive modes are not supported.
-- Image files are not decoded.
-- GPU buffer creation requires a `GraphicsDevice`. Use the data-only overload when only the model data is needed.
+- Texture samplers are not represented.
+- GPU buffer and texture creation requires a `GraphicsDevice`.

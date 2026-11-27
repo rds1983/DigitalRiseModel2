@@ -9,6 +9,8 @@ Small, generated glTF 2.0 files used by `GltfLoaderTests`. They are checked in s
 | `two-uvs.gltf` | Positions, normals and two texture coordinate sets |
 | `skinned.gltf` | Two-bone hierarchy, `JOINTS_0`, `WEIGHTS_0`, an identity inverse bind matrix |
 | `materials.gltf` | Two primitives, two materials, texture references, alpha mask |
+| `white.png` | 1×1 white PNG referenced by `materials.gltf` |
+| `empty-scene.gltf` | Node hierarchy with no meshes; used for AssetManager tests |
 | `triangle-strip.gltf` | Four-vertex triangle strip that must convert to two triangles |
 
 All files are generated, not copied from a third party. They are intentionally tiny and contain no external binary dependencies.

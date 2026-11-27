@@ -1,3 +1,5 @@
+using Microsoft.Xna.Framework.Graphics;
+
 namespace DigitalRiseModel;
 
 /// <summary>
@@ -24,6 +26,12 @@ public sealed class DrTextureInfo
 	/// Gets or sets the occlusion strength. This value is used only for occlusion textures.
 	/// </summary>
 	public float Strength { get; set; } = 1f;
+
+	/// <summary>
+	/// Gets or sets the loaded texture, or <see langword="null"/> when the model was loaded
+	/// without a graphics device.
+	/// </summary>
+	public Texture2D? Texture { get; set; }
 
 	/// <summary>
 	/// Gets or sets an object that identifies this texture reference.

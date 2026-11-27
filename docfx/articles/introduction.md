@@ -30,7 +30,7 @@ The type names intentionally mirror the XNA model API with a `Dr` prefix:
 | `ModelMesh` | `DrModelMesh` |
 | `ModelMeshPart` | `DrModelMeshPart` |
 
-Materials and skins are represented by `DrMaterial` and `DrSkin`. glTF loading lives in `DigitalRiseModel.Gltf.GltfLoader`.
+Materials and skins are represented by `DrMaterial` and `DrSkin`. glTF models are loaded through `AssetManager.LoadDrModel(device, path)`.
 
 MonoGame already provides the XNA types. This library adds a parallel data layer that can evolve independently while still using MonoGame's `Matrix`, `BoundingSphere`, `VertexBuffer` and `IndexBuffer` types.
 

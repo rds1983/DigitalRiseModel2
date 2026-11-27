@@ -15,7 +15,7 @@ DigitalRiseModel.MonoGame.sln              # solution root
 DigitalRiseModel/
   DigitalRiseModel.MonoGame.csproj         # library project
   *.cs                                     # root model types at the project root
-  Gltf/                                    # DigitalRiseModel.Gltf (loader)
+  Gltf/                                    # DigitalRiseModel.Gltf (internal loader)
 DigitalRiseModel.Tests/                    # xUnit test project
 docfx/                                     # DocFX config and articles
 Samples/
@@ -36,7 +36,7 @@ LICENSE
 1. **Data only.** Model classes must not expose `Draw`, `Effect`, shader, render-state or renderer-callback APIs. `GltfLoader` may create vertex/index buffers using a caller-supplied `GraphicsDevice`, but it must not issue draw calls. Rendering is the developer's responsibility.
 2. **MonoGame data types only.** Use MonoGame data types such as `VertexBuffer`, `IndexBuffer`, `Matrix` and `BoundingSphere`. Do not add Stride, SharpDX, Silk.NET, OpenGL, Vulkan, SDL or custom engine abstractions.
 3. **Mirror XNA behavior, not source.** The public API shape follows the XNA Game Studio 4.0 model classes. Do not copy, port or transliterate source, comments or internal designs from MonoGame, XNA, DigitalRiseModel or DigitalRune. Write the implementation independently and keep it simple.
-4. **Keep dependencies minimal.** The library's package dependencies are `MonoGame.Framework.DesktopGL` (3.8.6.1) and Khronos `glTF2Loader` (2.0.0). Tests may use xUnit and the test SDK. Ask before adding another package or changing either platform dependency.
+4. **Keep dependencies minimal.** The library's package dependencies are `MonoGame.Framework.DesktopGL` (3.8.6.1), Khronos `glTF2Loader` (2.0.0) and `XNAssets.MonoGame` (0.8.9). Tests may use xUnit and the test SDK. Ask before adding another package or changing a platform dependency.
 5. **Public API is a contract.** Document it, test it, and avoid breaking it. Add `[Obsolete]` with guidance before removing or changing a public member.
 6. **Respect scope.** Make the smallest change that solves the task. Do not refactor unrelated code or reformat whole files.
 
@@ -96,8 +96,10 @@ Rules:
 - Cache `DrModelMesh.BoundingSphere` and invalidate it when `MeshParts` changes or a part's `BoundingSphere` changes. Do not expose a public invalidation method without a concrete need.
 - `DrModel` is constructed from a non-null root bone. Its constructor traverses the hierarchy, collects bones and `DrModelBone.Mesh` references, and assigns sequential bone indices by default (`autoAssignIndices: true`).
 - `DrModelMeshPart` carries `DrMaterial` and `DrSkin` references. `DrMaterial` mirrors glTF metallic-roughness data; `DrSkin` mirrors glTF joint, skeleton and inverse-bind-matrix data.
+- `GltfLoader` is internal. Public glTF loading is `AssetManager.LoadDrModel(device, path)`, which must use `AssetManager.UseLoader` so buffers and textures resolve recursively relative to the model asset. Do not expose `GltfLoader` publicly.
 - `GltfLoader` uses Khronos `glTF2Loader` for parsing only. Decode accessors and create buffers in this repository; do not add a second glTF parser. Animations are intentionally out of scope for now.
-- `GltfLoader.Load(path)` is the data-only path: it fills vertex declarations, counts, bounds, materials and skins but leaves `VertexBuffer`/`IndexBuffer` null. Use it for tests and inspection. The `GraphicsDevice` overload creates GPU buffers.
+- Textures are loaded through XNAssets (`AssetManager.LoadTexture2D`). External images use the recursive model manager; embedded glTF images use an in-memory `IAssetAccessor`. Assign the result to `DrTextureInfo.Texture`.
+- `GltfLoader.Load(path)` is the internal data-only path: it fills vertex declarations, counts, bounds, materials and skins but leaves `VertexBuffer`/`IndexBuffer` null. Use it only for tests and inspection.
 - glTF fixtures live in `DigitalRiseModel.Tests/TestData` and are copied to the test output. Keep them tiny and offline; do not add external binary dependencies.
 - Preserve XNA semantics for `CopyBoneTransformsTo`, `CopyBoneTransformsFrom` and `CopyAbsoluteBoneTransformsTo`. Parent bones must appear before their children; document and enforce this.
 - Every public type and member gets XML documentation. Explain units, coordinate conventions and handedness when relevant.

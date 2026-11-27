@@ -14,7 +14,7 @@ The current foundation contains:
 - `DrSkin`
 - `DrTextureInfo`
 
-glTF 2.0 loading is available through `DigitalRiseModel.Gltf.GltfLoader`. The `Dr` prefix keeps these types distinct from MonoGame's own `Model`, `ModelMesh` and `ModelMeshPart` classes while preserving familiar XNA member names and behavior.
+glTF 2.0 loading is available through the recursive `AssetManager.LoadDrModel(device, path)` extension. The `Dr` prefix keeps these types distinct from MonoGame's own `Model`, `ModelMesh` and `ModelMeshPart` classes while preserving familiar XNA member names and behavior.
 
 > **Status:** foundational data classes and glTF 2.0 loading are implemented and covered by unit tests. Animations, OBJ import, mesh processing and serialization are planned.
 
@@ -32,7 +32,7 @@ MonoGame already ships the XNA `Model` API. This library adds a parallel, data-f
 
 ## Current API
 
-Model types live in the root namespace `DigitalRiseModel`; glTF loader types live in `DigitalRiseModel.Gltf`.
+Model types live in the root namespace `DigitalRiseModel`. glTF loading is exposed through the `AssetManager` extension in the same namespace; the loader itself is internal.
 
 | Type | Purpose |
 | --- | --- |
@@ -41,9 +41,9 @@ Model types live in the root namespace `DigitalRiseModel`; glTF loader types liv
 | `DrModelMesh` | A mesh with a cached, on-demand bounding sphere, parent bone and parts |
 | `DrModelMeshPart` | A draw range with vertex/index buffers, vertex declaration, counts, material, skin, bounding sphere and owning-mesh back-reference |
 | `DrMaterial` | Metallic-roughness material data, including texture references and alpha mode |
-| `DrTextureInfo` | A texture index, UV set, normal scale or occlusion strength |
+| `DrTextureInfo` | A texture index, UV set, normal scale, occlusion strength and loaded `Texture2D` |
 | `DrSkin` | Joints, skeleton root and inverse bind matrices |
-| `GltfLoader` | Loads `.gltf`/`.glb` scenes, meshes, materials and skins |
+| `DrModelAssetManagerExtensions` | `AssetManager.LoadDrModel(device, path)` glTF loading |
 
 `DrModelMeshPart` stores the MonoGame `VertexBuffer` and `IndexBuffer` references plus the range to draw. Effects and draw calls belong to your renderer; `DrMaterial` and `DrSkin` describe the data to feed it.
 
@@ -94,29 +94,27 @@ Rendering is then up to you: iterate `model.Meshes`, read each part's buffers an
 
 ## Loading glTF
 
-```csharp
-using DigitalRiseModel.Gltf;
+glTF files are loaded through the recursive `AssetManager` loader:
 
-DrModel model = GltfLoader.Load(graphicsDevice, "models/robot.glb");
+```csharp
+using AssetManagementBase;
+using DigitalRiseModel;
+
+var assets = AssetManager.CreateFileAssetManager("Content");
+DrModel model = assets.LoadDrModel(graphicsDevice, "models/robot.glb");
 ```
 
 The loader:
 
 - Reads `.gltf` and `.glb` files through the Khronos `glTF2Loader` package.
+- Resolves buffers and textures relative to the glTF asset through `AssetManager`.
 - Builds a synthetic root bone, then converts scene nodes to `DrModelBone` instances.
 - Converts each glTF mesh primitive to a `DrModelMeshPart` with a vertex declaration generated from that primitive's attributes.
 - Creates MonoGame `VertexBuffer` and `IndexBuffer` objects on the supplied `GraphicsDevice`.
 - Converts metallic-roughness materials to `DrMaterial` and texture references to `DrTextureInfo`.
+- Loads referenced textures through XNAssets and assigns them to `DrTextureInfo.Texture`.
 - Converts node skins to `DrSkin` and assigns them to the node mesh's parts.
 - Loads triangle lists, triangle strips and triangle fans.
-
-For data-only inspection, omit the graphics device:
-
-```csharp
-DrModel model = GltfLoader.Load("models/robot.glb");
-```
-
-In this mode `VertexBuffer` and `IndexBuffer` are `null`, but `VertexDeclaration`, counts, bounds, materials and skins are populated. This is also how the tests load the bundled glTF assets.
 
 Animations are not loaded yet. Sparse accessors and non-triangle primitive modes throw `NotSupportedException`.
 
@@ -140,7 +138,7 @@ Samples/                             # one folder per sample (planned)
 
 ## Design principles
 
-1. **Data only.** No `Draw`, `Effect`, `GraphicsDevice`, render-state or shader APIs in the model classes.
+1. **Data only.** No `Draw`, `Effect`, shader or render-state APIs in the model classes. Only the glTF loader creates buffers and textures from a caller-supplied `GraphicsDevice`.
 2. **MonoGame-native data.** Use MonoGame's `VertexBuffer`, `IndexBuffer`, `Matrix` and `BoundingSphere` types. Do not introduce a parallel math or graphics API.
 3. **XNA-shaped, independently implemented.** The public shape follows the XNA 4.0 model classes, but the implementation is written for this project and does not copy upstream source.
 4. **Render-ready, not rendering.** The library produces model data and bone transforms; the developer decides how and when to render.
@@ -154,6 +152,7 @@ Samples/                             # one folder per sample (planned)
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - MonoGame `MonoGame.Framework.DesktopGL` 3.8.6.1 (managed through NuGet)
 - Khronos `glTF2Loader` 2.0.0 (managed through NuGet)
+- `XNAssets.MonoGame` 0.8.9 (managed through NuGet)
 - An IDE or CLI that can build a `.sln`
 
 ## Build and test
@@ -167,7 +166,7 @@ dotnet build DigitalRiseModel.MonoGame.sln
 dotnet test DigitalRiseModel.MonoGame.sln
 ```
 
-The current test suite covers bone hierarchy rules, array back-references, model bone transform copies, bounding-sphere caching, disposal, material/skin defaults, glTF scene/transform conversion and glTF assets with dynamic vertex layouts, multiple UV sets, skinning, materials, triangle strips and GLB files.
+The current test suite covers bone hierarchy rules, array back-references, model bone transform copies, bounding-sphere caching, disposal, material/skin/texture defaults, glTF scene/transform conversion, glTF assets with dynamic vertex layouts, multiple UV sets, skinning, materials, triangle strips and GLB files, plus `AssetManager` loading and caching.
 
 ## Documentation
 

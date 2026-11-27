@@ -1,14 +1,17 @@
 using System.Buffers.Binary;
+using AssetManagementBase;
 using glTFLoader;
 using glTFLoader.Schema;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using GltfDocument = glTFLoader.Schema.Gltf;
+using GltfImage = glTFLoader.Schema.Image;
 using GltfMaterial = glTFLoader.Schema.Material;
 using GltfMesh = glTFLoader.Schema.Mesh;
 using GltfNode = glTFLoader.Schema.Node;
 using GltfPrimitive = glTFLoader.Schema.MeshPrimitive;
 using GltfSkin = glTFLoader.Schema.Skin;
+using GltfTexture = glTFLoader.Schema.Texture;
 
 namespace DigitalRiseModel.Gltf;
 
@@ -21,57 +24,126 @@ namespace DigitalRiseModel.Gltf;
 /// supported. Vertex buffers use a dynamic declaration generated from the primitive's
 /// glTF attributes, including multiple texture coordinate and color sets.
 /// </remarks>
-public static class GltfLoader
+internal static class GltfLoader
 {
-	/// <summary>
-	/// Loads a glTF or GLB file.
-	/// </summary>
-	/// <param name="graphicsDevice">The graphics device used to create vertex and index buffers.</param>
-	/// <param name="path">The path to the <c>.gltf</c> or <c>.glb</c> file.</param>
-	/// <param name="sceneIndex">The scene to load, or <see langword="null"/> to use the default scene.</param>
-	/// <returns>The loaded model.</returns>
-	/// <exception cref="ArgumentNullException">
-	/// <paramref name="graphicsDevice"/> or <paramref name="path"/> is <see langword="null"/>.
-	/// </exception>
-	/// <exception cref="InvalidDataException">The file contains invalid or unsupported data.</exception>
-	/// <exception cref="NotSupportedException">The file uses an unsupported primitive mode or accessor feature.</exception>
-	public static DrModel Load(GraphicsDevice graphicsDevice, string path, int? sceneIndex = null)
+	internal static DrModel Load(
+		AssetManager assetManager,
+		GraphicsDevice graphicsDevice,
+		string assetName,
+		int? sceneIndex = null)
 	{
+		ArgumentNullException.ThrowIfNull(assetManager);
 		ArgumentNullException.ThrowIfNull(graphicsDevice);
-		ArgumentNullException.ThrowIfNull(path);
+		ArgumentNullException.ThrowIfNull(assetName);
 
-		GltfDocument document = Interface.LoadModel(path)
+		using Stream stream = assetManager.Open(assetName);
+		GltfDocument document = Interface.LoadModel(stream)
 			?? throw new InvalidDataException("The glTF loader returned no document.");
 
-		return Load(graphicsDevice, document, path, sceneIndex);
+		byte[] LoadExternalBuffer(string? uri)
+		{
+			if (string.IsNullOrEmpty(uri))
+			{
+				using Stream glbStream = assetManager.Open(assetName);
+				return Interface.LoadBinaryBuffer(glbStream);
+			}
+
+			return assetManager.ReadAsByteArray(Uri.UnescapeDataString(uri));
+		}
+
+		byte[] GetBuffer(int bufferIndex)
+		{
+			return document.LoadBinaryBuffer(bufferIndex, uri => LoadExternalBuffer(uri));
+		}
+
+		var textureCache = new Dictionary<int, Texture2D?>();
+
+		Texture2D? GetTexture(int textureIndex)
+		{
+			if (textureCache.TryGetValue(textureIndex, out Texture2D? cachedTexture))
+			{
+				return cachedTexture;
+			}
+
+			GltfTexture[] textures = document.Textures ?? [];
+
+			if ((uint)textureIndex >= (uint)textures.Length)
+			{
+				throw new InvalidDataException(
+					$"Texture index {textureIndex} is outside the texture collection.");
+			}
+
+			GltfTexture texture = textures[textureIndex];
+
+			if (texture.Source is not int imageIndex)
+			{
+				textureCache[textureIndex] = null;
+				return null;
+			}
+
+			GltfImage[] images = document.Images ?? [];
+
+			if ((uint)imageIndex >= (uint)images.Length)
+			{
+				throw new InvalidDataException(
+					$"Image index {imageIndex} is outside the image collection.");
+			}
+
+			GltfImage image = images[imageIndex];
+			Texture2D result;
+
+			if (!string.IsNullOrEmpty(image.Uri)
+				&& !image.Uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+			{
+				result = assetManager.LoadTexture2D(
+					graphicsDevice,
+					Uri.UnescapeDataString(image.Uri));
+			}
+			else
+			{
+				using Stream imageStream = Interface.OpenImageFile(
+					document,
+					imageIndex,
+					uri => LoadExternalBuffer(uri));
+
+				using var imageData = new MemoryStream();
+				imageStream.CopyTo(imageData);
+
+				var imageManager = new AssetManager(
+					new MemoryAssetAccessor(imageData.ToArray()),
+					string.Empty);
+
+				result = imageManager.LoadTexture2D(graphicsDevice, "image");
+			}
+
+			textureCache[textureIndex] = result;
+			return result;
+		}
+
+		return Load(graphicsDevice, document, sceneIndex, GetBuffer, GetTexture);
 	}
 
-	/// <summary>
-	/// Loads a glTF or GLB file without creating GPU buffers. Vertex and index buffers
-	/// are left <see langword="null"/>; counts, bounds, vertex declarations, materials and
-	/// skins are still populated.
-	/// </summary>
-	/// <param name="path">The path to the <c>.gltf</c> or <c>.glb</c> file.</param>
-	/// <param name="sceneIndex">The scene to load, or <see langword="null"/> to use the default scene.</param>
-	/// <returns>The loaded model data.</returns>
-	/// <exception cref="ArgumentNullException"><paramref name="path"/> is <see langword="null"/>.</exception>
-	/// <exception cref="InvalidDataException">The file contains invalid or unsupported data.</exception>
-	/// <exception cref="NotSupportedException">The file uses an unsupported primitive mode or accessor feature.</exception>
-	public static DrModel Load(string path, int? sceneIndex = null)
+	internal static DrModel Load(string path, int? sceneIndex = null)
 	{
 		ArgumentNullException.ThrowIfNull(path);
 
 		GltfDocument document = Interface.LoadModel(path)
 			?? throw new InvalidDataException("The glTF loader returned no document.");
 
-		return Load(null, document, path, sceneIndex);
+		return Load(
+			null,
+			document,
+			sceneIndex,
+			index => document.LoadBinaryBuffer(index, path),
+			null);
 	}
 
 	private static DrModel Load(
 		GraphicsDevice? graphicsDevice,
 		GltfDocument document,
-		string path,
-		int? sceneIndex)
+		int? sceneIndex,
+		Func<int, byte[]> bufferProvider,
+		Func<int, Texture2D?>? textureProvider)
 	{
 		GltfNode[] nodes = document.Nodes ?? [];
 		var nodeBones = new DrModelBone?[nodes.Length];
@@ -114,8 +186,8 @@ public static class GltfLoader
 			rootBone.Children = rootNodeIndices.Select(CreateBone).ToArray();
 		}
 
-		DrMaterial[] materials = ConvertMaterials(document);
-		DrSkin?[] skins = ConvertSkins(document, nodeBones, path, bufferCache);
+		DrMaterial[] materials = ConvertMaterials(document, textureProvider);
+		DrSkin?[] skins = ConvertSkins(document, nodeBones, bufferProvider, bufferCache);
 
 		for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
 		{
@@ -137,27 +209,32 @@ public static class GltfLoader
 				meshIndex,
 				materials,
 				skin,
-				path,
+				bufferProvider,
 				bufferCache);
 		}
 
 		return new DrModel(rootBone);
 	}
 
-	private static DrMaterial[] ConvertMaterials(GltfDocument document)
+	private static DrMaterial[] ConvertMaterials(
+		GltfDocument document,
+		Func<int, Texture2D?>? textureProvider)
 	{
 		GltfMaterial[] source = document.Materials ?? [];
 		var materials = new DrMaterial[source.Length];
 
 		for (int i = 0; i < source.Length; i++)
 		{
-			materials[i] = ConvertMaterial(source[i], i);
+			materials[i] = ConvertMaterial(source[i], i, textureProvider);
 		}
 
 		return materials;
 	}
 
-	private static DrMaterial ConvertMaterial(GltfMaterial material, int index)
+	private static DrMaterial ConvertMaterial(
+		GltfMaterial material,
+		int index,
+		Func<int, Texture2D?>? textureProvider)
 	{
 		var result = new DrMaterial
 		{
@@ -171,27 +248,30 @@ public static class GltfLoader
 		if (material.PbrMetallicRoughness is { } pbr)
 		{
 			result.BaseColorFactor = ToVector4(pbr.BaseColorFactor);
-			result.BaseColorTexture = ConvertTextureInfo(pbr.BaseColorTexture);
+			result.BaseColorTexture = ConvertTextureInfo(pbr.BaseColorTexture, textureProvider);
 			result.MetallicFactor = pbr.MetallicFactor;
 			result.RoughnessFactor = pbr.RoughnessFactor;
-			result.MetallicRoughnessTexture = ConvertTextureInfo(pbr.MetallicRoughnessTexture);
+			result.MetallicRoughnessTexture = ConvertTextureInfo(pbr.MetallicRoughnessTexture, textureProvider);
 		}
 
 		result.NormalTexture = ConvertTextureInfo(
 			material.NormalTexture,
+			textureProvider,
 			scale: material.NormalTexture?.Scale ?? 1f);
 
 		result.OcclusionTexture = ConvertTextureInfo(
 			material.OcclusionTexture,
+			textureProvider,
 			strength: material.OcclusionTexture?.Strength ?? 1f);
 
-		result.EmissiveTexture = ConvertTextureInfo(material.EmissiveTexture);
+		result.EmissiveTexture = ConvertTextureInfo(material.EmissiveTexture, textureProvider);
 
 		return result;
 	}
 
 	private static DrTextureInfo? ConvertTextureInfo(
 		TextureInfo? info,
+		Func<int, Texture2D?>? textureProvider,
 		float scale = 1f,
 		float strength = 1f)
 	{
@@ -205,7 +285,8 @@ public static class GltfLoader
 			TextureIndex = info.Index,
 			TexCoord = info.TexCoord,
 			Scale = scale,
-			Strength = strength
+			Strength = strength,
+			Texture = textureProvider?.Invoke(info.Index)
 		};
 	}
 
@@ -222,7 +303,7 @@ public static class GltfLoader
 	private static DrSkin?[] ConvertSkins(
 		GltfDocument document,
 		DrModelBone?[] nodeBones,
-		string path,
+		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
 		GltfSkin[] source = document.Skins ?? [];
@@ -258,7 +339,7 @@ public static class GltfLoader
 
 			if (skin.InverseBindMatrices is int inverseBindAccessor)
 			{
-				inverseBindMatrices = ReadMatrices(document, inverseBindAccessor, path, bufferCache);
+				inverseBindMatrices = ReadMatrices(document, inverseBindAccessor, bufferProvider, bufferCache);
 
 				if (inverseBindMatrices.Length != joints.Length)
 				{
@@ -301,7 +382,7 @@ public static class GltfLoader
 		int meshIndex,
 		DrMaterial[] materials,
 		DrSkin? skin,
-		string path,
+		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
 		GltfMesh[] meshes = document.Meshes ?? [];
@@ -323,7 +404,7 @@ public static class GltfLoader
 				primitives[i],
 				materials,
 				skin,
-				path,
+				bufferProvider,
 				bufferCache);
 		}
 
@@ -339,7 +420,7 @@ public static class GltfLoader
 		GltfPrimitive primitive,
 		DrMaterial[] materials,
 		DrSkin? skin,
-		string path,
+		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
 		Dictionary<string, int> attributes = primitive.Attributes
@@ -369,7 +450,7 @@ public static class GltfLoader
 				(uint[] rawValues, int rawComponents) = ReadUInts(
 					document,
 					attribute.Value,
-					path,
+					bufferProvider,
 					bufferCache);
 
 				components = rawComponents;
@@ -382,7 +463,7 @@ public static class GltfLoader
 			}
 			else
 			{
-				(values, components) = ReadFloats(document, attribute.Value, path, bufferCache);
+				(values, components) = ReadFloats(document, attribute.Value, bufferProvider, bufferCache);
 			}
 
 			ValidateAttributeComponents(attribute.Key, usage, components, expectedComponents);
@@ -423,7 +504,7 @@ public static class GltfLoader
 
 		if (primitive.Indices is int indexAccessor)
 		{
-			(uint[] values, int components) = ReadUInts(document, indexAccessor, path, bufferCache);
+			(uint[] values, int components) = ReadUInts(document, indexAccessor, bufferProvider, bufferCache);
 			RequireComponents(components, 1, "indices");
 			sourceIndices = values;
 		}
@@ -804,12 +885,12 @@ public static class GltfLoader
 	private static (float[] Values, int Components) ReadFloats(
 		GltfDocument document,
 		int accessorIndex,
-		string path,
+		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
 		Accessor accessor = GetAccessor(document, accessorIndex);
 		BufferView view = GetBufferView(document, accessor);
-		byte[] buffer = GetBuffer(document, view.Buffer, path, bufferCache);
+		byte[] buffer = GetBuffer(view.Buffer, bufferProvider, bufferCache);
 		int components = GetComponentCount(accessor.Type);
 		int componentSize = GetComponentSize(accessor.ComponentType);
 		int elementSize = components * componentSize;
@@ -850,12 +931,12 @@ public static class GltfLoader
 	private static (uint[] Values, int Components) ReadUInts(
 		GltfDocument document,
 		int accessorIndex,
-		string path,
+		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
 		Accessor accessor = GetAccessor(document, accessorIndex);
 		BufferView view = GetBufferView(document, accessor);
-		byte[] buffer = GetBuffer(document, view.Buffer, path, bufferCache);
+		byte[] buffer = GetBuffer(view.Buffer, bufferProvider, bufferCache);
 		int components = GetComponentCount(accessor.Type);
 		int componentSize = GetComponentSize(accessor.ComponentType);
 		int elementSize = components * componentSize;
@@ -895,10 +976,10 @@ public static class GltfLoader
 	private static Matrix[] ReadMatrices(
 		GltfDocument document,
 		int accessorIndex,
-		string path,
+		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
-		(float[] values, int components) = ReadFloats(document, accessorIndex, path, bufferCache);
+		(float[] values, int components) = ReadFloats(document, accessorIndex, bufferProvider, bufferCache);
 		RequireComponents(components, 16, "MAT4");
 
 		var matrices = new Matrix[values.Length / 16];
@@ -952,9 +1033,8 @@ public static class GltfLoader
 	}
 
 	private static byte[] GetBuffer(
-		GltfDocument document,
 		int bufferIndex,
-		string path,
+		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
 		if (bufferCache.TryGetValue(bufferIndex, out byte[]? buffer))
@@ -962,7 +1042,7 @@ public static class GltfLoader
 			return buffer;
 		}
 
-		buffer = document.LoadBinaryBuffer(bufferIndex, path);
+		buffer = bufferProvider(bufferIndex);
 		bufferCache[bufferIndex] = buffer;
 		return buffer;
 	}
@@ -1217,6 +1297,28 @@ public static class GltfLoader
 		{
 			throw new InvalidDataException(
 				$"The {attributeName} attribute has {actual} components; expected {expected}.");
+		}
+	}
+
+	private sealed class MemoryAssetAccessor : IAssetAccessor
+	{
+		private readonly byte[] _data;
+
+		public MemoryAssetAccessor(byte[] data)
+		{
+			_data = data;
+		}
+
+		public string Name => "Memory";
+
+		public bool Exists(string path)
+		{
+			return true;
+		}
+
+		public Stream Open(string path)
+		{
+			return new MemoryStream(_data, writable: false);
 		}
 	}
 }
