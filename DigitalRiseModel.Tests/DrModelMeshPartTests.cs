@@ -15,6 +15,15 @@ public sealed class DrModelMeshPartTests
 	}
 
 	[Fact]
+	public void SourceGeometry_DefaultsToNull()
+	{
+		var part = new DrModelMeshPart();
+
+		Assert.Null(part.SourceIndices);
+		Assert.Null(part.SourceVertices);
+	}
+
+	[Fact]
 	public void MaterialAndSkin_Set_ReturnsAssignedValues()
 	{
 		var material = new DrMaterial();

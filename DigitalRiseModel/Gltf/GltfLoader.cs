@@ -30,7 +30,8 @@ internal static class GltfLoader
 		AssetManager assetManager,
 		GraphicsDevice graphicsDevice,
 		string assetName,
-		int? sceneIndex = null)
+		int? sceneIndex = null,
+		ModelLoadFlags flags = ModelLoadFlags.None)
 	{
 		ArgumentNullException.ThrowIfNull(assetManager);
 		ArgumentNullException.ThrowIfNull(graphicsDevice);
@@ -120,10 +121,13 @@ internal static class GltfLoader
 			return result;
 		}
 
-		return Load(graphicsDevice, document, sceneIndex, GetBuffer, GetTexture);
+		return Load(graphicsDevice, document, sceneIndex, flags, GetBuffer, GetTexture);
 	}
 
-	internal static DrModel Load(string path, int? sceneIndex = null)
+	internal static DrModel Load(
+		string path,
+		int? sceneIndex = null,
+		ModelLoadFlags flags = ModelLoadFlags.None)
 	{
 		ArgumentNullException.ThrowIfNull(path);
 
@@ -134,6 +138,7 @@ internal static class GltfLoader
 			null,
 			document,
 			sceneIndex,
+			flags,
 			index => document.LoadBinaryBuffer(index, path),
 			null);
 	}
@@ -142,6 +147,7 @@ internal static class GltfLoader
 		GraphicsDevice? graphicsDevice,
 		GltfDocument document,
 		int? sceneIndex,
+		ModelLoadFlags flags,
 		Func<int, byte[]> bufferProvider,
 		Func<int, Texture2D?>? textureProvider)
 	{
@@ -227,6 +233,7 @@ internal static class GltfLoader
 				materials,
 				skin,
 				flipWinding,
+				flags,
 				bufferProvider,
 				bufferCache);
 		}
@@ -401,6 +408,7 @@ internal static class GltfLoader
 		DrMaterial[] materials,
 		DrSkin? skin,
 		bool flipWinding,
+		ModelLoadFlags flags,
 		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
@@ -424,6 +432,7 @@ internal static class GltfLoader
 				materials,
 				skin,
 				flipWinding,
+				flags,
 				bufferProvider,
 				bufferCache);
 		}
@@ -441,6 +450,7 @@ internal static class GltfLoader
 		DrMaterial[] materials,
 		DrSkin? skin,
 		bool flipWinding,
+		ModelLoadFlags flags,
 		Func<int, byte[]> bufferProvider,
 		Dictionary<int, byte[]> bufferCache)
 	{
@@ -595,7 +605,7 @@ internal static class GltfLoader
 				graphicsDevice,
 				declaration,
 				vertexCount,
-				BufferUsage.WriteOnly);
+				GetBufferUsage(flags));
 
 			vertexBuffer.SetData(vertexData);
 
@@ -614,7 +624,7 @@ internal static class GltfLoader
 					graphicsDevice,
 					IndexElementSize.SixteenBits,
 					indexData.Length,
-					BufferUsage.WriteOnly);
+					GetBufferUsage(flags));
 
 				indexBuffer.SetData(indexData);
 			}
@@ -624,7 +634,7 @@ internal static class GltfLoader
 					graphicsDevice,
 					IndexElementSize.ThirtyTwoBits,
 					indices.Length,
-					BufferUsage.WriteOnly);
+					GetBufferUsage(flags));
 
 				indexBuffer.SetData(indices);
 			}
@@ -634,10 +644,21 @@ internal static class GltfLoader
 			? GetMaterial(materials, materialIndex)
 			: null;
 
+		int[]? partSourceIndices = null;
+		VertexPositionColorNormalTexture[]? partSourceVertices = null;
+
+		if (flags.HasFlag(ModelLoadFlags.KeepSourceGeometry))
+		{
+			partSourceIndices = indices;
+			partSourceVertices = CreateSourceVertices(vertexAttributes, vertexCount);
+		}
+
 		return new DrModelMeshPart
 		{
 			VertexBuffer = vertexBuffer,
 			IndexBuffer = indexBuffer,
+			SourceIndices = partSourceIndices,
+			SourceVertices = partSourceVertices,
 			VertexDeclaration = declaration,
 			NumVertices = vertexCount,
 			PrimitiveCount = indices.Length / 3,
@@ -1247,6 +1268,93 @@ internal static class GltfLoader
 				throw new NotSupportedException(
 					$"The glTF primitive mode '{mode}' is not supported. Only triangle primitives are loaded.");
 		}
+	}
+
+	private static VertexPositionColorNormalTexture[] CreateSourceVertices(
+		List<VertexAttribute> attributes,
+		int vertexCount)
+	{
+		VertexAttribute position = FindAttribute(attributes, VertexElementUsage.Position)
+			?? throw new InvalidDataException("A mesh primitive has no POSITION attribute.");
+		VertexAttribute? normal = FindAttribute(attributes, VertexElementUsage.Normal);
+		VertexAttribute? color = FindAttribute(attributes, VertexElementUsage.Color);
+		VertexAttribute? texCoord = FindAttribute(attributes, VertexElementUsage.TextureCoordinate);
+
+		var result = new VertexPositionColorNormalTexture[vertexCount];
+
+		for (int i = 0; i < vertexCount; i++)
+		{
+			int positionOffset = i * position.Components;
+			var positionValue = new Vector3(
+				position.Values[positionOffset],
+				position.Values[positionOffset + 1],
+				position.Values[positionOffset + 2]);
+
+			Vector3 normalValue = Vector3.Zero;
+			if (normal is not null)
+			{
+				int normalOffset = i * normal.Components;
+				normalValue = new Vector3(
+					normal.Values[normalOffset],
+					normal.Values[normalOffset + 1],
+					normal.Values[normalOffset + 2]);
+			}
+
+			Color colorValue = Color.White;
+			if (color is not null)
+			{
+				int colorOffset = i * color.Components;
+				colorValue = color.Components >= 4
+					? new Color(
+						color.Values[colorOffset],
+						color.Values[colorOffset + 1],
+						color.Values[colorOffset + 2],
+						color.Values[colorOffset + 3])
+					: new Color(
+						color.Values[colorOffset],
+						color.Values[colorOffset + 1],
+						color.Values[colorOffset + 2]);
+			}
+
+			Vector2 texCoordValue = Vector2.Zero;
+			if (texCoord is not null)
+			{
+				int texCoordOffset = i * texCoord.Components;
+				texCoordValue = new Vector2(
+					texCoord.Values[texCoordOffset],
+					texCoord.Values[texCoordOffset + 1]);
+			}
+
+			result[i] = new VertexPositionColorNormalTexture(
+				positionValue,
+				colorValue,
+				normalValue,
+				texCoordValue);
+		}
+
+		return result;
+	}
+
+	private static VertexAttribute? FindAttribute(
+		List<VertexAttribute> attributes,
+		VertexElementUsage usage)
+	{
+		foreach (VertexAttribute attribute in attributes)
+		{
+			if (attribute.Usage == usage && attribute.UsageIndex == 0)
+			{
+				return attribute;
+			}
+		}
+
+		return null;
+	}
+
+	internal static BufferUsage GetBufferUsage(ModelLoadFlags flags)
+	{
+		return flags.HasFlag(ModelLoadFlags.ReadableBuffers)
+			? BufferUsage.None
+			: BufferUsage.WriteOnly;
 	}
 
 	private static void ReverseWinding(int[] indices)

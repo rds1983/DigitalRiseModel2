@@ -101,6 +101,59 @@ public sealed class GltfLoaderTests
 	}
 
 	[Fact]
+	public void Load_KeepSourceGeometry_PopulatesSourceData()
+	{
+		DrModel model = GltfLoader.Load(
+			TestDataPath("two-uvs.gltf"),
+			flags: ModelLoadFlags.KeepSourceGeometry);
+		DrModelMeshPart part = Assert.Single(Assert.Single(model.Meshes).MeshParts);
+
+		Assert.NotNull(part.SourceIndices);
+		Assert.NotNull(part.SourceVertices);
+		Assert.Equal(3, part.SourceIndices!.Length);
+		Assert.Equal(3, part.SourceVertices!.Length);
+
+		VertexPositionColorNormalTexture vertex = part.SourceVertices[1];
+		Assert.Equal(new Vector3(1, 0, 0), vertex.Position);
+		Assert.Equal(Vector3.UnitZ, vertex.Normal);
+		Assert.Equal(new Vector2(1, 0), vertex.TextureCoordinate);
+		Assert.Equal(Color.White, vertex.Color);
+
+		// Positive determinant: glTF CCW is normalized to MonoGame's CW convention.
+		Assert.Equal(new[] { 0, 2, 1 }, part.SourceIndices);
+	}
+
+	[Fact]
+	public void Load_PositiveDeterminant_ReversesSourceIndices()
+	{
+		DrModelMeshPart part = LoadFirstPart(
+			"triangle.gltf",
+			ModelLoadFlags.KeepSourceGeometry);
+
+		Assert.Equal(new[] { 0, 2, 1 }, part.SourceIndices);
+	}
+
+	[Fact]
+	public void Load_NegativeDeterminant_KeepsSourceIndices()
+	{
+		DrModelMeshPart part = LoadFirstPart(
+			"triangle-mirrored.gltf",
+			ModelLoadFlags.KeepSourceGeometry);
+
+		Assert.Equal(new[] { 0, 1, 2 }, part.SourceIndices);
+	}
+
+	[Fact]
+	public void Load_WithoutKeepSourceGeometry_LeavesSourceDataNull()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("triangle.gltf"));
+		DrModelMeshPart part = Assert.Single(Assert.Single(model.Meshes).MeshParts);
+
+		Assert.Null(part.SourceIndices);
+		Assert.Null(part.SourceVertices);
+	}
+
+	[Fact]
 	public void Load_Glb_LoadsDataOnly()
 	{
 		DrModelMeshPart part = LoadFirstPart("triangle.glb");
@@ -185,9 +238,15 @@ public sealed class GltfLoaderTests
 
 		DrModel model = assets.LoadDrModel(graphicsDevice, "empty-scene.gltf");
 		DrModel cached = assets.LoadDrModel(graphicsDevice, "empty-scene.gltf");
+		DrModel readable = assets.LoadDrModel(
+			graphicsDevice,
+			"empty-scene.gltf",
+			ModelLoadFlags.ReadableBuffers);
 
 		Assert.Equal(3, model.Bones.Length);
+		Assert.Equal(3, readable.Bones.Length);
 		Assert.Same(model, cached);
+		Assert.NotSame(model, readable);
 	}
 
 	[Fact]
@@ -211,9 +270,11 @@ public sealed class GltfLoaderTests
 		Assert.Throws<ArgumentNullException>(() => GltfLoader.Load((string)null!));
 	}
 
-	private static DrModelMeshPart LoadFirstPart(string fileName)
+	private static DrModelMeshPart LoadFirstPart(
+		string fileName,
+		ModelLoadFlags flags = ModelLoadFlags.None)
 	{
-		DrModel model = GltfLoader.Load(TestDataPath(fileName));
+		DrModel model = GltfLoader.Load(TestDataPath(fileName), flags: flags);
 		DrModelMesh mesh = Assert.Single(model.Meshes);
 		return Assert.Single(mesh.MeshParts);
 	}

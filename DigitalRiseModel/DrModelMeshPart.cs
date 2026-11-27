@@ -54,6 +54,18 @@ public sealed class DrModelMeshPart : IDisposable
 	public IndexBuffer? IndexBuffer { get; set; }
 
 	/// <summary>
+	/// Gets or sets the source indices when the model was loaded with
+	/// <see cref="ModelLoadFlags.KeepSourceGeometry"/>.
+	/// </summary>
+	public int[]? SourceIndices { get; set; }
+
+	/// <summary>
+	/// Gets or sets the source vertices when the model was loaded with
+	/// <see cref="ModelLoadFlags.KeepSourceGeometry"/>.
+	/// </summary>
+	public VertexPositionColorNormalTexture[]? SourceVertices { get; set; }
+
+	/// <summary>
 	/// Gets or sets the vertex declaration that describes the vertex layout.
 	/// </summary>
 	public VertexDeclaration? VertexDeclaration { get; set; }

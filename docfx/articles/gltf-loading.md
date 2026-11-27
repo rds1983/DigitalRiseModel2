@@ -20,6 +20,30 @@ The graphics device is required because the loader creates MonoGame buffers and 
 - External image files referenced by materials.
 - Rooted and resource-based asset managers created through XNAssets.
 
+## Readable buffers
+
+For debugging or tests, pass `ModelLoadFlags.ReadableBuffers`:
+
+```csharp
+DrModel model = assets.LoadDrModel(
+    graphicsDevice,
+    "models/robot.glb",
+    ModelLoadFlags.ReadableBuffers);
+```
+
+The loader then creates vertex and index buffers with `BufferUsage.None`, allowing `GetData` calls. The default `ModelLoadFlags.None` uses write-only buffers.
+
+Use `ModelLoadFlags.KeepSourceGeometry` to keep CPU-side copies:
+
+```csharp
+DrModel model = assets.LoadDrModel(
+    graphicsDevice,
+    "models/robot.glb",
+    ModelLoadFlags.KeepSourceGeometry);
+```
+
+This fills `DrModelMeshPart.SourceIndices` and `DrModelMeshPart.SourceVertices`; both remain `null` without the flag.
+
 ## What is loaded
 
 - `.gltf` and `.glb` files.

@@ -20,6 +20,7 @@ public static class DrModelAssetManagerExtensions
 	/// <param name="assetManager">The asset manager.</param>
 	/// <param name="graphicsDevice">The graphics device used to create buffers and textures.</param>
 	/// <param name="path">The model path, resolved by the asset manager.</param>
+	/// <param name="flags">Controls how GPU buffers are created.</param>
 	/// <param name="sceneIndex">The scene to load, or <see langword="null"/> to use the default scene.</param>
 	/// <returns>The loaded model.</returns>
 	/// <exception cref="ArgumentNullException">
@@ -30,19 +31,20 @@ public static class DrModelAssetManagerExtensions
 		this AssetManager assetManager,
 		GraphicsDevice graphicsDevice,
 		string path,
+		ModelLoadFlags flags = ModelLoadFlags.None,
 		int? sceneIndex = null)
 	{
 		ArgumentNullException.ThrowIfNull(assetManager);
 		ArgumentNullException.ThrowIfNull(graphicsDevice);
 		ArgumentNullException.ThrowIfNull(path);
 
-		var settings = new DrModelLoadingSettings(sceneIndex);
+		var settings = new DrModelLoadingSettings(sceneIndex, flags);
 
 		return assetManager.UseLoader(
 			Loader,
 			path,
 			settings,
-			(graphicsDevice, sceneIndex));
+			(graphicsDevice, sceneIndex, flags));
 	}
 
 	private static DrModel LoadModel(
@@ -51,23 +53,27 @@ public static class DrModelAssetManagerExtensions
 		IAssetSettings? settings,
 		object? tag)
 	{
-		(GraphicsDevice graphicsDevice, int? sceneIndex) = ((GraphicsDevice, int?))tag!;
+		(GraphicsDevice graphicsDevice, int? sceneIndex, ModelLoadFlags flags) =
+			((GraphicsDevice, int?, ModelLoadFlags))tag!;
 
-		return GltfLoader.Load(manager, graphicsDevice, assetName, sceneIndex);
+		return GltfLoader.Load(manager, graphicsDevice, assetName, sceneIndex, flags);
 	}
 
 	private sealed class DrModelLoadingSettings : IAssetSettings
 	{
 		private readonly int? _sceneIndex;
+		private readonly ModelLoadFlags _flags;
 
-		public DrModelLoadingSettings(int? sceneIndex)
+		public DrModelLoadingSettings(int? sceneIndex, ModelLoadFlags flags)
 		{
 			_sceneIndex = sceneIndex;
+			_flags = flags;
 		}
 
 		public string BuildKey()
 		{
-			return _sceneIndex?.ToString(CultureInfo.InvariantCulture) ?? "default";
+			string sceneKey = _sceneIndex?.ToString(CultureInfo.InvariantCulture) ?? "default";
+			return $"{sceneKey}:{(int)_flags}";
 		}
 	}
 }

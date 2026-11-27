@@ -39,10 +39,11 @@ Model types live in the root namespace `DigitalRiseModel`. glTF loading is expos
 | `DrModel` | A model composed of bone and mesh arrays; bone transform helpers |
 | `DrModelBone` | A bone with a name, optional mesh, local transform, parent, children array and tag |
 | `DrModelMesh` | A mesh with a cached, on-demand bounding sphere, parent bone and parts |
-| `DrModelMeshPart` | A draw range with vertex/index buffers, vertex declaration, counts, material, skin, bounding sphere and owning-mesh back-reference |
+| `DrModelMeshPart` | A draw range with vertex/index buffers, vertex declaration, counts, material, skin, bounding sphere, owning-mesh back-reference and optional source geometry |
 | `DrMaterial` | Metallic-roughness material data, including texture references and alpha mode |
 | `DrTextureInfo` | A texture index, UV set, normal scale, occlusion strength and loaded `Texture2D` |
 | `DrSkin` | Joints, skeleton root and inverse bind matrices |
+| `ModelLoadFlags` | Loading options; readable buffers and source geometry for debug/testing |
 | `DrModelAssetManagerExtensions` | `AssetManager.LoadDrModel(device, path)` glTF loading |
 
 `DrModelMeshPart` stores the MonoGame `VertexBuffer` and `IndexBuffer` references plus the range to draw. Effects and draw calls belong to your renderer; `DrMaterial` and `DrSkin` describe the data to feed it.
@@ -102,6 +103,15 @@ using DigitalRiseModel;
 
 var assets = AssetManager.CreateFileAssetManager("Content");
 DrModel model = assets.LoadDrModel(graphicsDevice, "models/robot.glb");
+```
+
+For debugging and tests, `ModelLoadFlags.ReadableBuffers` creates buffers with `BufferUsage.None` so their contents can be retrieved with `GetData`. `ModelLoadFlags.KeepSourceGeometry` also keeps CPU-side source arrays in `DrModelMeshPart.SourceIndices` and `SourceVertices`:
+
+```csharp
+DrModel readable = assets.LoadDrModel(
+    graphicsDevice,
+    "models/robot.glb",
+    ModelLoadFlags.ReadableBuffers | ModelLoadFlags.KeepSourceGeometry);
 ```
 
 The loader:
