@@ -16,6 +16,8 @@ namespace DigitalRiseModel.Viewer;
 internal sealed class ViewerGame : Game
 {
 	private readonly string _modelPath;
+	private readonly bool _usePbr;
+	private readonly string? _screenshotPath;
 
 	private AssetManager? _assetManager;
 	private DrModel? _model;
@@ -28,6 +30,8 @@ internal sealed class ViewerGame : Game
 	private FullscreenColorEffect? _shaderSmokeTest;
 	private KeyboardState _previousKeyboard;
 	private bool _showShaderSmokeTest;
+	private bool _screenshotCaptured;
+	private int _drawFrame;
 
 	private BoundingSphere _bounds;
 	private Vector3 _target;
@@ -40,10 +44,16 @@ internal sealed class ViewerGame : Game
 	private float _pitch = -0.25f;
 	private MouseState _previousMouse;
 
-	public ViewerGame(string modelPath, bool shaderTest = false)
+	public ViewerGame(
+		string modelPath,
+		bool shaderTest = false,
+		bool usePbr = false,
+		string? screenshotPath = null)
 	{
 		_modelPath = modelPath;
 		_showShaderSmokeTest = shaderTest;
+		_usePbr = usePbr;
+		_screenshotPath = screenshotPath;
 		MyraEnvironment.Game = this;
 
 		_ = new GraphicsDeviceManager(this)
@@ -69,9 +79,9 @@ internal sealed class ViewerGame : Game
 		_model = _assetManager.LoadDrModel(GraphicsDevice, fileName);
 		_instance = new DrModelInstance(_model);
 		_animation = new AnimationController(_instance);
-		_renderer = new Renderer(GraphicsDevice, _instance);
 
 		_content = new ContentManager(Services, "Content");
+		_renderer = new Renderer(GraphicsDevice, _instance, _content, _usePbr);
 		_shaderSmokeTest = new FullscreenColorEffect(GraphicsDevice, _content);
 
 		CreateUI();
@@ -150,7 +160,37 @@ internal sealed class ViewerGame : Game
 		}
 
 		_desktop?.Render();
+
+		if (_screenshotPath is not null && !_screenshotCaptured && ++_drawFrame >= 3)
+		{
+			_screenshotCaptured = true;
+			SaveScreenshot(_screenshotPath);
+			Exit();
+		}
+
 		base.Draw(gameTime);
+	}
+
+	private void SaveScreenshot(string path)
+	{
+		int width = GraphicsDevice.PresentationParameters.BackBufferWidth;
+		int height = GraphicsDevice.PresentationParameters.BackBufferHeight;
+		var pixels = new Color[width * height];
+		GraphicsDevice.GetBackBufferData(pixels);
+
+		using var texture = new Texture2D(GraphicsDevice, width, height);
+		texture.SetData(pixels);
+
+		string fullPath = Path.GetFullPath(path);
+		string? directory = Path.GetDirectoryName(fullPath);
+
+		if (!string.IsNullOrEmpty(directory))
+		{
+			Directory.CreateDirectory(directory);
+		}
+
+		using var stream = File.Create(fullPath);
+		texture.SaveAsPng(stream, width, height);
 	}
 
 	protected override void UnloadContent()

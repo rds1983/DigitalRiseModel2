@@ -69,6 +69,5 @@ internal sealed class FullscreenColorEffect : IDisposable
 	public void Dispose()
 	{
 		_vertexBuffer.Dispose();
-		_effect.Dispose();
 	}
 }

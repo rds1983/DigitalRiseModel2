@@ -1,4 +1,6 @@
+using DigitalRiseModel.Viewer.Graphics.Shaders;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace DigitalRiseModel.Viewer.Graphics;
@@ -14,8 +16,10 @@ internal sealed class Renderer : IDisposable
 	private readonly DrModel _model;
 	private readonly BasicEffect _basicEffect;
 	private readonly SkinnedEffect _skinnedEffect;
+	private readonly PbrEffect? _pbrEffect;
 	private readonly Texture2D _fallbackTexture;
 
+	private Matrix _viewProjection;
 	private bool _frameOpen;
 
 	private BlendState _savedBlendState = BlendState.Opaque;
@@ -24,7 +28,11 @@ internal sealed class Renderer : IDisposable
 	private SamplerState _savedSamplerState = SamplerState.LinearWrap;
 	private Rectangle _savedScissorRectangle;
 
-	public Renderer(GraphicsDevice device, DrModelInstance instance)
+	public Renderer(
+		GraphicsDevice device,
+		DrModelInstance instance,
+		ContentManager? content = null,
+		bool usePbr = false)
 	{
 		ArgumentNullException.ThrowIfNull(device);
 		ArgumentNullException.ThrowIfNull(instance);
@@ -32,6 +40,12 @@ internal sealed class Renderer : IDisposable
 		_device = device;
 		_instance = instance;
 		_model = instance.Model;
+
+		if (usePbr)
+		{
+			ArgumentNullException.ThrowIfNull(content);
+			_pbrEffect = new PbrEffect(content);
+		}
 
 		_basicEffect = new BasicEffect(device)
 		{
@@ -68,6 +82,7 @@ internal sealed class Renderer : IDisposable
 		DrawCalls = 0;
 		Triangles = 0;
 		_frameOpen = true;
+		_viewProjection = view * projection;
 
 		_basicEffect.View = view;
 		_basicEffect.Projection = projection;
@@ -137,6 +152,14 @@ internal sealed class Renderer : IDisposable
 					_skinnedEffect.SetBoneTransforms(
 						_instance.GetSkinTransforms(skin.Index));
 					effect = _skinnedEffect;
+				}
+				else if (_pbrEffect is not null
+					&& (material is null || material.AlphaMode == DrAlphaMode.Opaque))
+				{
+					_pbrEffect.SetWorldViewProjection(
+						GetMeshWorld(part, absoluteBoneTransforms) * _viewProjection);
+					_pbrEffect.SetBaseColor(color);
+					effect = _pbrEffect.Effect;
 				}
 				else
 				{

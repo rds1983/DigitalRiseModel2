@@ -14,6 +14,12 @@ drm-viewer "path/to/model.glb"
 
 `Samples/SimpleViewer` is a stock-effect reference viewer. It mirrors the main viewer while the main viewer gains the custom shader system.
 
+Command-line options:
+
+- `--pbr` — use the custom shader for opaque static mesh parts.
+- `--shader-test` — start with the fullscreen shader smoke test enabled.
+- `--screenshot <file>` — render a few frames, save a PNG and exit.
+
 ## Controls
 
 - Left-drag: orbit the camera.

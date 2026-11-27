@@ -8,14 +8,31 @@ internal static class Program
 	private static int Main(string[] args)
 	{
 		string? modelPath = null;
+		string? screenshotPath = null;
 		bool shaderTest = false;
+		bool usePbr = false;
 
-		foreach (string arg in args)
+		for (int i = 0; i < args.Length; i++)
 		{
+			string arg = args[i];
+
 			switch (arg)
 			{
 				case "--shader-test":
 					shaderTest = true;
+					break;
+				case "--pbr":
+					usePbr = true;
+					break;
+				case "--screenshot":
+					if (++i >= args.Length)
+					{
+						Console.Error.WriteLine("--screenshot requires a file path.");
+						PrintUsage();
+						return 1;
+					}
+
+					screenshotPath = args[i];
 					break;
 				case "--help":
 				case "-h":
@@ -57,13 +74,14 @@ internal static class Program
 
 		AMBConfiguration.Logger = Console.WriteLine;
 
-		using var game = new ViewerGame(path, shaderTest);
+		using var game = new ViewerGame(path, shaderTest, usePbr, screenshotPath);
 		game.Run();
 		return 0;
 	}
 
 	private static void PrintUsage()
 	{
-		Console.Error.WriteLine("Usage: drm-viewer <path-to-gltf-or-glb> [--shader-test]");
+		Console.Error.WriteLine(
+			"Usage: drm-viewer <path-to-gltf-or-glb> [--pbr] [--shader-test] [--screenshot <file.png>]");
 	}
 }
