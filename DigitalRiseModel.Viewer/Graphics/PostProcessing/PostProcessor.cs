@@ -6,8 +6,8 @@ using Microsoft.Xna.Framework.Graphics;
 namespace DigitalRiseModel.Viewer.Graphics.PostProcessing;
 
 /// <summary>
-/// Owns the HDR scene target and resolves it to the back buffer with exposure,
-/// ACES tone mapping and gamma output.
+/// Owns the HDR scene target, optional bloom targets and the resolve pass with
+/// exposure, ACES tone mapping and gamma output.
 /// </summary>
 internal sealed class PostProcessor : IDisposable
 {
@@ -15,12 +15,18 @@ internal sealed class PostProcessor : IDisposable
 	private readonly Effect _effect;
 	private readonly VertexBuffer _vertexBuffer;
 	private readonly EffectParameter _exposure;
+	private readonly EffectParameter _bloomIntensity;
+	private readonly EffectParameter _texelSize;
 	private readonly EffectParameter _debugView;
 	private readonly EffectParameter? _sceneTexture;
+	private readonly EffectParameter? _bloomTexture;
 
 	private RenderTarget2D? _sceneTarget;
+	private RenderTarget2D? _bloomTargetA;
+	private RenderTarget2D? _bloomTargetB;
 	private int _width;
 	private int _height;
+	private float _bloomIntensityValue;
 
 	public PostProcessor(GraphicsDevice device, ContentManager content)
 	{
@@ -30,8 +36,11 @@ internal sealed class PostProcessor : IDisposable
 		_device = device;
 		_effect = content.Load<Effect>("Shaders/PostProcess");
 		_exposure = _effect.Parameters["Exposure"];
+		_bloomIntensity = _effect.Parameters["BloomIntensity"];
+		_texelSize = _effect.Parameters["TexelSize"];
 		_debugView = _effect.Parameters["DebugView"];
 		_sceneTexture = FindTextureParameter(_effect, "SceneTexture");
+		_bloomTexture = FindTextureParameter(_effect, "BloomTexture");
 
 		_vertexBuffer = new VertexBuffer(
 			device,
@@ -65,16 +74,13 @@ internal sealed class PostProcessor : IDisposable
 			return;
 		}
 
-		_sceneTarget?.Dispose();
-		_sceneTarget = new RenderTarget2D(
-			_device,
-			width,
-			height,
-			false,
-			SurfaceFormat.HalfVector4,
-			DepthFormat.Depth24,
-			0,
-			RenderTargetUsage.PreserveContents);
+		DisposeTargets();
+
+		_sceneTarget = CreateTarget(width, height, DepthFormat.Depth24);
+		int bloomWidth = Math.Max(1, width / 2);
+		int bloomHeight = Math.Max(1, height / 2);
+		_bloomTargetA = CreateTarget(bloomWidth, bloomHeight, DepthFormat.None);
+		_bloomTargetB = CreateTarget(bloomWidth, bloomHeight, DepthFormat.None);
 		_width = width;
 		_height = height;
 	}
@@ -84,7 +90,9 @@ internal sealed class PostProcessor : IDisposable
 		ArgumentNullException.ThrowIfNull(settings);
 
 		_exposure.SetValue(settings.Exposure);
+		_bloomIntensity.SetValue(settings.BloomIntensity);
 		_debugView.SetValue((int)settings.DebugView);
+		_bloomIntensityValue = settings.BloomIntensity;
 	}
 
 	/// <summary>
@@ -93,15 +101,65 @@ internal sealed class PostProcessor : IDisposable
 	/// </summary>
 	public void Draw()
 	{
-		_device.SetRenderTarget(null);
-		_device.Viewport = new Viewport(0, 0, _width, _height);
+		_sceneTexture?.SetValue(SceneTarget);
+		_bloomTexture?.SetValue(_bloomTargetA ?? SceneTarget);
+
+		if (_bloomIntensityValue > 0f && _bloomTargetA is not null
+			&& _bloomTargetB is not null)
+		{
+			DrawPass(_bloomTargetA, "BrightPass", SceneTarget, Vector2.Zero);
+			DrawPass(
+				_bloomTargetB,
+				"BlurHorizontal",
+				_bloomTargetA,
+				GetTexelSize(_bloomTargetA));
+			DrawPass(
+				_bloomTargetA,
+				"BlurVertical",
+				_bloomTargetB,
+				GetTexelSize(_bloomTargetA));
+			DrawPass(
+				_bloomTargetB,
+				"BlurHorizontal",
+				_bloomTargetA,
+				GetTexelSize(_bloomTargetA));
+			DrawPass(
+				_bloomTargetA,
+				"BlurVertical",
+				_bloomTargetB,
+				GetTexelSize(_bloomTargetA));
+			_bloomTexture?.SetValue(_bloomTargetA);
+		}
+
+		DrawPass(null, "Composite", SceneTarget, Vector2.Zero);
+	}
+
+	public void Dispose()
+	{
+		DisposeTargets();
+		_vertexBuffer.Dispose();
+	}
+
+	private void DrawPass(
+		RenderTarget2D? target,
+		string technique,
+		Texture2D source,
+		Vector2 texelSize)
+	{
+		_device.SetRenderTarget(target);
+		_device.Viewport = target is null
+			? new Viewport(0, 0, _width, _height)
+			: new Viewport(0, 0, target.Width, target.Height);
 		_device.BlendState = BlendState.Opaque;
 		_device.DepthStencilState = DepthStencilState.None;
 		_device.RasterizerState = RasterizerState.CullNone;
-		_device.SamplerStates[0] = SamplerState.PointClamp;
+		_device.SamplerStates[0] = SamplerState.LinearClamp;
 		_device.SetVertexBuffer(_vertexBuffer);
 
-		_sceneTexture?.SetValue(SceneTarget);
+		_sceneTexture?.SetValue(source);
+		_texelSize.SetValue(texelSize);
+
+		_effect.CurrentTechnique = _effect.Techniques[technique];
 
 		foreach (EffectPass pass in _effect.CurrentTechnique.Passes)
 		{
@@ -110,10 +168,35 @@ internal sealed class PostProcessor : IDisposable
 		}
 	}
 
-	public void Dispose()
+	private RenderTarget2D CreateTarget(
+		int width,
+		int height,
+		DepthFormat depthFormat)
+	{
+		return new RenderTarget2D(
+			_device,
+			width,
+			height,
+			false,
+			SurfaceFormat.HalfVector4,
+			depthFormat,
+			0,
+			RenderTargetUsage.PreserveContents);
+	}
+
+	private static Vector2 GetTexelSize(Texture2D texture)
+	{
+		return new Vector2(1f / texture.Width, 1f / texture.Height);
+	}
+
+	private void DisposeTargets()
 	{
 		_sceneTarget?.Dispose();
-		_vertexBuffer.Dispose();
+		_bloomTargetA?.Dispose();
+		_bloomTargetB?.Dispose();
+		_sceneTarget = null;
+		_bloomTargetA = null;
+		_bloomTargetB = null;
 	}
 
 	private static EffectParameter? FindTextureParameter(

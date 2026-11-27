@@ -14,6 +14,7 @@ internal static class Program
 		bool shaderTest = false;
 		ShaderDebugView debugView = ShaderDebugView.Shaded;
 		float exposure = 1f;
+		float bloom = 0f;
 
 		for (int i = 0; i < args.Length; i++)
 		{
@@ -55,6 +56,21 @@ internal static class Program
 						|| exposure <= 0f)
 					{
 						Console.Error.WriteLine("--exposure requires a positive number.");
+						PrintUsage();
+						return 1;
+					}
+
+					break;
+				case "--bloom":
+					if (++i >= args.Length
+						|| !float.TryParse(
+							args[i],
+							NumberStyles.Float,
+							CultureInfo.InvariantCulture,
+							out bloom)
+						|| bloom < 0f)
+					{
+						Console.Error.WriteLine("--bloom requires a non-negative number.");
 						PrintUsage();
 						return 1;
 					}
@@ -105,7 +121,8 @@ internal static class Program
 			shaderTest,
 			screenshotPath,
 			debugView,
-			exposure);
+			exposure,
+			bloom);
 		game.Run();
 		return 0;
 	}
@@ -114,6 +131,7 @@ internal static class Program
 	{
 		Console.Error.WriteLine(
 			"Usage: drm-viewer <path-to-gltf-or-glb> [--shader-test] " +
-			"[--debug-view <name>] [--exposure <value>] [--screenshot <file.png>]");
+			"[--debug-view <name>] [--exposure <value>] [--bloom <intensity>] " +
+			"[--screenshot <file.png>]");
 	}
 }
