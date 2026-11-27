@@ -14,16 +14,7 @@ internal sealed class Renderer : IDisposable
 	private readonly GraphicsDevice _device;
 	private readonly DrModelInstance _instance;
 	private readonly DrModel _model;
-	private readonly PbrEffect _pbrEffect;
-	private readonly PbrEffect _pbrNoTangentEffect;
-	private readonly PbrEffect _pbrBasicEffect;
-	private readonly PbrEffect _pbrSkinnedEffect;
-	private readonly PbrEffect _pbrSkinnedBasicEffect;
-	private readonly PbrEffect _pbrVertexColorEffect;
-	private readonly PbrEffect _pbrNoTangentVertexColorEffect;
-	private readonly PbrEffect _pbrBasicVertexColorEffect;
-	private readonly PbrEffect _pbrSkinnedVertexColorEffect;
-	private readonly PbrEffect _pbrSkinnedBasicVertexColorEffect;
+	private readonly PbrEffect[] _pbrEffects;
 	private readonly Texture2D _fallbackTexture;
 
 	private Matrix _viewProjection;
@@ -51,16 +42,26 @@ internal sealed class Renderer : IDisposable
 		_instance = instance;
 		_model = instance.Model;
 
-		_pbrEffect = new PbrEffect(content, "Shaders/Pbr");
-		_pbrNoTangentEffect = new PbrEffect(content, "Shaders/PbrNoTangent");
-		_pbrBasicEffect = new PbrEffect(content, "Shaders/PbrBasic");
-		_pbrSkinnedEffect = new PbrEffect(content, "Shaders/PbrSkinned");
-		_pbrSkinnedBasicEffect = new PbrEffect(content, "Shaders/PbrSkinnedBasic");
-		_pbrVertexColorEffect = new PbrEffect(content, "Shaders/PbrVertexColor");
-		_pbrNoTangentVertexColorEffect = new PbrEffect(content, "Shaders/PbrNoTangentVertexColor");
-		_pbrBasicVertexColorEffect = new PbrEffect(content, "Shaders/PbrBasicVertexColor");
-		_pbrSkinnedVertexColorEffect = new PbrEffect(content, "Shaders/PbrSkinnedVertexColor");
-		_pbrSkinnedBasicVertexColorEffect = new PbrEffect(content, "Shaders/PbrSkinnedBasicVertexColor");
+		_pbrEffects = new PbrEffect[Enum.GetValues<PbrVariant>().Length];
+
+		(PbrVariant Variant, string Asset)[] variants =
+		[
+			(PbrVariant.Basic, "Shaders/PbrBasic"),
+			(PbrVariant.BasicColor, "Shaders/PbrBasicVertexColor"),
+			(PbrVariant.NoTangent, "Shaders/PbrNoTangent"),
+			(PbrVariant.NoTangentColor, "Shaders/PbrNoTangentVertexColor"),
+			(PbrVariant.Full, "Shaders/Pbr"),
+			(PbrVariant.FullColor, "Shaders/PbrVertexColor"),
+			(PbrVariant.SkinnedBasic, "Shaders/PbrSkinnedBasic"),
+			(PbrVariant.SkinnedBasicColor, "Shaders/PbrSkinnedBasicVertexColor"),
+			(PbrVariant.Skinned, "Shaders/PbrSkinned"),
+			(PbrVariant.SkinnedColor, "Shaders/PbrSkinnedVertexColor")
+		];
+
+		foreach ((PbrVariant variant, string asset) in variants)
+		{
+			_pbrEffects[(int)variant] = new PbrEffect(content, asset);
+		}
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
@@ -86,16 +87,10 @@ internal sealed class Renderer : IDisposable
 		_viewProjection = view * projection;
 		_cameraPosition = Matrix.Invert(view).Translation;
 
-		_pbrEffect.SetSettings(Settings);
-		_pbrNoTangentEffect.SetSettings(Settings);
-		_pbrBasicEffect.SetSettings(Settings);
-		_pbrSkinnedEffect.SetSettings(Settings);
-		_pbrSkinnedBasicEffect.SetSettings(Settings);
-		_pbrVertexColorEffect.SetSettings(Settings);
-		_pbrNoTangentVertexColorEffect.SetSettings(Settings);
-		_pbrBasicVertexColorEffect.SetSettings(Settings);
-		_pbrSkinnedVertexColorEffect.SetSettings(Settings);
-		_pbrSkinnedBasicVertexColorEffect.SetSettings(Settings);
+		foreach (PbrEffect effect in _pbrEffects)
+		{
+			effect.SetSettings(Settings);
+		}
 
 		_savedBlendState = _device.BlendState;
 		_savedDepthStencilState = _device.DepthStencilState;
@@ -174,6 +169,36 @@ internal sealed class Renderer : IDisposable
 		}
 	}
 
+	public PbrEffect GetEffect(
+		bool skinned,
+		bool hasNormal,
+		bool hasTangent,
+		bool hasColor)
+	{
+		PbrVariant variant;
+
+		if (skinned)
+		{
+			variant = hasNormal
+				? hasColor ? PbrVariant.SkinnedColor : PbrVariant.Skinned
+				: hasColor ? PbrVariant.SkinnedBasicColor : PbrVariant.SkinnedBasic;
+		}
+		else if (hasNormal && hasTangent)
+		{
+			variant = hasColor ? PbrVariant.FullColor : PbrVariant.Full;
+		}
+		else if (hasNormal)
+		{
+			variant = hasColor ? PbrVariant.NoTangentColor : PbrVariant.NoTangent;
+		}
+		else
+		{
+			variant = hasColor ? PbrVariant.BasicColor : PbrVariant.Basic;
+		}
+
+		return _pbrEffects[(int)variant];
+	}
+
 	private void DrawItem(RenderItem item)
 	{
 		DrModelMeshPart part = item.Part;
@@ -192,59 +217,25 @@ internal sealed class Renderer : IDisposable
 
 		VertexDeclaration declaration = part.VertexDeclaration
 			?? part.VertexBuffer!.VertexDeclaration;
-		PbrEffect pbr;
 
-		if (item.SkinTransforms is not null)
+		bool hasNormal = HasElement(declaration, VertexElementUsage.Normal);
+		bool hasTangent = HasElement(declaration, VertexElementUsage.Tangent);
+		bool hasColor = HasElement(declaration, VertexElementUsage.Color);
+		bool hasTexCoord = HasElement(declaration, VertexElementUsage.TextureCoordinate);
+		bool hasBlend = HasElement(declaration, VertexElementUsage.BlendIndices)
+			&& HasElement(declaration, VertexElementUsage.BlendWeight);
+		bool skinned = item.SkinTransforms is not null && hasBlend && hasTexCoord;
+
+		PbrEffect pbr = GetEffect(skinned, hasNormal, hasTangent, hasColor);
+
+		if (skinned)
 		{
-			bool hasNormal = HasElement(declaration, VertexElementUsage.Normal);
-			bool hasBlend = HasElement(declaration, VertexElementUsage.BlendIndices)
-				&& HasElement(declaration, VertexElementUsage.BlendWeight);
-			bool hasTexCoord = HasElement(declaration, VertexElementUsage.TextureCoordinate);
-			bool hasColor = HasElement(declaration, VertexElementUsage.Color);
-
-			if (hasNormal && hasBlend && hasTexCoord)
-			{
-				pbr = hasColor ? _pbrSkinnedVertexColorEffect : _pbrSkinnedEffect;
-			}
-			else if (hasBlend && hasTexCoord)
-			{
-				pbr = hasColor
-					? _pbrSkinnedBasicVertexColorEffect
-					: _pbrSkinnedBasicEffect;
-			}
-			else
-			{
-				pbr = _pbrBasicEffect;
-			}
-
 			pbr.SetWorld(Matrix.Identity);
 			pbr.SetWorldViewProjection(_viewProjection);
-			pbr.SetSkinTransforms(item.SkinTransforms);
+			pbr.SetSkinTransforms(item.SkinTransforms!);
 		}
 		else
 		{
-			bool hasNormal = HasElement(declaration, VertexElementUsage.Normal);
-			bool hasTangent = HasElement(declaration, VertexElementUsage.Tangent);
-			bool hasTexCoord = HasElement(declaration, VertexElementUsage.TextureCoordinate);
-			bool hasColor = HasElement(declaration, VertexElementUsage.Color);
-
-			if (hasNormal && hasTangent && hasTexCoord)
-			{
-				pbr = hasColor ? _pbrVertexColorEffect : _pbrEffect;
-			}
-			else if (hasNormal && hasTexCoord)
-			{
-				pbr = hasColor
-					? _pbrNoTangentVertexColorEffect
-					: _pbrNoTangentEffect;
-			}
-			else
-			{
-				pbr = hasColor
-					? _pbrBasicVertexColorEffect
-					: _pbrBasicEffect;
-			}
-
 			pbr.SetWorld(item.World);
 			pbr.SetWorldViewProjection(item.World * _viewProjection);
 		}
@@ -327,6 +318,20 @@ internal sealed class Renderer : IDisposable
 			throw new InvalidOperationException(
 				"This operation requires an open renderer frame.");
 		}
+	}
+
+	private enum PbrVariant
+	{
+		Basic,
+		BasicColor,
+		NoTangent,
+		NoTangentColor,
+		Full,
+		FullColor,
+		SkinnedBasic,
+		SkinnedBasicColor,
+		Skinned,
+		SkinnedColor
 	}
 
 	private sealed class RenderItem
