@@ -86,3 +86,17 @@
 /processorParam:DebugMode=Auto
 /processorParam:Defines=SKINNED;HAS_COLOR
 /build:Shaders/Pbr.fx;Shaders/PbrSkinnedBasicVertexColor.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=SKINNED;HAS_NORMAL;HAS_TANGENT
+/build:Shaders/Pbr.fx;Shaders/PbrSkinnedTangent.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=SKINNED;HAS_NORMAL;HAS_TANGENT;HAS_COLOR
+/build:Shaders/Pbr.fx;Shaders/PbrSkinnedTangentVertexColor.xnb

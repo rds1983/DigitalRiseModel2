@@ -55,7 +55,9 @@ internal sealed class Renderer : IDisposable
 			(PbrVariant.SkinnedBasic, "Shaders/PbrSkinnedBasic"),
 			(PbrVariant.SkinnedBasicColor, "Shaders/PbrSkinnedBasicVertexColor"),
 			(PbrVariant.Skinned, "Shaders/PbrSkinned"),
-			(PbrVariant.SkinnedColor, "Shaders/PbrSkinnedVertexColor")
+			(PbrVariant.SkinnedColor, "Shaders/PbrSkinnedVertexColor"),
+			(PbrVariant.SkinnedTangent, "Shaders/PbrSkinnedTangent"),
+			(PbrVariant.SkinnedTangentColor, "Shaders/PbrSkinnedTangentVertexColor")
 		];
 
 		foreach ((PbrVariant variant, string asset) in variants)
@@ -179,9 +181,25 @@ internal sealed class Renderer : IDisposable
 
 		if (skinned)
 		{
-			variant = hasNormal
-				? hasColor ? PbrVariant.SkinnedColor : PbrVariant.Skinned
-				: hasColor ? PbrVariant.SkinnedBasicColor : PbrVariant.SkinnedBasic;
+			if (hasNormal)
+			{
+				if (hasTangent)
+				{
+					variant = hasColor
+						? PbrVariant.SkinnedTangentColor
+						: PbrVariant.SkinnedTangent;
+				}
+				else
+				{
+					variant = hasColor ? PbrVariant.SkinnedColor : PbrVariant.Skinned;
+				}
+			}
+			else
+			{
+				variant = hasColor
+					? PbrVariant.SkinnedBasicColor
+					: PbrVariant.SkinnedBasic;
+			}
 		}
 		else if (hasNormal && hasTangent)
 		{
@@ -331,7 +349,9 @@ internal sealed class Renderer : IDisposable
 		SkinnedBasic,
 		SkinnedBasicColor,
 		Skinned,
-		SkinnedColor
+		SkinnedColor,
+		SkinnedTangent,
+		SkinnedTangentColor
 	}
 
 	private sealed class RenderItem
