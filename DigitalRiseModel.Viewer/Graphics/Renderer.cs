@@ -11,14 +11,15 @@ namespace DigitalRiseModel.Viewer.Graphics;
 /// </summary>
 internal sealed class Renderer : IDisposable
 {
-	private readonly GraphicsDevice _device;
-	private readonly DrModelInstance _instance;
-	private readonly DrModel _model;
 	private const int ColorFlag = 1;
 	private const int NormalFlag = 2;
 	private const int TangentFlag = 4;
 	private const int SkinnedFlag = 8;
 
+	private readonly GraphicsDevice _device;
+	private readonly DrModelInstance _instance;
+	private readonly DrModel _model;
+	private readonly ContentManager _content;
 	private readonly Dictionary<int, PbrEffect> _pbrEffects = [];
 	private readonly Texture2D _fallbackTexture;
 
@@ -46,27 +47,7 @@ internal sealed class Renderer : IDisposable
 		_device = device;
 		_instance = instance;
 		_model = instance.Model;
-
-		(int Flags, string Name)[] variants =
-		[
-			(0, "Pbr"),
-			(ColorFlag, "Pbr_HAS_COLOR"),
-			(NormalFlag, "Pbr_HAS_NORMAL"),
-			(ColorFlag | NormalFlag, "Pbr_HAS_COLOR_HAS_NORMAL"),
-			(NormalFlag | TangentFlag, "Pbr_HAS_NORMAL_HAS_TANGENT"),
-			(ColorFlag | NormalFlag | TangentFlag, "Pbr_HAS_COLOR_HAS_NORMAL_HAS_TANGENT"),
-			(SkinnedFlag, "Pbr_SKINNED"),
-			(ColorFlag | SkinnedFlag, "Pbr_HAS_COLOR_SKINNED"),
-			(NormalFlag | SkinnedFlag, "Pbr_HAS_NORMAL_SKINNED"),
-			(ColorFlag | NormalFlag | SkinnedFlag, "Pbr_HAS_COLOR_HAS_NORMAL_SKINNED"),
-			(NormalFlag | TangentFlag | SkinnedFlag, "Pbr_HAS_NORMAL_HAS_TANGENT_SKINNED"),
-			(ColorFlag | NormalFlag | TangentFlag | SkinnedFlag, "Pbr_HAS_COLOR_HAS_NORMAL_HAS_TANGENT_SKINNED")
-		];
-
-		foreach ((int flags, string name) in variants)
-		{
-			_pbrEffects[flags] = new PbrEffect(content, "Shaders/" + name);
-		}
+		_content = content;
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
@@ -202,7 +183,45 @@ internal sealed class Renderer : IDisposable
 			flags |= SkinnedFlag;
 		}
 
-		return _pbrEffects[flags];
+		if (!_pbrEffects.TryGetValue(flags, out PbrEffect? effect))
+		{
+			effect = new PbrEffect(_content, "Shaders/" + GetEffectName(flags));
+			effect.SetSettings(Settings);
+			_pbrEffects[flags] = effect;
+		}
+
+		return effect;
+	}
+
+	/// <summary>
+	/// Builds the effect asset name from a feature bitmask. Defines are sorted
+	/// alphabetically to match the content pipeline output.
+	/// </summary>
+	private static string GetEffectName(int flags)
+	{
+		string name = "Pbr";
+
+		if ((flags & ColorFlag) != 0)
+		{
+			name += "_HAS_COLOR";
+		}
+
+		if ((flags & NormalFlag) != 0)
+		{
+			name += "_HAS_NORMAL";
+		}
+
+		if ((flags & TangentFlag) != 0)
+		{
+			name += "_HAS_TANGENT";
+		}
+
+		if ((flags & SkinnedFlag) != 0)
+		{
+			name += "_SKINNED";
+		}
+
+		return name;
 	}
 
 	private void DrawItem(RenderItem item)
