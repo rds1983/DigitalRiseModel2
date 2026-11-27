@@ -153,19 +153,26 @@ internal sealed class PostProcessor : IDisposable
 			_bloomTexture?.SetValue(_bloomTargetA);
 		}
 
-		RenderTarget2D ldrTarget = _ldrTarget
-			?? throw new InvalidOperationException(
-				"The post processor has no LDR target; call EnsureSize first.");
-		DrawPass(ldrTarget, "Composite", SceneTarget, Vector2.Zero);
+		bool useFxaa = _fxaaEnabled && _debugViewValue == 0;
 
-		string resolveTechnique = _fxaaEnabled && _debugViewValue == 0
-			? "Fxaa"
-			: "Copy";
-		DrawPass(
-			null,
-			resolveTechnique,
-			ldrTarget,
-			GetTexelSize(ldrTarget));
+		if (useFxaa)
+		{
+			RenderTarget2D ldrTarget = _ldrTarget
+				?? throw new InvalidOperationException(
+					"The post processor has no LDR target; call EnsureSize first.");
+			DrawPass(ldrTarget, "Composite", SceneTarget, Vector2.Zero);
+			DrawPass(
+				null,
+				"Fxaa",
+				ldrTarget,
+				GetTexelSize(ldrTarget));
+		}
+		else
+		{
+			// Without FXAA the composite can resolve directly to the back buffer,
+			// avoiding an extra full-screen copy pass.
+			DrawPass(null, "Composite", SceneTarget, Vector2.Zero);
+		}
 	}
 
 	public void Dispose()

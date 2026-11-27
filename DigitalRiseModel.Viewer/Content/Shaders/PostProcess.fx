@@ -106,11 +106,6 @@ float4 CompositePS(VertexOutput input) : SV_TARGET
 	}
 }
 
-float4 CopyPS(VertexOutput input) : SV_TARGET
-{
-	return float4(tex2D(SceneSampler, input.TexCoord).rgb, 1.0);
-}
-
 float4 FxaaPS(VertexOutput input) : SV_TARGET
 {
 	float2 texel = TexelSize;
@@ -160,15 +155,6 @@ float4 FxaaPS(VertexOutput input) : SV_TARGET
 	return float4(
 		(lumaB < lumaMin || lumaB > lumaMax) ? rgbA : rgbB,
 		1.0);
-}
-
-technique Copy
-{
-	pass
-	{
-		VertexShader = compile vs_3_0 MainVS();
-		PixelShader = compile ps_3_0 CopyPS();
-	}
 }
 
 technique Fxaa
