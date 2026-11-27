@@ -7,7 +7,7 @@ internal static class Program
 	{
 		if (args.Length != 1)
 		{
-			Console.Error.WriteLine("Usage: DigitalRiseModel.Viewer <path-to-gltf-or-glb>");
+			Console.Error.WriteLine("Usage: drm-viewer <path-to-gltf-or-glb>");
 			return 1;
 		}
 

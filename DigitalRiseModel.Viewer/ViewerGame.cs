@@ -21,7 +21,7 @@ internal sealed class ViewerGame : Game
 	private AnimationController? _animation;
 	private Renderer? _renderer;
 	private Desktop? _desktop;
-	private ControlsPanel? _controlsPanel;
+	private AnimationPanel? _animationPanel;
 
 	private BoundingSphere _bounds;
 	private Vector3 _target;
@@ -48,7 +48,7 @@ internal sealed class ViewerGame : Game
 
 		IsMouseVisible = true;
 		Window.AllowUserResizing = true;
-		Window.Title = $"DigitalRiseModel.Viewer - {Path.GetFileName(modelPath)}";
+		Window.Title = $"drm-viewer - {Path.GetFileName(modelPath)}";
 	}
 
 	protected override void LoadContent()
@@ -66,18 +66,13 @@ internal sealed class ViewerGame : Game
 
 		CreateUI();
 		ResetCamera();
-
-		if (_model.Animations.Count > 0)
-		{
-			_animation.Play(_model.Animations.Keys.First());
-		}
-
 		_previousMouse = Mouse.GetState();
 	}
 
 	protected override void Update(GameTime gameTime)
 	{
 		_animation?.Update(gameTime.ElapsedGameTime);
+		_animationPanel?.Update();
 
 		KeyboardState keyboard = Keyboard.GetState();
 
@@ -88,7 +83,7 @@ internal sealed class ViewerGame : Game
 
 		MouseState mouse = Mouse.GetState();
 
-		if (mouse.LeftButton == ButtonState.Pressed && !IsMouseOverControls(mouse))
+		if (mouse.LeftButton == ButtonState.Pressed && !IsMouseOverGui())
 		{
 			int dx = mouse.X - _previousMouse.X;
 			int dy = mouse.Y - _previousMouse.Y;
@@ -99,7 +94,7 @@ internal sealed class ViewerGame : Game
 
 		int scrollDelta = mouse.ScrollWheelValue - _previousMouse.ScrollWheelValue;
 
-		if (scrollDelta != 0 && !IsMouseOverControls(mouse))
+		if (scrollDelta != 0 && !IsMouseOverGui())
 		{
 			_cameraDistance *= MathF.Pow(0.9f, scrollDelta / 120f);
 			_cameraDistance = Math.Clamp(_cameraDistance, _minCameraDistance, _maxCameraDistance);
@@ -145,6 +140,7 @@ internal sealed class ViewerGame : Game
 		_renderer?.Dispose();
 		_renderer = null;
 
+		_animationPanel = null;
 		_animation = null;
 		_instance = null;
 
@@ -165,21 +161,32 @@ internal sealed class ViewerGame : Game
 		_desktop = new Desktop();
 
 		var root = new Panel();
-		_controlsPanel = new ControlsPanel
+		var controlsPanel = new ControlsPanel
 		{
 			HorizontalAlignment = HorizontalAlignment.Left,
 			VerticalAlignment = VerticalAlignment.Top,
 			Margin = new Thickness(8)
 		};
 
-		root.Widgets.Add(_controlsPanel);
+		root.Widgets.Add(controlsPanel);
+
+		if (_model!.Animations.Count > 0)
+		{
+			_animationPanel = new AnimationPanel(_model, _animation!)
+			{
+				HorizontalAlignment = HorizontalAlignment.Left,
+				VerticalAlignment = VerticalAlignment.Bottom,
+				Margin = new Thickness(8)
+			};
+			root.Widgets.Add(_animationPanel);
+		}
+
 		_desktop.Root = root;
 	}
 
-	private bool IsMouseOverControls(MouseState mouse)
+	private bool IsMouseOverGui()
 	{
-		return _controlsPanel is not null
-			&& _controlsPanel.Bounds.Contains(new Point(mouse.X, mouse.Y));
+		return _desktop?.IsMouseOverGUI == true;
 	}
 
 	private void ResetCamera()

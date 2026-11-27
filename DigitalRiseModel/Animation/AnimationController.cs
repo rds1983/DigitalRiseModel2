@@ -12,6 +12,7 @@ public sealed class AnimationController
 	private AnimationClip? _currentClip;
 	private TimeSpan _time;
 	private bool _isPlaying;
+	private float _speed = 1f;
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="AnimationController"/> class.
@@ -41,6 +42,14 @@ public sealed class AnimationController
 	public TimeSpan Time => _time;
 
 	/// <summary>
+	/// Gets the duration of <see cref="CurrentClip"/>, or <see cref="TimeSpan.Zero"/>
+	/// when no clip is active.
+	/// </summary>
+	public TimeSpan Duration => _currentClip is null
+		? TimeSpan.Zero
+		: TimeSpan.FromSeconds(_currentClip.Duration);
+
+	/// <summary>
 	/// Gets a value indicating whether a clip is currently advancing.
 	/// </summary>
 	public bool IsPlaying => _isPlaying;
@@ -50,6 +59,27 @@ public sealed class AnimationController
 	/// of the clip. Defaults to <see langword="true"/>.
 	/// </summary>
 	public bool Loop { get; set; } = true;
+
+	/// <summary>
+	/// Gets or sets the playback speed multiplier. The value must be non-negative;
+	/// use <see cref="PlayBackwards"/> for reverse playback. Defaults to 1.
+	/// </summary>
+	/// <exception cref="ArgumentOutOfRangeException">The assigned value is negative.</exception>
+	public float Speed
+	{
+		get => _speed;
+		set
+		{
+			ArgumentOutOfRangeException.ThrowIfNegative(value);
+			_speed = value;
+		}
+	}
+
+	/// <summary>
+	/// Gets or sets a value indicating whether the clip plays in reverse.
+	/// Defaults to <see langword="false"/>.
+	/// </summary>
+	public bool PlayBackwards { get; set; }
 
 	/// <summary>
 	/// Plays a clip by name from <see cref="DrModel.Animations"/>.
@@ -84,7 +114,9 @@ public sealed class AnimationController
 
 		ResetToBindPose();
 		_currentClip = clip;
-		_time = TimeSpan.Zero;
+		_time = PlayBackwards
+			? TimeSpan.FromSeconds(clip.Duration)
+			: TimeSpan.Zero;
 		_isPlaying = true;
 		ApplyPose();
 	}
@@ -98,6 +130,68 @@ public sealed class AnimationController
 		_time = TimeSpan.Zero;
 		_isPlaying = false;
 		ResetToBindPose();
+	}
+
+	/// <summary>
+	/// Pauses playback without clearing the current clip.
+	/// </summary>
+	public void Pause()
+	{
+		_isPlaying = false;
+	}
+
+	/// <summary>
+	/// Resumes the current clip from its current time. If the clip has finished,
+	/// playback restarts from its beginning.
+	/// </summary>
+	public void Resume()
+	{
+		if (_currentClip is null)
+		{
+			return;
+		}
+
+		if (PlayBackwards)
+		{
+			if (_time <= TimeSpan.Zero)
+			{
+				_time = Duration;
+			}
+		}
+		else if (_time >= Duration)
+		{
+			_time = TimeSpan.Zero;
+		}
+
+		_isPlaying = true;
+		ApplyPose();
+	}
+
+	/// <summary>
+	/// Moves playback to the specified time and applies that pose. The time is clamped
+	/// to the clip's duration. Playback state is not changed.
+	/// </summary>
+	/// <param name="time">The time within the current clip.</param>
+	public void Seek(TimeSpan time)
+	{
+		if (_currentClip is null)
+		{
+			return;
+		}
+
+		TimeSpan duration = Duration;
+
+		if (time < TimeSpan.Zero)
+		{
+			time = TimeSpan.Zero;
+		}
+		else if (time > duration)
+		{
+			time = duration;
+		}
+
+		_time = time;
+		ApplyPose();
 	}
 
 	/// <summary>
@@ -122,7 +216,7 @@ public sealed class AnimationController
 			return;
 		}
 
-		TimeSpan duration = TimeSpan.FromSeconds(_currentClip.Duration);
+		TimeSpan duration = Duration;
 
 		if (duration <= TimeSpan.Zero)
 		{
@@ -132,9 +226,22 @@ public sealed class AnimationController
 			return;
 		}
 
-		_time += deltaTime;
+		double ticks = deltaTime.Ticks * (double)Speed * (PlayBackwards ? -1.0 : 1.0);
+		_time += TimeSpan.FromTicks((long)ticks);
 
-		if (_time >= duration)
+		if (_time < TimeSpan.Zero)
+		{
+			if (Loop)
+			{
+				_time = TimeSpan.FromTicks(NormalizeTicks(_time.Ticks, duration.Ticks));
+			}
+			else
+			{
+				_time = TimeSpan.Zero;
+				_isPlaying = false;
+			}
+		}
+		else if (_time >= duration)
 		{
 			if (Loop)
 			{
@@ -148,6 +255,12 @@ public sealed class AnimationController
 		}
 
 		ApplyPose();
+	}
+
+	private static long NormalizeTicks(long ticks, long period)
+	{
+		long remainder = ticks % period;
+		return remainder < 0 ? remainder + period : remainder;
 	}
 
 	private void ResetToBindPose()

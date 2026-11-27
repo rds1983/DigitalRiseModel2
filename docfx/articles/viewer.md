@@ -1,6 +1,6 @@
 # Viewer
 
-`DigitalRiseModel.Viewer` is a small MonoGame window viewer for glTF and GLB models. It is also packaged as the `drm-viewer` .NET tool.
+`DigitalRiseModel.Viewer` is a small MonoGame window viewer for glTF and GLB models. Its executable is `drm-viewer`, and it is also packaged as the `drm-viewer` .NET tool.
 
 ```bash
 dotnet run --project DigitalRiseModel.Viewer -- "path/to/model.glb"
@@ -18,6 +18,10 @@ drm-viewer "path/to/model.glb"
 - Mouse wheel: zoom.
 - Escape: exit.
 
+Camera orbit and zoom are ignored while the mouse is over a UI panel.
+
+The animation panel appears only when the model has animations. It selects a clip, plays/pauses/stops playback, seeks through the current clip, toggles looping and reverse playback, and adjusts playback speed. Animated models start with their first clip selected and playing automatically.
+
 ## Rendering
 
 The viewer loads assets through `AssetManager.LoadDrModel`, so external buffers and textures resolve relative to the model file.
@@ -33,17 +37,24 @@ Low-level rendering is isolated in `DigitalRiseModel.Viewer/Graphics/Renderer.cs
 
 `ViewerGame` owns model loading, camera input, bounds and the Myra UI. The camera frames the merged model bounds on startup.
 
-## Controls overlay
+## UI panels
 
-The controls block is a Myra UI defined in `DigitalRiseModel.Viewer/UI/ControlsPanel.xmmp` as a `VerticalStackPanel` of labels. It is exported to C# with:
+The overlay is Myra UI defined in `DigitalRiseModel.Viewer/UI/*.xmmp`:
+
+- `ControlsPanel` shows camera and exit hints.
+- `AnimationPanel` provides clip selection, playback buttons, time and speed sliders, plus loop and reverse-playback toggles.
+
+Regenerate a panel after editing its `.xmmp`:
 
 ```bash
-myra-export DigitalRiseModel.Viewer/UI/ControlsPanel.xmmp \
+myra-export DigitalRiseModel.Viewer/UI/AnimationPanel.xmmp \
   --namespace DigitalRiseModel.Viewer.UI \
-  --class ControlsPanel \
+  --class AnimationPanel \
   --output DigitalRiseModel.Viewer/UI
 ```
 
-`ViewerGame` hosts the generated panel on a Myra `Desktop`.
+Only `*.Generated.cs` is overwritten by the exporter. Keep event handlers and other custom behavior in the companion `.cs` file.
+
+`ViewerGame` hosts both panels on a Myra `Desktop`.
 
 The viewer uses the library's dynamic vertex declarations directly with the stock effects.

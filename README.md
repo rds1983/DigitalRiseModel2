@@ -30,7 +30,7 @@ animation.Update(elapsedTime);
 dotnet run --project DigitalRiseModel.Viewer -- "path/to/model.glb"
 ```
 
-Left-drag orbits, the mouse wheel zooms and Escape exits. Animated models play their first clip automatically.
+The built executable is `drm-viewer`. Left-drag orbits, the mouse wheel zooms and Escape exits. Animated models play their first clip automatically. The animation panel selects clips, controls play/pause/stop, seeks time, toggles looping and reverse playback, and adjusts speed.
 
 ## Build
 
@@ -48,7 +48,7 @@ dotnet test DigitalRiseModel.MonoGame.sln
 
 ## Metrics
 
-42 C# files, 6,193 lines (4,553 code), 163.5 KB. 19 public types, 126 tests.
+44 C# files, 6,818 lines (5,044 code), 178.7 KB. 19 public types, 142 tests.
 
 ## License
 
