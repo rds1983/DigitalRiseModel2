@@ -10,10 +10,13 @@ The current foundation contains:
 - `DrModelBone`
 - `DrModelMesh`
 - `DrModelMeshPart`
+- `DrMaterial`
+- `DrSkin`
+- `DrTextureInfo`
 
-The `Dr` prefix keeps these types distinct from MonoGame's own `Model`, `ModelMesh` and `ModelMeshPart` classes while preserving familiar XNA member names and behavior.
+glTF 2.0 loading is available through `DigitalRiseModel.Gltf.GltfLoader`. The `Dr` prefix keeps these types distinct from MonoGame's own `Model`, `ModelMesh` and `ModelMeshPart` classes while preserving familiar XNA member names and behavior.
 
-> **Status:** foundational data classes implemented and covered by unit tests. Mesh processing, content import/export and animation are planned.
+> **Status:** foundational data classes and glTF 2.0 loading are implemented and covered by unit tests. Animations, OBJ import, mesh processing and serialization are planned.
 
 ## Why Dr-prefixed model classes?
 
@@ -24,20 +27,25 @@ MonoGame already ships the XNA `Model` API. This library adds a parallel, data-f
 - **No rendering API.** There is no `Draw`, `Effect`, `GraphicsDevice`, shader or render-state surface in the model classes.
 - **Bone hierarchy.** Absolute and relative bone transform copying matches XNA semantics.
 - **Simple part storage.** `DrModelMesh.MeshParts` is a `DrModelMeshPart[]` property; its setter clears the old parts' `Mesh` references and sets the new ones.
-- **Testable.** All behavior can be tested without a graphics device or window.
+- **glTF 2.0 import.** Khronos `glTF2Loader` reads `.gltf` and `.glb`; meshes, materials, scenes, bones and skins are converted to Dr types.
+- **Testable.** All data-side behavior can be tested without a window.
 
 ## Current API
 
-All model types live in the root namespace `DigitalRiseModel`.
+Model types live in the root namespace `DigitalRiseModel`; glTF loader types live in `DigitalRiseModel.Gltf`.
 
 | Type | Purpose |
 | --- | --- |
 | `DrModel` | A model composed of bone and mesh arrays; bone transform helpers |
 | `DrModelBone` | A bone with a name, optional mesh, local transform, parent, children array and tag |
 | `DrModelMesh` | A mesh with a cached, on-demand bounding sphere, parent bone and parts |
-| `DrModelMeshPart` | A draw range with vertex/index buffers, counts, a bounding sphere and an owning-mesh back-reference |
+| `DrModelMeshPart` | A draw range with vertex/index buffers, vertex declaration, counts, material, skin, bounding sphere and owning-mesh back-reference |
+| `DrMaterial` | Metallic-roughness material data, including texture references and alpha mode |
+| `DrTextureInfo` | A texture index, UV set, normal scale or occlusion strength |
+| `DrSkin` | Joints, skeleton root and inverse bind matrices |
+| `GltfLoader` | Loads `.gltf`/`.glb` scenes, meshes, materials and skins |
 
-`DrModelMeshPart` stores the MonoGame `VertexBuffer` and `IndexBuffer` references plus the range to draw. Effects, materials and draw calls belong to your renderer.
+`DrModelMeshPart` stores the MonoGame `VertexBuffer` and `IndexBuffer` references plus the range to draw. Effects and draw calls belong to your renderer; `DrMaterial` and `DrSkin` describe the data to feed it.
 
 `DrModelMesh` and `DrModelMeshPart` implement `IDisposable`. Disposing a mesh disposes its parts and their buffers; `Dispose()` is idempotent.
 
@@ -84,6 +92,34 @@ model.CopyBoneTransformsFrom(animatedLocalTransforms);
 
 Rendering is then up to you: iterate `model.Meshes`, read each part's buffers and draw range, apply your own effect, and use the bone transforms for skinning.
 
+## Loading glTF
+
+```csharp
+using DigitalRiseModel.Gltf;
+
+DrModel model = GltfLoader.Load(graphicsDevice, "models/robot.glb");
+```
+
+The loader:
+
+- Reads `.gltf` and `.glb` files through the Khronos `glTF2Loader` package.
+- Builds a synthetic root bone, then converts scene nodes to `DrModelBone` instances.
+- Converts each glTF mesh primitive to a `DrModelMeshPart` with a vertex declaration generated from that primitive's attributes.
+- Creates MonoGame `VertexBuffer` and `IndexBuffer` objects on the supplied `GraphicsDevice`.
+- Converts metallic-roughness materials to `DrMaterial` and texture references to `DrTextureInfo`.
+- Converts node skins to `DrSkin` and assigns them to the node mesh's parts.
+- Loads triangle lists, triangle strips and triangle fans.
+
+For data-only inspection, omit the graphics device:
+
+```csharp
+DrModel model = GltfLoader.Load("models/robot.glb");
+```
+
+In this mode `VertexBuffer` and `IndexBuffer` are `null`, but `VertexDeclaration`, counts, bounds, materials and skins are populated. This is also how the tests load the bundled glTF assets.
+
+Animations are not loaded yet. Sparse accessors and non-triangle primitive modes throw `NotSupportedException`.
+
 ## Repository layout
 
 ```text
@@ -93,7 +129,8 @@ AGENTS.md
 LICENSE
 DigitalRiseModel/
   DigitalRiseModel.MonoGame.csproj
-  *.cs                               # library sources (DrModel, DrModelMesh, ...)
+  *.cs                               # root model types (DrModel, DrModelMesh, DrMaterial, ...)
+  Gltf/                              # DigitalRiseModel.Gltf (loader)
 DigitalRiseModel.Tests/              # xUnit tests
 docfx/                               # DocFX configuration, articles and API output
 Samples/                             # one folder per sample (planned)
@@ -116,6 +153,7 @@ Samples/                             # one folder per sample (planned)
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - MonoGame `MonoGame.Framework.DesktopGL` 3.8.6.1 (managed through NuGet)
+- Khronos `glTF2Loader` 2.0.0 (managed through NuGet)
 - An IDE or CLI that can build a `.sln`
 
 ## Build and test
@@ -129,7 +167,7 @@ dotnet build DigitalRiseModel.MonoGame.sln
 dotnet test DigitalRiseModel.MonoGame.sln
 ```
 
-The current test suite covers bone hierarchy rules, array back-references, model bone transform copies, bounding-sphere caching and disposal.
+The current test suite covers bone hierarchy rules, array back-references, model bone transform copies, bounding-sphere caching, disposal, material/skin defaults, glTF scene/transform conversion and glTF assets with dynamic vertex layouts, multiple UV sets, skinning, materials, triangle strips and GLB files.
 
 ## Documentation
 
@@ -140,6 +178,8 @@ dotnet tool restore
 dotnet docfx metadata docfx/docfx.json
 dotnet docfx build docfx/docfx.json
 ```
+
+Delete `docfx/api` before regenerating metadata when public types have been removed, so stale API pages do not survive.
 
 The generated site is written to `docfx/_site`. To preview it locally:
 
@@ -154,9 +194,10 @@ The site includes a getting-started guide, model-data concepts and the generated
 - [x] Solution, library project and xUnit test project.
 - [x] XNA-shaped `DrModel` data object graph and collections.
 - [x] Bone transform copy helpers.
+- [x] glTF 2.0 import: scenes, meshes, materials and skins (no animations).
 - [ ] Mesh processing: normals, tangents, vertex welding, optimization, simplification.
-- [ ] Import/export: glTF 2.0, OBJ and a versioned native format.
-- [ ] Animation: skeletons, clips, sampling and blending.
+- [ ] Import/export: OBJ and a versioned native format.
+- [ ] Animation: clips, sampling and blending.
 - [x] DocFX documentation site with guides and API reference.
 - [ ] Runnable samples.
 

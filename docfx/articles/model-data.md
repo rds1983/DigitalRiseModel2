@@ -67,9 +67,19 @@ A mesh part stores:
 - `NumVertices`, `PrimitiveCount`, `StartIndex`, `VertexOffset`
 - `BoundingSphere`
 - `Mesh` — internal setter, maintained by `DrModelMesh.MeshParts`
+- `Material` — optional `DrMaterial`
+- `Skin` — optional `DrSkin`
 - `Tag`
 
 Parts are owned by a mesh and are disposed with it.
+
+## DrMaterial and DrSkin
+
+`DrMaterial` mirrors glTF metallic-roughness material data: base color, metallic/roughness factors, texture references, emissive color, alpha mode and double-sided flag.
+
+`DrSkin` mirrors glTF skinning data: joint bones, an optional skeleton root and inverse bind matrices.
+
+See [Loading glTF](gltf-loading.md) for the mapping details.
 
 ## Arrays and ownership
 

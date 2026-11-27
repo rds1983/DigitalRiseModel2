@@ -15,6 +15,17 @@ public sealed class DrModelMeshPartTests
 	}
 
 	[Fact]
+	public void MaterialAndSkin_Set_ReturnsAssignedValues()
+	{
+		var material = new DrMaterial();
+		var skin = new DrSkin();
+		var part = new DrModelMeshPart { Material = material, Skin = skin };
+
+		Assert.Same(material, part.Material);
+		Assert.Same(skin, part.Skin);
+	}
+
+	[Fact]
 	public void Dispose_ClearsBuffersAndMeshAndIsIdempotent()
 	{
 		var part = new DrModelMeshPart();

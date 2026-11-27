@@ -34,14 +34,29 @@ public sealed class DrModelMeshPart : IDisposable
 	}
 
 	/// <summary>
+	/// Gets or sets the material used by this mesh part.
+	/// </summary>
+	public DrMaterial? Material { get; set; }
+
+	/// <summary>
 	/// Gets the mesh that owns this part.
 	/// </summary>
 	public DrModelMesh? Mesh { get; internal set; }
 
 	/// <summary>
+	/// Gets or sets the skinning data used by this mesh part.
+	/// </summary>
+	public DrSkin? Skin { get; set; }
+
+	/// <summary>
 	/// Gets or sets the index buffer for this mesh part.
 	/// </summary>
 	public IndexBuffer? IndexBuffer { get; set; }
+
+	/// <summary>
+	/// Gets or sets the vertex declaration that describes the vertex layout.
+	/// </summary>
+	public VertexDeclaration? VertexDeclaration { get; set; }
 
 	/// <summary>
 	/// Gets or sets the number of vertices referenced by this mesh part.

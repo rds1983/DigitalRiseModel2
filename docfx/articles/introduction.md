@@ -7,8 +7,10 @@
 - Stores bones and their parent/child hierarchy.
 - Stores meshes and their parts.
 - Stores vertex and index buffer references and draw ranges.
+- Stores glTF-style materials (`DrMaterial`) and skinning data (`DrSkin`).
 - Copies local, world-relative and absolute bone transforms.
 - Calculates and caches mesh bounding spheres.
+- Loads glTF 2.0 scenes, meshes, materials and skins.
 
 ## What the library does not do
 
@@ -28,10 +30,13 @@ The type names intentionally mirror the XNA model API with a `Dr` prefix:
 | `ModelMesh` | `DrModelMesh` |
 | `ModelMeshPart` | `DrModelMeshPart` |
 
+Materials and skins are represented by `DrMaterial` and `DrSkin`. glTF loading lives in `DigitalRiseModel.Gltf.GltfLoader`.
+
 MonoGame already provides the XNA types. This library adds a parallel data layer that can evolve independently while still using MonoGame's `Matrix`, `BoundingSphere`, `VertexBuffer` and `IndexBuffer` types.
 
 ## Next steps
 
 - [Get started](getting-started.md)
 - [Learn the model data concepts](model-data.md)
+- [Load a glTF model](gltf-loading.md)
 - Browse the API reference.

@@ -14,7 +14,8 @@ The project is an independent implementation. It mirrors the documented XNA API 
 DigitalRiseModel.MonoGame.sln              # solution root
 DigitalRiseModel/
   DigitalRiseModel.MonoGame.csproj         # library project
-  *.cs                                     # library sources at the project root
+  *.cs                                     # root model types at the project root
+  Gltf/                                    # DigitalRiseModel.Gltf (loader)
 DigitalRiseModel.Tests/                    # xUnit test project
 docfx/                                     # DocFX config and articles
 Samples/
@@ -26,15 +27,16 @@ LICENSE
 
 - Namespace root: `DigitalRiseModel`.
 - Model types use the `DigitalRiseModel` namespace. Library source files live directly in the project root; do not add a `code/` or `Graphics/` source subfolder.
+- glTF-specific types use the `DigitalRiseModel.Gltf` namespace and live under `Gltf/`.
 - One public type per file, file name matches the type name.
 - Test sources live directly in `DigitalRiseModel.Tests/` and use the `DigitalRiseModel.Tests` namespace.
 
 ## Golden rules
 
-1. **Data only.** Model classes must not expose `Draw`, `Effect`, `GraphicsDevice`, shader, render-state or renderer-callback APIs. Rendering is the developer's responsibility.
+1. **Data only.** Model classes must not expose `Draw`, `Effect`, shader, render-state or renderer-callback APIs. `GltfLoader` may create vertex/index buffers using a caller-supplied `GraphicsDevice`, but it must not issue draw calls. Rendering is the developer's responsibility.
 2. **MonoGame data types only.** Use MonoGame data types such as `VertexBuffer`, `IndexBuffer`, `Matrix` and `BoundingSphere`. Do not add Stride, SharpDX, Silk.NET, OpenGL, Vulkan, SDL or custom engine abstractions.
 3. **Mirror XNA behavior, not source.** The public API shape follows the XNA Game Studio 4.0 model classes. Do not copy, port or transliterate source, comments or internal designs from MonoGame, XNA, DigitalRiseModel or DigitalRune. Write the implementation independently and keep it simple.
-4. **Keep dependencies minimal.** The library's only package dependency is `MonoGame.Framework.DesktopGL` (currently 3.8.6.1). Tests may use xUnit and the test SDK. Ask before adding another package or changing the MonoGame platform package.
+4. **Keep dependencies minimal.** The library's package dependencies are `MonoGame.Framework.DesktopGL` (3.8.6.1) and Khronos `glTF2Loader` (2.0.0). Tests may use xUnit and the test SDK. Ask before adding another package or changing either platform dependency.
 5. **Public API is a contract.** Document it, test it, and avoid breaking it. Add `[Obsolete]` with guidance before removing or changing a public member.
 6. **Respect scope.** Make the smallest change that solves the task. Do not refactor unrelated code or reformat whole files.
 
@@ -53,6 +55,8 @@ dotnet tool restore
 dotnet docfx metadata docfx/docfx.json
 dotnet docfx build docfx/docfx.json
 ```
+
+Delete `docfx/api` before regenerating metadata after removing public types; DocFX does not prune stale API YAML files.
 
 Useful variants:
 
@@ -88,9 +92,13 @@ Rules:
 - Model types are plain data. Do not add rendering members, effects, graphics-device references or callbacks that issue draw calls.
 - `DrModel.Bones`, `DrModel.Meshes`, `DrModelBone.Children` and `DrModelMesh.MeshParts` are arrays; do not add wrapper collection types or collection-change tracking. Array setters clear old back-references and assign the new ones: `Children` updates `Parent`, and `MeshParts` updates `Mesh`.
 - `DrModelBone.Mesh` and `DrModelMesh.ParentBone` are two sides of the same link. The `Mesh` setter must update `ParentBone`; the `ParentBone` setter is internal so callers cannot break the invariant.
-- Store only references and ranges needed by a consumer: vertex/index buffers, primitive counts and offsets. Materials and effects belong to the caller's renderer.
+- Store only references and ranges needed by a consumer: vertex/index buffers, primitive counts and offsets. `DrMaterial` describes material data, but effects and draw calls belong to the caller's renderer.
 - Cache `DrModelMesh.BoundingSphere` and invalidate it when `MeshParts` changes or a part's `BoundingSphere` changes. Do not expose a public invalidation method without a concrete need.
 - `DrModel` is constructed from a non-null root bone. Its constructor traverses the hierarchy, collects bones and `DrModelBone.Mesh` references, and assigns sequential bone indices by default (`autoAssignIndices: true`).
+- `DrModelMeshPart` carries `DrMaterial` and `DrSkin` references. `DrMaterial` mirrors glTF metallic-roughness data; `DrSkin` mirrors glTF joint, skeleton and inverse-bind-matrix data.
+- `GltfLoader` uses Khronos `glTF2Loader` for parsing only. Decode accessors and create buffers in this repository; do not add a second glTF parser. Animations are intentionally out of scope for now.
+- `GltfLoader.Load(path)` is the data-only path: it fills vertex declarations, counts, bounds, materials and skins but leaves `VertexBuffer`/`IndexBuffer` null. Use it for tests and inspection. The `GraphicsDevice` overload creates GPU buffers.
+- glTF fixtures live in `DigitalRiseModel.Tests/TestData` and are copied to the test output. Keep them tiny and offline; do not add external binary dependencies.
 - Preserve XNA semantics for `CopyBoneTransformsTo`, `CopyBoneTransformsFrom` and `CopyAbsoluteBoneTransformsTo`. Parent bones must appear before their children; document and enforce this.
 - Every public type and member gets XML documentation. Explain units, coordinate conventions and handedness when relevant.
 - Document vertex layouts, index formats and texture formats explicitly. No implicit conventions.

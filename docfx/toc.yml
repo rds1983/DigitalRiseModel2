@@ -4,5 +4,7 @@
   href: articles/getting-started.md
 - name: Model data
   href: articles/model-data.md
+- name: Loading glTF
+  href: articles/gltf-loading.md
 - name: API reference
   href: api/DigitalRiseModel.yml
