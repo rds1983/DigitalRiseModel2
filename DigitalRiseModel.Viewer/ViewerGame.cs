@@ -136,6 +136,12 @@ internal sealed class ViewerGame : Game
 			UpdateWindowTitle();
 		}
 
+		if (keyboard.IsKeyDown(Keys.F5)
+			&& _previousKeyboard.IsKeyUp(Keys.F5))
+		{
+			ReloadEffects();
+		}
+
 		MouseState mouse = Mouse.GetState();
 
 		if (mouse.LeftButton == ButtonState.Pressed && !IsMouseOverGui())
@@ -201,6 +207,38 @@ internal sealed class ViewerGame : Game
 		}
 
 		base.Draw(gameTime);
+	}
+
+	private void ReloadEffects()
+	{
+		if (_renderer is null || _content is null)
+		{
+			return;
+		}
+
+		var content = new ContentManager(Services, "Content");
+
+		try
+		{
+			var shaderSmokeTest = new FullscreenColorEffect(
+				GraphicsDevice,
+				content);
+			_renderer.ReloadEffects(content);
+
+			_shaderSmokeTest?.Dispose();
+			_shaderSmokeTest = shaderSmokeTest;
+
+			ContentManager oldContent = _content;
+			_content = content;
+			oldContent.Dispose();
+
+			Console.WriteLine("Effects reloaded.");
+		}
+		catch (Exception exception)
+		{
+			content.Dispose();
+			Console.WriteLine($"Effect reload failed: {exception.Message}");
+		}
 	}
 
 	private void UpdateStats()

@@ -22,14 +22,14 @@ internal sealed class Renderer : IDisposable
 	private readonly GraphicsDevice _device;
 	private readonly DrModelInstance _instance;
 	private readonly DrModel _model;
-	private readonly ContentManager _content;
+	private ContentManager _content;
 	private readonly Dictionary<int, PbrEffect> _pbrEffects = [];
 	private readonly Dictionary<DrModelMeshPart, PartDrawInfo> _partDrawInfo = [];
 	private readonly List<RenderItem> _opaqueItems = [];
 	private readonly List<RenderItem> _transparentItems = [];
 	private readonly List<RenderItem> _renderItemPool = [];
 	private readonly IblResources _ibl;
-	private readonly PostProcessor _postProcessor;
+	private PostProcessor _postProcessor;
 	private readonly Texture2D _fallbackTexture;
 
 	private static readonly Comparison<RenderItem> OpaqueComparison =
@@ -74,6 +74,23 @@ internal sealed class Renderer : IDisposable
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
+	}
+
+	/// <summary>
+	/// Recreates effects from a fresh content manager. Compiled effect binaries must
+	/// have been rebuilt before calling this method.
+	/// </summary>
+	public void ReloadEffects(ContentManager content)
+	{
+		ArgumentNullException.ThrowIfNull(content);
+
+		var postProcessor = new PostProcessor(_device, content);
+		_postProcessor.Dispose();
+		_postProcessor = postProcessor;
+		_content = content;
+		_pbrEffects.Clear();
+		_partDrawInfo.Clear();
+		_lastDebugView = null;
 	}
 
 	public int DrawCalls { get; private set; }
