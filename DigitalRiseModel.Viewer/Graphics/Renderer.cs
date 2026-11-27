@@ -38,6 +38,7 @@ internal sealed class Renderer : IDisposable
 		CompareTransparent;
 
 	private Matrix _viewProjection;
+	private BoundingFrustum _frustum = new(Matrix.Identity);
 	private Vector3 _cameraPosition;
 	private int _renderItemCount;
 	private ShaderDebugView? _lastDebugView;
@@ -93,6 +94,7 @@ internal sealed class Renderer : IDisposable
 		Triangles = 0;
 		_frameOpen = true;
 		_viewProjection = view * projection;
+		_frustum = new BoundingFrustum(_viewProjection);
 		_cameraPosition = Matrix.Invert(view).Translation;
 
 		// Lights and IBL resources are immutable for the viewer lifetime and are
@@ -162,7 +164,14 @@ internal sealed class Renderer : IDisposable
 				Matrix[]? skinTransforms = part.Skin is { } skin
 					? _instance.GetSkinTransforms(skin.Index)
 					: null;
-				Vector3 center = Vector3.Transform(part.BoundingSphere.Center, world);
+				BoundingSphere worldBounds = part.BoundingSphere.Transform(world);
+
+				// Skinned bounds can exceed the bind pose, so only cull static parts.
+				if (skinTransforms is null && !_frustum.Intersects(worldBounds))
+				{
+					continue;
+				}
+
 				PartDrawInfo drawInfo = GetPartDrawInfo(part, skinTransforms);
 				RenderItem item = GetRenderItem();
 				item.Part = part;
@@ -170,7 +179,7 @@ internal sealed class Renderer : IDisposable
 				item.World = world;
 				item.SkinTransforms = skinTransforms;
 				item.DistanceSquared = Vector3.DistanceSquared(
-					center,
+					worldBounds.Center,
 					_cameraPosition);
 				item.Effect = drawInfo.Effect;
 				item.Skinned = drawInfo.Skinned;
