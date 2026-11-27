@@ -17,7 +17,7 @@ The current foundation contains:
 
 glTF 2.0 loading is available through the recursive `AssetManager.LoadDrModel(device, path)` extension. The `Dr` prefix keeps these types distinct from MonoGame's own `Model`, `ModelMesh` and `ModelMeshPart` classes while preserving familiar XNA member names and behavior.
 
-> **Status:** foundational data classes and glTF 2.0 loading, including animation clips, are implemented and covered by unit tests. Animation sampling, OBJ import, mesh processing and serialization are planned.
+> **Status:** foundational data classes, glTF 2.0 loading, animation clips and single-clip playback are implemented and covered by unit tests. Animation blending, OBJ import, mesh processing and serialization are planned.
 
 ## Why Dr-prefixed model classes?
 
@@ -38,18 +38,19 @@ Model types live in the root namespace `DigitalRiseModel`. glTF loading is expos
 | Type | Purpose |
 | --- | --- |
 | `DrModel` | A model composed of bone and mesh arrays; bone transform helpers |
-| `DrModelInstance` | An instance backed by a `DrModel` with local-transform accessors, lazily recalculated absolute transforms and a current-pose bounding sphere |
+| `DrModelInstance` | An instance backed by a `DrModel` with local-transform accessors, lazily recalculated absolute transforms, skin transforms and a current-pose bounding sphere |
 | `DrModelBone` | A bone with a name, optional mesh, local transform, parent, children array and tag |
 | `DrModelMesh` | A mesh with a cached, on-demand bounding sphere, parent bone and parts |
 | `DrModelMeshPart` | A draw range with vertex/index buffers, vertex declaration, counts, material, skin, bounding sphere, owning-mesh back-reference and optional `VertexSkinned` source geometry |
 | `DrMaterial` | Metallic-roughness material data, including texture references and alpha mode |
 | `DrTextureInfo` | A texture index, UV set, normal scale, occlusion strength and loaded `Texture2D` |
-| `DrSkin` | Skin joints and skeleton root |
+| `DrSkin` | Skin index, joints and skeleton root |
 | `DrSkinJoint` | A joint bone paired with its inverse bind matrix |
-| `SrtTransform` | A scale, rotation and translation pose with value equality |
+| `SrtTransform` | A scale, rotation and translation pose with value equality, per-component interpolation and `ToMatrix` conversion |
 | `AnimationClip` | A full clip: name, duration, channels and tag |
-| `AnimationChannel` | A bone index, keyframes and per-path interpolation modes |
+| `AnimationChannel` | A bone index, keyframes, per-path interpolation modes and time sampling |
 | `AnimationChannelKeyframe` | A keyframe time and complete `SrtTransform` pose |
+| `AnimationController` | Plays named clips from a `DrModelInstance` and advances them over time |
 | `ModelLoadFlags` | Loading options; readable buffers and source geometry for debug/testing |
 | `DrModelAssetManagerExtensions` | `AssetManager.LoadDrModel(device, path)` glTF loading |
 
@@ -114,9 +115,12 @@ instance.SetLocalTransform(boneIndex, newLocalTransform);
 // Absolute transforms and bounds are recalculated lazily after local changes.
 Matrix[] absoluteBones = instance.AbsoluteBoneTransforms;
 BoundingSphere bounds = instance.BoundingSphere;
+
+// Skinning transforms for the current pose.
+Matrix[] skinTransforms = instance.GetSkinTransforms(skin.Index);
 ```
 
-The constructor copies the model's current bone transforms as the initial local pose. `GetLocalTransform` and `SetLocalTransform` access local transforms relative to each bone's parent; setting one marks the absolute transforms and bounding sphere dirty. `AbsoluteBoneTransforms` is indexed like `DrModel.Bones` and recalculates on the next query after a change. `BoundingSphere` is the world-space bound of the current pose, computed by transforming each mesh's bounding sphere by its parent bone's absolute transform and merging the results. `BoneCount` returns the number of bones.
+The constructor copies the model's current bone transforms as the initial local pose. `GetLocalTransform` and `SetLocalTransform` access local transforms relative to each bone's parent; setting one marks absolute transforms, skin transforms and the bounding sphere dirty. Each derived value recalculates lazily on its next query, and skin/bounds queries first ensure absolute transforms are current. `AbsoluteBoneTransforms` is indexed like `DrModel.Bones`. `BoundingSphere` is the world-space bound of the current pose, computed by transforming each mesh's bounding sphere by its parent bone's absolute transform and merging the results. `GetSkinTransforms` returns the cached joint transforms for a skin index. `BoneCount` returns the number of bones.
 
 ## Loading glTF
 
@@ -164,11 +168,31 @@ The loader:
 - Converts glTF animations to `AnimationClip` instances in `DrModel.Animations`.
 - Loads triangle lists, triangle strips and triangle fans.
 
-Animation clips are data-only. Each `AnimationChannel` references a bone by index and contains `AnimationChannelKeyframe` values with a `TimeSpan` time and a complete `SrtTransform` pose. glTF translation, rotation and scale tracks are merged and resampled at the union of their key times, using `Step`, `Linear` (slerp for rotation) or `CubicSpline` interpolation. Unanimated components use the bone's local transform. Morph target weight animation is not supported. Sampling and blending are left to the renderer. Duplicate clip names are made unique with `_1`, `_2`, and so on. Sparse accessors and non-triangle primitive modes throw `NotSupportedException`.
+Animation clips are data-only. Each `AnimationChannel` references a bone by index and contains `AnimationChannelKeyframe` values with a `TimeSpan` time and a complete `SrtTransform` pose. glTF translation, rotation and scale tracks are merged and resampled at the union of their key times, using `Step`, `Linear` (slerp for rotation) or `CubicSpline` interpolation. Unanimated components use the bone's local transform. Morph target weight animation is not supported. Sampling is handled by `AnimationController`; blending is left to the caller. Duplicate clip names are made unique with `_1`, `_2`, and so on. Sparse accessors and non-triangle primitive modes throw `NotSupportedException`.
+
+## Playing animations
+
+`AnimationController` plays clips by name from `DrModelInstance.Model.Animations`:
+
+```csharp
+var instance = new DrModelInstance(model);
+var animation = new AnimationController(instance);
+
+if (animation.Play("Walk"))
+{
+    // Advance once per frame.
+    animation.Update(elapsedTime);
+}
+
+animation.Loop = true;   // default
+animation.Stop();        // clears the clip and restores the bind pose
+```
+
+`Play` resets all bones to the model's bind pose, applies the clip's first frame and starts playback. `Update` advances the clip time, samples keyframes and writes local bone transforms through `DrModelInstance.SetLocalTransform`. `Loop = false` stops at the clip's final keyframe. `CurrentClip`, `Time` and `IsPlaying` expose playback state.
 
 ## Viewer
 
-`DigitalRiseModel.Viewer` is a small MonoGame window viewer that loads a glTF model through `AssetManager` and renders it with stock effects. It is also packaged as the `drm-viewer` .NET tool.
+`DigitalRiseModel.Viewer` is a small MonoGame window viewer that loads a glTF model through `AssetManager` and renders it with stock effects. If the model contains animations, the viewer automatically plays the first clip. It is also packaged as the `drm-viewer` .NET tool.
 
 ```bash
 dotnet run --project DigitalRiseModel.Viewer -- "path/to/model.glb"
@@ -279,7 +303,8 @@ The site includes a getting-started guide, model-data concepts and the generated
 - [x] glTF 2.0 import: scenes, meshes, materials, skins and animation clips.
 - [ ] Mesh processing: normals, tangents, vertex welding, optimization, simplification.
 - [ ] Import/export: OBJ and a versioned native format.
-- [ ] Animation sampling, blending and playback helpers.
+- [x] Single-clip animation sampling and playback through `AnimationController`.
+- [ ] Animation blending and layered playback.
 - [x] DocFX documentation site with guides and API reference.
 - [x] MonoGame viewer packaged as the `drm-viewer` .NET tool.
 - [ ] Additional samples and tooling.

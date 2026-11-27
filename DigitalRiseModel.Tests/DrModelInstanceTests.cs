@@ -176,6 +176,57 @@ public sealed class DrModelInstanceTests
 		Assert.Equal(6f, bounds.Radius);
 	}
 
+	[Fact]
+	public void GetSkinTransforms_ReturnsInverseBindTimesAbsoluteTransform()
+	{
+		var instance = new DrModelInstance(CreateSkinnedModel(
+			inverseBindMatrix: Matrix.CreateTranslation(-1, 0, 0)));
+
+		Matrix[] transforms = instance.GetSkinTransforms(0);
+
+		Assert.Single(transforms);
+		Assert.Equal(Matrix.CreateTranslation(1, 0, 0), transforms[0]);
+	}
+
+	[Fact]
+	public void GetSkinTransforms_AfterPoseChange_Recalculates()
+	{
+		var instance = new DrModelInstance(CreateSkinnedModel(Matrix.Identity));
+		Matrix[] transforms = instance.GetSkinTransforms(0);
+		Assert.Equal(Matrix.CreateTranslation(2, 0, 0), transforms[0]);
+
+		instance.SetLocalTransform(0, Matrix.CreateTranslation(5, 0, 0));
+
+		Assert.Same(transforms, instance.GetSkinTransforms(0));
+		Assert.Equal(Matrix.CreateTranslation(5, 0, 0), transforms[0]);
+	}
+
+	[Fact]
+	public void GetSkinTransforms_UnknownIndex_ThrowsArgumentOutOfRangeException()
+	{
+		var instance = new DrModelInstance(CreateSkinnedModel(Matrix.Identity));
+
+		Assert.Throws<ArgumentOutOfRangeException>(
+			() => instance.GetSkinTransforms(1));
+	}
+
+	private static DrModel CreateSkinnedModel(Matrix inverseBindMatrix)
+	{
+		var root = new DrModelBone("Root")
+		{
+			Transform = Matrix.CreateTranslation(2, 0, 0)
+		};
+		var part = new DrModelMeshPart();
+		var skin = new DrSkin(0)
+		{
+			Joints = [new DrSkinJoint(root, inverseBindMatrix)]
+		};
+		part.Skin = skin;
+		root.Mesh = new DrModelMesh([part]);
+
+		return new DrModel(root);
+	}
+
 	private static DrModel CreateModel()
 	{
 		var root = new DrModelBone("Root")

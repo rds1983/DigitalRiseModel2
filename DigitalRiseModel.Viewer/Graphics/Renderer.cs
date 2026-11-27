@@ -5,18 +5,17 @@ namespace DigitalRiseModel.Viewer.Graphics;
 
 /// <summary>
 /// Low-level 3D drawing service: stock effects, device state and draw calls.
-/// It owns no scene content beyond the loaded model and never draws UI.
+/// It owns no scene content beyond the loaded model instance and never draws UI.
 /// </summary>
 internal sealed class Renderer : IDisposable
 {
 	private readonly GraphicsDevice _device;
+	private readonly DrModelInstance _instance;
 	private readonly DrModel _model;
-	private readonly List<Drawable> _drawables = [];
-	private readonly Matrix[] _absoluteBoneTransforms;
+	private readonly BasicEffect _basicEffect;
+	private readonly SkinnedEffect _skinnedEffect;
 	private readonly Texture2D _fallbackTexture;
 
-	private Matrix _view;
-	private Matrix _projection;
 	private bool _frameOpen;
 
 	private BlendState _savedBlendState = BlendState.Opaque;
@@ -25,24 +24,31 @@ internal sealed class Renderer : IDisposable
 	private SamplerState _savedSamplerState = SamplerState.LinearWrap;
 	private Rectangle _savedScissorRectangle;
 
-	public Renderer(GraphicsDevice device, DrModel model)
+	public Renderer(GraphicsDevice device, DrModelInstance instance)
 	{
 		ArgumentNullException.ThrowIfNull(device);
-		ArgumentNullException.ThrowIfNull(model);
+		ArgumentNullException.ThrowIfNull(instance);
 
 		_device = device;
-		_model = model;
-		_absoluteBoneTransforms = new Matrix[model.Bones.Length];
+		_instance = instance;
+		_model = instance.Model;
+
+		_basicEffect = new BasicEffect(device)
+		{
+			PreferPerPixelLighting = true
+		};
+
+		ConfigureLights(_basicEffect);
+
+		_skinnedEffect = new SkinnedEffect(device)
+		{
+			PreferPerPixelLighting = true
+		};
+
+		ConfigureLights(_skinnedEffect);
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
-
-		if (model.Bones.Length > 0)
-		{
-			model.CopyAbsoluteBoneTransformsTo(_absoluteBoneTransforms);
-		}
-
-		CreateDrawables();
 	}
 
 	public int DrawCalls { get; private set; }
@@ -59,11 +65,14 @@ internal sealed class Renderer : IDisposable
 			throw new InvalidOperationException("A renderer frame is already open.");
 		}
 
-		_view = view;
-		_projection = projection;
 		DrawCalls = 0;
 		Triangles = 0;
 		_frameOpen = true;
+
+		_basicEffect.View = view;
+		_basicEffect.Projection = projection;
+		_skinnedEffect.View = view;
+		_skinnedEffect.Projection = projection;
 
 		_savedBlendState = _device.BlendState;
 		_savedDepthStencilState = _device.DepthStencilState;
@@ -85,66 +94,81 @@ internal sealed class Renderer : IDisposable
 	}
 
 	/// <summary>
-	/// Draws the whole model using its current bind pose.
+	/// Draws the whole model using the instance's current bone pose.
 	/// </summary>
 	public void DrawModel()
 	{
 		EnsureFrameOpen();
 
-		_model.CopyAbsoluteBoneTransformsTo(_absoluteBoneTransforms);
+		Matrix[] absoluteBoneTransforms = _instance.AbsoluteBoneTransforms;
 
-		foreach (Drawable drawable in _drawables)
+		foreach (DrModelMesh mesh in _model.Meshes)
 		{
-			DrModelMeshPart part = drawable.Part;
-
-			if (part.VertexBuffer is null || part.IndexBuffer is null)
+			foreach (DrModelMeshPart part in mesh.MeshParts)
 			{
-				continue;
-			}
+				if (part.VertexBuffer is null || part.IndexBuffer is null)
+				{
+					continue;
+				}
 
-			DrMaterial? material = part.Material;
+				DrMaterial? material = part.Material;
+				Vector4 color = material?.BaseColorFactor ?? Vector4.One;
+				Texture2D? texture = material?.BaseColorTexture?.Texture;
 
-			_device.BlendState = material?.AlphaMode == DrAlphaMode.Blend
-				? BlendState.AlphaBlend
-				: BlendState.Opaque;
-			_device.DepthStencilState = DepthStencilState.Default;
+				_device.BlendState = material?.AlphaMode == DrAlphaMode.Blend
+					? BlendState.AlphaBlend
+					: BlendState.Opaque;
+				_device.DepthStencilState = DepthStencilState.Default;
 
-			// The glTF loader converts front-facing triangles to MonoGame's clockwise
-			// convention, so the standard counter-clockwise cull state is correct.
-			_device.RasterizerState = material?.DoubleSided == true
-				? RasterizerState.CullNone
-				: RasterizerState.CullCounterClockwise;
+				// The glTF loader converts front-facing triangles to MonoGame's clockwise
+				// convention, so the standard counter-clockwise cull state is correct.
+				_device.RasterizerState = material?.DoubleSided == true
+					? RasterizerState.CullNone
+					: RasterizerState.CullCounterClockwise;
 
-			if (drawable.IsSkinned)
-			{
-				var effect = (SkinnedEffect)drawable.Effect;
-				effect.World = Matrix.Identity;
-				effect.View = _view;
-				effect.Projection = _projection;
-				effect.SetBoneTransforms(drawable.BoneTransforms!);
-			}
-			else
-			{
-				var effect = (BasicEffect)drawable.Effect;
-				effect.World = GetMeshWorld(part);
-				effect.View = _view;
-				effect.Projection = _projection;
-			}
+				Effect effect;
 
-			_device.SetVertexBuffer(part.VertexBuffer);
-			_device.Indices = part.IndexBuffer;
+				if (part.Skin is { } skin)
+				{
+					_skinnedEffect.World = Matrix.Identity;
+					_skinnedEffect.DiffuseColor = new Vector3(color.X, color.Y, color.Z);
+					_skinnedEffect.Alpha = color.W;
+					_skinnedEffect.Texture = texture ?? _fallbackTexture;
+					_skinnedEffect.SetBoneTransforms(
+						_instance.GetSkinTransforms(skin.Index));
+					effect = _skinnedEffect;
+				}
+				else
+				{
+					VertexDeclaration declaration = part.VertexDeclaration
+						?? part.VertexBuffer.VertexDeclaration;
 
-			foreach (EffectPass pass in drawable.Effect.CurrentTechnique.Passes)
-			{
-				pass.Apply();
-				_device.DrawIndexedPrimitives(
-					PrimitiveType.TriangleList,
-					part.VertexOffset,
-					part.StartIndex,
-					part.PrimitiveCount);
+					_basicEffect.World = GetMeshWorld(part, absoluteBoneTransforms);
+					_basicEffect.DiffuseColor = new Vector3(color.X, color.Y, color.Z);
+					_basicEffect.Alpha = color.W;
+					_basicEffect.LightingEnabled = HasElement(
+						declaration,
+						VertexElementUsage.Normal);
+					_basicEffect.TextureEnabled = texture is not null;
+					_basicEffect.Texture = texture;
+					effect = _basicEffect;
+				}
 
-				++DrawCalls;
-				Triangles += part.PrimitiveCount;
+				_device.SetVertexBuffer(part.VertexBuffer);
+				_device.Indices = part.IndexBuffer;
+
+				foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+				{
+					pass.Apply();
+					_device.DrawIndexedPrimitives(
+						PrimitiveType.TriangleList,
+						part.VertexOffset,
+						part.StartIndex,
+						part.PrimitiveCount);
+
+					++DrawCalls;
+					Triangles += part.PrimitiveCount;
+				}
 			}
 		}
 	}
@@ -164,136 +188,25 @@ internal sealed class Renderer : IDisposable
 
 	public BoundingSphere ComputeBounds()
 	{
-		_model.CopyAbsoluteBoneTransformsTo(_absoluteBoneTransforms);
-
-		BoundingSphere result = default;
-		bool hasBounds = false;
-
-		foreach (DrModelMesh mesh in _model.Meshes)
-		{
-			Matrix meshTransform = mesh.ParentBone is { } parentBone
-				&& (uint)parentBone.Index < (uint)_absoluteBoneTransforms.Length
-				? _absoluteBoneTransforms[parentBone.Index]
-				: Matrix.Identity;
-
-			foreach (DrModelMeshPart part in mesh.MeshParts)
-			{
-				BoundingSphere sphere = part.BoundingSphere.Transform(meshTransform);
-				result = hasBounds
-					? BoundingSphere.CreateMerged(result, sphere)
-					: sphere;
-				hasBounds = true;
-			}
-		}
-
-		return result;
+		return _instance.BoundingSphere;
 	}
 
 	public void Dispose()
 	{
-		foreach (Drawable drawable in _drawables)
-		{
-			drawable.Effect.Dispose();
-		}
-
-		_drawables.Clear();
+		_basicEffect.Dispose();
+		_skinnedEffect.Dispose();
 		_fallbackTexture.Dispose();
 	}
 
-	private void CreateDrawables()
-	{
-		foreach (DrModelMesh mesh in _model.Meshes)
-		{
-			foreach (DrModelMeshPart part in mesh.MeshParts)
-			{
-				if (part.VertexBuffer is null || part.IndexBuffer is null)
-				{
-					continue;
-				}
-
-				_drawables.Add(CreateDrawable(part));
-			}
-		}
-	}
-
-	private Drawable CreateDrawable(DrModelMeshPart part)
-	{
-		Texture2D? texture = part.Material?.BaseColorTexture?.Texture;
-		Vector4 color = part.Material?.BaseColorFactor ?? Vector4.One;
-		VertexDeclaration declaration = part.VertexDeclaration
-			?? part.VertexBuffer!.VertexDeclaration;
-
-		bool hasNormals = HasElement(declaration, VertexElementUsage.Normal);
-		Matrix[]? boneTransforms = CreateBoneTransforms(part);
-		bool isSkinned = boneTransforms is not null
-			&& HasElement(declaration, VertexElementUsage.BlendIndices)
-			&& HasElement(declaration, VertexElementUsage.BlendWeight);
-
-		if (isSkinned)
-		{
-			var effect = new SkinnedEffect(_device)
-			{
-				DiffuseColor = new Vector3(color.X, color.Y, color.Z),
-				Alpha = color.W,
-				Texture = texture ?? _fallbackTexture,
-				PreferPerPixelLighting = true,
-				World = Matrix.Identity
-			};
-
-			ConfigureLights(effect);
-			return new Drawable(part, effect, true, boneTransforms);
-		}
-
-		var basicEffect = new BasicEffect(_device)
-		{
-			DiffuseColor = new Vector3(color.X, color.Y, color.Z),
-			Alpha = color.W,
-			LightingEnabled = hasNormals,
-			TextureEnabled = texture is not null,
-			Texture = texture,
-			PreferPerPixelLighting = true
-		};
-
-		ConfigureLights(basicEffect);
-		return new Drawable(part, basicEffect, false, null);
-	}
-
-	private Matrix[]? CreateBoneTransforms(DrModelMeshPart part)
-	{
-		DrSkin? skin = part.Skin;
-
-		if (skin is null
-			|| skin.Joints.Length == 0
-			|| skin.Joints.Length > SkinnedEffect.MaxBones)
-		{
-			return null;
-		}
-
-		var transforms = new Matrix[skin.Joints.Length];
-
-		for (int i = 0; i < transforms.Length; i++)
-		{
-			DrSkinJoint joint = skin.Joints[i];
-			int boneIndex = joint.Bone.Index;
-
-			if ((uint)boneIndex >= (uint)_absoluteBoneTransforms.Length)
-			{
-				return null;
-			}
-
-			transforms[i] = joint.InverseBindMatrix * _absoluteBoneTransforms[boneIndex];
-		}
-
-		return transforms;
-	}
-
-	private Matrix GetMeshWorld(DrModelMeshPart part)
+	private static Matrix GetMeshWorld(
+		DrModelMeshPart part,
+		Matrix[] absoluteBoneTransforms)
 	{
 		DrModelBone? parentBone = part.Mesh?.ParentBone;
 
 		return parentBone is not null
-			&& (uint)parentBone.Index < (uint)_absoluteBoneTransforms.Length
-			? _absoluteBoneTransforms[parentBone.Index]
+			&& (uint)parentBone.Index < (uint)absoluteBoneTransforms.Length
+			? absoluteBoneTransforms[parentBone.Index]
 			: Matrix.Identity;
 	}
 
@@ -328,28 +241,5 @@ internal sealed class Renderer : IDisposable
 			throw new InvalidOperationException(
 				"This operation requires an open renderer frame.");
 		}
-	}
-
-	private sealed class Drawable
-	{
-		public Drawable(
-			DrModelMeshPart part,
-			Effect effect,
-			bool isSkinned,
-			Matrix[]? boneTransforms)
-		{
-			Part = part;
-			Effect = effect;
-			IsSkinned = isSkinned;
-			BoneTransforms = boneTransforms;
-		}
-
-		public DrModelMeshPart Part { get; }
-
-		public Effect Effect { get; }
-
-		public bool IsSkinned { get; }
-
-		public Matrix[]? BoneTransforms { get; }
 	}
 }

@@ -1,3 +1,4 @@
+using DigitalRiseModel.Animation;
 using Microsoft.Xna.Framework;
 
 namespace DigitalRiseModel;
@@ -38,6 +39,72 @@ public struct SrtTransform : IEquatable<SrtTransform>
 		Translation = translation;
 		Rotation = rotation;
 		Scale = scale;
+	}
+
+	/// <summary>
+	/// Interpolates between two transforms.
+	/// </summary>
+	/// <param name="start">The transform at <paramref name="amount"/> 0.</param>
+	/// <param name="end">The transform at <paramref name="amount"/> 1.</param>
+	/// <param name="amount">The interpolation amount, normally between 0 and 1.</param>
+	/// <param name="translationInterpolation">The interpolation mode for translation.</param>
+	/// <param name="rotationInterpolation">The interpolation mode for rotation.</param>
+	/// <param name="scaleInterpolation">The interpolation mode for scale.</param>
+	/// <returns>The interpolated transform.</returns>
+	/// <remarks>
+	/// <see cref="AnimationInterpolation.Step"/> holds the start component. All other modes
+	/// interpolate linearly; rotation uses shortest-path spherical interpolation. Baked
+	/// transforms do not retain cubic tangents, so <see cref="AnimationInterpolation.CubicSpline"/>
+	/// is treated like <see cref="AnimationInterpolation.Linear"/>.
+	/// </remarks>
+	public static SrtTransform Interpolate(
+		SrtTransform start,
+		SrtTransform end,
+		float amount,
+		AnimationInterpolation translationInterpolation,
+		AnimationInterpolation rotationInterpolation,
+		AnimationInterpolation scaleInterpolation)
+	{
+		return new SrtTransform(
+			InterpolateVector(start.Translation, end.Translation, amount, translationInterpolation),
+			InterpolateRotation(start.Rotation, end.Rotation, amount, rotationInterpolation),
+			InterpolateVector(start.Scale, end.Scale, amount, scaleInterpolation));
+	}
+
+	/// <summary>
+	/// Converts this transform to a matrix.
+	/// </summary>
+	/// <returns>
+	/// The scale, rotation and translation composed as
+	/// <c>scale * rotation * translation</c> using row-vector conventions.
+	/// </returns>
+	public readonly Matrix ToMatrix()
+	{
+		return Matrix.CreateScale(Scale)
+			* Matrix.CreateFromQuaternion(Rotation)
+			* Matrix.CreateTranslation(Translation);
+	}
+
+	private static Vector3 InterpolateVector(
+		Vector3 start,
+		Vector3 end,
+		float amount,
+		AnimationInterpolation interpolation)
+	{
+		return interpolation == AnimationInterpolation.Step
+			? start
+			: Vector3.Lerp(start, end, amount);
+	}
+
+	private static Quaternion InterpolateRotation(
+		Quaternion start,
+		Quaternion end,
+		float amount,
+		AnimationInterpolation interpolation)
+	{
+		return interpolation == AnimationInterpolation.Step
+			? start
+			: Quaternion.Normalize(Quaternion.Slerp(start, end, amount));
 	}
 
 	/// <inheritdoc />

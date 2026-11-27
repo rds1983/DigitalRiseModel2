@@ -102,10 +102,13 @@ External image files are loaded with `AssetManager.LoadTexture2D`; embedded imag
 
 `DrModelMeshPart.Skin` contains:
 
+- `Index` — the skin index in the glTF skin collection
 - `Joints` — `DrSkinJoint` values, each pairing a joint bone with its inverse bind matrix
 - `Skeleton` — the optional skeleton root
 
 A glTF skin belongs to a node, so it is assigned to every part of that node's mesh.
+
+`DrModelInstance.GetSkinTransforms(skin.Index)` returns the joint matrices for the instance's current pose, composed as `inverseBindMatrix * absoluteBoneTransform`.
 
 ## Animations
 
@@ -121,7 +124,7 @@ Each `AnimationChannel` contains:
 - `Keyframes` — `AnimationChannelKeyframe` values with a `TimeSpan` time and a complete `SrtTransform` pose.
 - `TranslationInterpolation`, `RotationInterpolation`, `ScaleInterpolation` — the glTF interpolation mode per component (`Step`, `Linear` or `CubicSpline`).
 
-glTF translation, rotation and scale tracks are merged into one keyframe array per bone. The loader collects the union of all key times for that bone and samples each track at every time. Rotation uses shortest-path slerp for linear interpolation; cubic spline tracks use the glTF in-tangent, value and out-tangent layout. Components without a track use the bone's local transform, so a rotation-only clip does not reset translation or scale.
+glTF translation, rotation and scale tracks are merged into one keyframe array per bone. The loader collects the union of all key times for that bone and samples each track at every time. Rotation uses shortest-path slerp for linear interpolation; cubic spline tracks use the glTF in-tangent, value and out-tangent layout while loading. Components without a track use the bone's local transform, so a rotation-only clip does not reset translation or scale. Baked keyframes do not retain cubic tangents, so runtime playback treats `CubicSpline` channels as linear between keyframes.
 
 ```csharp
 DrModel model = assets.LoadDrModel(graphicsDevice, "models/robot.glb");
@@ -134,9 +137,27 @@ if (model.Animations.TryGetValue("Walk", out AnimationClip clip))
 }
 ```
 
-The loader is data-only: it does not modify bone transforms or drive playback. Playback is the caller's responsibility.
+The loader is data-only: it does not modify bone transforms or drive playback.
 
 Duplicate clip names are made unique by appending `_1`, `_2`, and so on. A channel that targets a node outside the loaded scene is rejected with `InvalidDataException`. Morph target weight animation is not supported and throws `NotSupportedException`.
+
+## Playback
+
+`AnimationController` drives a single clip on a `DrModelInstance`:
+
+```csharp
+var instance = new DrModelInstance(model);
+var animation = new AnimationController(instance);
+
+if (animation.Play("Walk"))
+{
+    animation.Update(elapsedTime);
+}
+
+animation.Stop();
+```
+
+`Play(name)` looks up the clip in `DrModel.Animations`, resets all bones to the bind pose and applies the first frame. `Update(TimeSpan)` advances the clip and writes sampled poses through `DrModelInstance.SetLocalTransform`. Keyframe lookup is handled by `AnimationChannel.Sample`, and pose interpolation by `SrtTransform.Interpolate`, which applies the translation, rotation and scale interpolation modes independently. `Loop` defaults to `true`; set it to `false` for one-shot clips. `Stop` clears the clip and restores the bind pose.
 
 ## Limitations
 

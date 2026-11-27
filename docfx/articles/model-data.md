@@ -38,9 +38,9 @@ public Matrix[] AbsoluteBoneTransforms { get; }
 public BoundingSphere BoundingSphere { get; }
 ```
 
-The constructor copies the model's current bone transforms as the initial local pose. `GetLocalTransform` and `SetLocalTransform` access the local transform of a bone, relative to its parent. Setting a transform marks the absolute transforms and bounding sphere dirty.
+The constructor copies the model's current bone transforms as the initial local pose. `GetLocalTransform` and `SetLocalTransform` access the local transform of a bone, relative to its parent. Setting a transform marks absolute transforms, skin transforms and the bounding sphere dirty.
 
-`AbsoluteBoneTransforms` recalculates on the next query. `BoundingSphere` recalculates on the next query by transforming each mesh's bounding sphere with its parent bone's absolute transform and merging the spheres. Bone indices refer to positions in `DrModel.Bones`.
+Each derived value recalculates lazily on its next query. Skin-transform and bounding-sphere queries first ensure `AbsoluteBoneTransforms` are current. The bounding sphere transforms each mesh's bounding sphere with its parent bone's absolute transform and merges the spheres. Bone indices refer to positions in `DrModel.Bones`.
 
 `AbsoluteBoneTransforms` returns the instance-owned array. Treat it as read-only.
 
@@ -100,7 +100,7 @@ Parts are owned by a mesh and are disposed with it.
 
 `DrMaterial` mirrors glTF metallic-roughness material data: base color, metallic/roughness factors, texture references, emissive color, alpha mode and double-sided flag.
 
-`DrSkin` mirrors glTF skinning data: a `DrSkinJoint[]` plus an optional skeleton root. Each `DrSkinJoint` pairs a joint bone with its inverse bind matrix.
+`DrSkin` mirrors glTF skinning data: an index, a `DrSkinJoint[]` and an optional skeleton root. Each `DrSkinJoint` pairs a joint bone with its inverse bind matrix. `DrModelInstance.GetSkinTransforms(skin.Index)` produces the current skinning matrices for that instance.
 
 See [Loading glTF](gltf-loading.md) for the mapping details.
 

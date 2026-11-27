@@ -1,4 +1,5 @@
 using AssetManagementBase;
+using DigitalRiseModel.Animation;
 using DigitalRiseModel.Viewer.Graphics;
 using DigitalRiseModel.Viewer.UI;
 using Microsoft.Xna.Framework;
@@ -16,6 +17,8 @@ internal sealed class ViewerGame : Game
 
 	private AssetManager? _assetManager;
 	private DrModel? _model;
+	private DrModelInstance? _instance;
+	private AnimationController? _animation;
 	private Renderer? _renderer;
 	private Desktop? _desktop;
 	private ControlsPanel? _controlsPanel;
@@ -57,15 +60,25 @@ internal sealed class ViewerGame : Game
 
 		_assetManager = AssetManager.CreateFileAssetManager(directory);
 		_model = _assetManager.LoadDrModel(GraphicsDevice, fileName);
-		_renderer = new Renderer(GraphicsDevice, _model);
+		_instance = new DrModelInstance(_model);
+		_animation = new AnimationController(_instance);
+		_renderer = new Renderer(GraphicsDevice, _instance);
 
 		CreateUI();
 		ResetCamera();
+
+		if (_model.Animations.Count > 0)
+		{
+			_animation.Play(_model.Animations.Keys.First());
+		}
+
 		_previousMouse = Mouse.GetState();
 	}
 
 	protected override void Update(GameTime gameTime)
 	{
+		_animation?.Update(gameTime.ElapsedGameTime);
+
 		KeyboardState keyboard = Keyboard.GetState();
 
 		if (keyboard.IsKeyDown(Keys.Escape))
@@ -131,6 +144,9 @@ internal sealed class ViewerGame : Game
 
 		_renderer?.Dispose();
 		_renderer = null;
+
+		_animation = null;
+		_instance = null;
 
 		if (_model is not null)
 		{

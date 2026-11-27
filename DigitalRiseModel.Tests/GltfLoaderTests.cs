@@ -54,7 +54,8 @@ public sealed class GltfLoaderTests
 	{
 		DrModelMeshPart part = LoadFirstPart("skinned.gltf");
 
-		DrSkinJoint joint = Assert.Single(part.Skin!.Joints);
+		Assert.Equal(0, part.Skin!.Index);
+		DrSkinJoint joint = Assert.Single(part.Skin.Joints);
 		Assert.Equal("Joint", joint.Bone.Name);
 		Assert.Equal(Matrix.Identity, joint.InverseBindMatrix);
 

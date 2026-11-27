@@ -10,9 +10,11 @@ public sealed class DrModelInstance
 {
 	private readonly Matrix[] _boneTransforms;
 	private readonly Matrix[] _absoluteBoneTransforms;
-	private bool _absoluteBoneTransformsDirty;
-	private BoundingSphere _boundingSphere;
+	private readonly Dictionary<int, SkinInfo> _skinInfos = [];
+	private bool _absoluteBoneTransformsDirty = true;
+	private bool _skinTransformsDirty = true;
 	private bool _boundingSphereDirty = true;
+	private BoundingSphere _boundingSphere;
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="DrModelInstance"/> class and copies
@@ -27,11 +29,21 @@ public sealed class DrModelInstance
 		Model = model;
 		_boneTransforms = new Matrix[model.Bones.Length];
 		_absoluteBoneTransforms = new Matrix[model.Bones.Length];
-		_absoluteBoneTransformsDirty = true;
 
 		for (int i = 0; i < model.Bones.Length; i++)
 		{
 			_boneTransforms[i] = model.Bones[i].Transform;
+		}
+
+		foreach (DrModelMesh mesh in model.Meshes)
+		{
+			foreach (DrModelMeshPart part in mesh.MeshParts)
+			{
+				if (part.Skin is { } skin)
+				{
+					_skinInfos.TryAdd(skin.Index, new SkinInfo(skin));
+				}
+			}
 		}
 	}
 
@@ -73,6 +85,7 @@ public sealed class DrModelInstance
 		ValidateBoneIndex(boneIndex);
 		_boneTransforms[boneIndex] = matrix;
 		_absoluteBoneTransformsDirty = true;
+		_skinTransformsDirty = true;
 		_boundingSphereDirty = true;
 	}
 
@@ -88,12 +101,7 @@ public sealed class DrModelInstance
 	{
 		get
 		{
-			if (_absoluteBoneTransformsDirty)
-			{
-				UpdateAbsoluteBoneTransforms();
-				_absoluteBoneTransformsDirty = false;
-			}
-
+			EnsureAbsoluteBoneTransforms();
 			return _absoluteBoneTransforms;
 		}
 	}
@@ -110,6 +118,8 @@ public sealed class DrModelInstance
 	{
 		get
 		{
+			EnsureAbsoluteBoneTransforms();
+
 			if (_boundingSphereDirty)
 			{
 				_boundingSphere = CalculateBoundingSphere();
@@ -120,6 +130,37 @@ public sealed class DrModelInstance
 		}
 	}
 
+	/// <summary>
+	/// Gets the current skinning transforms for the skin with the specified index.
+	/// Each array element is the joint's inverse bind matrix composed with the bone's
+	/// absolute transform in the instance's current pose.
+	/// </summary>
+	/// <param name="skinIndex">The skin index in the model's skin collection.</param>
+	/// <returns>The skinning transforms, one per joint. Do not modify the returned array.</returns>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// The model does not contain a skin with the specified index.
+	/// </exception>
+	public Matrix[] GetSkinTransforms(int skinIndex)
+	{
+		if (!_skinInfos.TryGetValue(skinIndex, out SkinInfo? skinInfo))
+		{
+			throw new ArgumentOutOfRangeException(
+				nameof(skinIndex),
+				skinIndex,
+				"The model has no skin with this index.");
+		}
+
+		EnsureAbsoluteBoneTransforms();
+
+		if (_skinTransformsDirty)
+		{
+			UpdateSkinTransforms();
+			_skinTransformsDirty = false;
+		}
+
+		return skinInfo.Transforms;
+	}
+
 	private void ValidateBoneIndex(int boneIndex)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(boneIndex);
@@ -128,17 +169,42 @@ public sealed class DrModelInstance
 			_boneTransforms.Length);
 	}
 
+	private void EnsureAbsoluteBoneTransforms()
+	{
+		if (!_absoluteBoneTransformsDirty)
+		{
+			return;
+		}
+
+		UpdateAbsoluteBoneTransforms();
+		_absoluteBoneTransformsDirty = false;
+	}
+
+	private void UpdateSkinTransforms()
+	{
+		foreach (SkinInfo skinInfo in _skinInfos.Values)
+		{
+			DrSkin skin = skinInfo.Skin;
+
+			for (int i = 0; i < skin.Joints.Length; i++)
+			{
+				DrSkinJoint joint = skin.Joints[i];
+				skinInfo.Transforms[i] = joint.InverseBindMatrix
+					* _absoluteBoneTransforms[joint.Bone.Index];
+			}
+		}
+	}
+
 	private BoundingSphere CalculateBoundingSphere()
 	{
-		Matrix[] absoluteBoneTransforms = AbsoluteBoneTransforms;
 		BoundingSphere result = default;
 		bool hasBounds = false;
 
 		foreach (DrModelMesh mesh in Model.Meshes)
 		{
 			Matrix meshTransform = mesh.ParentBone is { } parentBone
-				&& (uint)parentBone.Index < (uint)absoluteBoneTransforms.Length
-				? absoluteBoneTransforms[parentBone.Index]
+				&& (uint)parentBone.Index < (uint)_absoluteBoneTransforms.Length
+				? _absoluteBoneTransforms[parentBone.Index]
 				: Matrix.Identity;
 
 			BoundingSphere sphere = mesh.BoundingSphere.Transform(meshTransform);
@@ -175,5 +241,18 @@ public sealed class DrModelInstance
 			_absoluteBoneTransforms[i] =
 				_boneTransforms[i] * _absoluteBoneTransforms[parentIndex];
 		}
+	}
+
+	private class SkinInfo
+	{
+		public SkinInfo(DrSkin skin)
+		{
+			Skin = skin ?? throw new ArgumentNullException(nameof(skin));
+			Transforms = new Matrix[skin.Joints.Length];
+		}
+
+		public DrSkin Skin { get; }
+
+		public Matrix[] Transforms { get; }
 	}
 }

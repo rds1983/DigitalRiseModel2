@@ -389,7 +389,7 @@ internal static partial class GltfLoader
 				? GetBone(skeletonIndex)
 				: null;
 
-			skins[i] = new DrSkin
+			skins[i] = new DrSkin(i)
 			{
 				Name = string.IsNullOrEmpty(skin.Name) ? $"Skin{i}" : skin.Name,
 				Skeleton = skeleton,

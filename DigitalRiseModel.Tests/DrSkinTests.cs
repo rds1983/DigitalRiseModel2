@@ -12,6 +12,21 @@ public sealed class DrSkinTests
 
 		Assert.Null(skin.Skeleton);
 		Assert.Empty(skin.Joints);
+		Assert.Equal(0, skin.Index);
+	}
+
+	[Fact]
+	public void Constructor_AssignsIndex()
+	{
+		var skin = new DrSkin(3);
+
+		Assert.Equal(3, skin.Index);
+	}
+
+	[Fact]
+	public void Constructor_NegativeIndex_ThrowsArgumentOutOfRangeException()
+	{
+		Assert.Throws<ArgumentOutOfRangeException>(() => new DrSkin(-1));
 	}
 
 	[Fact]

@@ -43,4 +43,66 @@ public class AnimationChannel
 	/// Gets or sets the interpolation mode used for scale values.
 	/// </summary>
 	public AnimationInterpolation ScaleInterpolation { get; set; } = AnimationInterpolation.Linear;
+
+	/// <summary>
+	/// Samples the channel at the specified time.
+	/// </summary>
+	/// <param name="time">The time within the clip.</param>
+	/// <returns>The sampled pose.</returns>
+	/// <exception cref="InvalidOperationException">The channel has no keyframes.</exception>
+	public SrtTransform Sample(TimeSpan time)
+	{
+		AnimationChannelKeyframe[] keyframes = Keyframes;
+
+		if (keyframes.Length == 0)
+		{
+			throw new InvalidOperationException("The animation channel has no keyframes.");
+		}
+
+		if (time <= keyframes[0].Time)
+		{
+			return keyframes[0].Pose;
+		}
+
+		if (time >= keyframes[^1].Time)
+		{
+			return keyframes[^1].Pose;
+		}
+
+		int index = FindKeyframeIndex(keyframes, time);
+		AnimationChannelKeyframe current = keyframes[index];
+		AnimationChannelKeyframe next = keyframes[index + 1];
+		long segmentTicks = (next.Time - current.Time).Ticks;
+		float amount = (float)((time - current.Time).Ticks / (double)segmentTicks);
+
+		return SrtTransform.Interpolate(
+			current.Pose,
+			next.Pose,
+			amount,
+			TranslationInterpolation,
+			RotationInterpolation,
+			ScaleInterpolation);
+	}
+
+	private static int FindKeyframeIndex(AnimationChannelKeyframe[] keyframes, TimeSpan time)
+	{
+		int low = 0;
+		int high = keyframes.Length - 1;
+
+		while (low < high)
+		{
+			int middle = (low + high + 1) / 2;
+
+			if (keyframes[middle].Time <= time)
+			{
+				low = middle;
+			}
+			else
+			{
+				high = middle - 1;
+			}
+		}
+
+		return low;
+	}
 }
