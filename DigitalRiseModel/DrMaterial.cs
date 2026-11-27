@@ -58,6 +58,12 @@ public sealed class DrMaterial
 	public Vector3 EmissiveFactor { get; set; }
 
 	/// <summary>
+	/// Gets or sets the emissive strength multiplier from
+	/// <c>KHR_materials_emissive_strength</c>. The default is 1.
+	/// </summary>
+	public float EmissiveStrength { get; set; } = 1f;
+
+	/// <summary>
 	/// Gets or sets the alpha mode.
 	/// </summary>
 	public DrAlphaMode AlphaMode { get; set; } = DrAlphaMode.Opaque;

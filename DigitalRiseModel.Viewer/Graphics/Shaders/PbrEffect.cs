@@ -28,6 +28,7 @@ internal sealed class PbrEffect
 	private readonly EffectParameter _occlusionStrength;
 	private readonly EffectParameter _hasEmissiveTexture;
 	private readonly EffectParameter _emissiveFactor;
+	private readonly EffectParameter _emissiveStrength;
 	private readonly EffectParameter _alphaCutoff;
 	private readonly EffectParameter _useBaseColorAlpha;
 	private readonly EffectParameter _useUV1BaseColor;
@@ -72,6 +73,7 @@ internal sealed class PbrEffect
 		_occlusionStrength = _effect.Parameters["OcclusionStrength"];
 		_hasEmissiveTexture = _effect.Parameters["HasEmissiveTexture"];
 		_emissiveFactor = _effect.Parameters["EmissiveFactor"];
+		_emissiveStrength = _effect.Parameters["EmissiveStrength"];
 		_alphaCutoff = _effect.Parameters["AlphaCutoff"];
 		_useBaseColorAlpha = _effect.Parameters["UseBaseColorAlpha"];
 		_useUV1BaseColor = _effect.Parameters["UseUV1BaseColor"];
@@ -192,6 +194,7 @@ internal sealed class PbrEffect
 		_occlusionStrength.SetValue(material?.OcclusionTexture?.Strength ?? 1f);
 		_hasEmissiveTexture.SetValue(emissiveTexture is not null ? 1f : 0f);
 		_emissiveFactor.SetValue(material?.EmissiveFactor ?? Vector3.Zero);
+		_emissiveStrength.SetValue(material?.EmissiveStrength ?? 1f);
 		_alphaCutoff.SetValue(material?.AlphaCutoff ?? 0.5f);
 		_useBaseColorAlpha.SetValue(
 			material?.AlphaMode == DrAlphaMode.Blend ? 1f : 0f);

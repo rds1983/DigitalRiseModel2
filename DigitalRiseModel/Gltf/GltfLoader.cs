@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Text.Json;
 using AssetManagementBase;
 using glTFLoader;
 using glTFLoader.Schema;
@@ -275,7 +276,8 @@ internal static partial class GltfLoader
 			AlphaMode = ConvertAlphaMode(material.AlphaMode),
 			AlphaCutoff = material.AlphaCutoff,
 			DoubleSided = material.DoubleSided,
-			EmissiveFactor = ToVector3(material.EmissiveFactor)
+			EmissiveFactor = ToVector3(material.EmissiveFactor),
+			EmissiveStrength = ReadEmissiveStrength(material)
 		};
 
 		if (material.PbrMetallicRoughness is { } pbr)
@@ -300,6 +302,33 @@ internal static partial class GltfLoader
 		result.EmissiveTexture = ConvertTextureInfo(material.EmissiveTexture, textureProvider);
 
 		return result;
+	}
+
+	private static float ReadEmissiveStrength(GltfMaterial material)
+	{
+		if (material.Extensions is null
+			|| !material.Extensions.TryGetValue(
+				"KHR_materials_emissive_strength",
+				out object? extension)
+			|| extension is not JsonElement element
+			|| element.ValueKind != JsonValueKind.Object
+			|| !element.TryGetProperty(
+				"emissiveStrength",
+				out JsonElement strengthElement))
+		{
+			return 1f;
+		}
+
+		if (strengthElement.ValueKind != JsonValueKind.Number
+			|| !strengthElement.TryGetSingle(out float strength)
+			|| !float.IsFinite(strength)
+			|| strength < 0f)
+		{
+			throw new InvalidDataException(
+				"KHR_materials_emissive_strength has an invalid emissiveStrength value.");
+		}
+
+		return strength;
 	}
 
 	private static DrTextureInfo? ConvertTextureInfo(

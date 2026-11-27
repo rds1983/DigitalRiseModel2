@@ -55,6 +55,7 @@ This fills `DrModelMeshPart.SourceIndices` and `DrModelMeshPart.SourceVertices`;
 - Triangle lists, triangle strips and triangle fans, converted to triangle lists.
 - POSITION, NORMAL, TANGENT, TEXCOORD_n, COLOR_n, JOINTS_n and WEIGHTS_n vertex attributes.
 - Metallic-roughness materials as `DrMaterial` with `DrTextureInfo` references.
+- `KHR_materials_emissive_strength` as `DrMaterial.EmissiveStrength`.
 - Textures as `Texture2D` in `DrTextureInfo.Texture`.
 - Node skins as `DrSkin`, assigned to the parts of that node's mesh.
 - Animation clips as `AnimationClip` instances in `DrModel.Animations`.

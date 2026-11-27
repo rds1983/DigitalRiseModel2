@@ -23,6 +23,7 @@ float HasOcclusionTexture;
 float OcclusionStrength;
 float HasEmissiveTexture;
 float3 EmissiveFactor;
+float EmissiveStrength;
 float AlphaCutoff;
 float UseBaseColorAlpha;
 float UseUV1BaseColor;
@@ -222,7 +223,7 @@ float4 ShadeSurface(
 		occlusion = lerp(1.0, sampledOcclusion, OcclusionStrength);
 	}
 
-	float3 emissive = EmissiveFactor;
+	float3 emissive = EmissiveFactor * EmissiveStrength;
 
 	if (HasEmissiveTexture > 0.5)
 	{
