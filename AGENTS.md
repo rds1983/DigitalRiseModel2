@@ -78,10 +78,11 @@ Rules:
 
 - Keep the `Dr` prefix on model types. Do not shadow or replace MonoGame's `Model`, `ModelMesh` or `ModelMeshPart`.
 - Model types are plain data. Do not add rendering members, effects, graphics-device references or callbacks that issue draw calls.
-- `DrModel.Bones`, `DrModelBone.Children` and `DrModelMesh.MeshParts` are arrays; do not add wrapper collection types or collection-change tracking. `DrModel.Meshes` remains a read-only collection. Array setters clear old back-references and assign the new ones: `Children` updates `Parent`, and `MeshParts` updates `Mesh`.
+- `DrModel.Bones`, `DrModel.Meshes`, `DrModelBone.Children` and `DrModelMesh.MeshParts` are arrays; do not add wrapper collection types or collection-change tracking. Array setters clear old back-references and assign the new ones: `Children` updates `Parent`, and `MeshParts` updates `Mesh`.
 - `DrModelBone.Mesh` and `DrModelMesh.ParentBone` are two sides of the same link. The `Mesh` setter must update `ParentBone`; the `ParentBone` setter is internal so callers cannot break the invariant.
 - Store only references and ranges needed by a consumer: vertex/index buffers, primitive counts and offsets. Materials and effects belong to the caller's renderer.
 - Cache `DrModelMesh.BoundingSphere` and invalidate it when `MeshParts` changes or a part's `BoundingSphere` changes. Do not expose a public invalidation method without a concrete need.
+- `DrModel` is constructed from a non-null root bone. Its constructor traverses the hierarchy, collects bones and `DrModelBone.Mesh` references, and assigns sequential bone indices by default (`autoAssignIndices: true`).
 - Preserve XNA semantics for `CopyBoneTransformsTo`, `CopyBoneTransformsFrom` and `CopyAbsoluteBoneTransformsTo`. Parent bones must appear before their children; document and enforce this.
 - Every public type and member gets XML documentation. Explain units, coordinate conventions and handedness when relevant.
 - Document vertex layouts, index formats and texture formats explicitly. No implicit conventions.

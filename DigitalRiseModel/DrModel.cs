@@ -8,49 +8,31 @@ namespace DigitalRiseModel;
 /// </summary>
 public sealed class DrModel
 {
-	private readonly DrModelBone[] _bones;
-	private readonly List<DrModelMesh> _meshes;
-
 	/// <summary>
-	/// Initializes a new instance of the <see cref="DrModel"/> class.
+	/// Initializes a new instance of the <see cref="DrModel"/> class by traversing the
+	/// bone hierarchy starting at <paramref name="root"/>.
 	/// </summary>
-	/// <param name="bones">The bones of the model. Parent bones must appear before their children.</param>
-	/// <param name="meshes">The meshes of the model.</param>
-	/// <exception cref="ArgumentNullException">
-	/// <paramref name="bones"/> or <paramref name="meshes"/> is <see langword="null"/>.
+	/// <param name="root">The root bone of the model.</param>
+	/// <param name="autoAssignIndices">
+	/// If <see langword="true"/>, assigns sequential indices to the bones in traversal order.
+	/// </param>
+	/// <exception cref="ArgumentNullException"><paramref name="root"/> is <see langword="null"/>.</exception>
+	/// <exception cref="InvalidOperationException">
+	/// The hierarchy contains a cycle or references the same bone more than once.
 	/// </exception>
-	public DrModel(IList<DrModelBone> bones, IList<DrModelMesh> meshes)
+	public DrModel(DrModelBone root, bool autoAssignIndices = true)
 	{
-		ArgumentNullException.ThrowIfNull(bones);
-		ArgumentNullException.ThrowIfNull(meshes);
+		ArgumentNullException.ThrowIfNull(root);
 
-		var boneList = new List<DrModelBone>(bones.Count);
-		foreach (DrModelBone bone in bones)
-		{
-			ArgumentNullException.ThrowIfNull(bone);
-			boneList.Add(bone);
-		}
+		var bones = new List<DrModelBone>();
+		var meshes = new List<DrModelMesh>();
+		var visited = new HashSet<DrModelBone>();
 
-		_bones = boneList.ToArray();
+		CollectBones(root, bones, meshes, visited, autoAssignIndices);
 
-		_meshes = new List<DrModelMesh>(meshes.Count);
-		foreach (DrModelMesh mesh in meshes)
-		{
-			ArgumentNullException.ThrowIfNull(mesh);
-			_meshes.Add(mesh);
-		}
-
-		Bones = _bones;
-		Meshes = new DrModelMeshCollection(_meshes);
-
-		foreach (DrModelBone bone in _bones)
-		{
-			if (bone.Parent is null)
-			{
-				Root = bone;
-				break;
-			}
-		}
+		Bones = bones.ToArray();
+		Meshes = meshes.ToArray();
+		Root = root;
 	}
 
 	/// <summary>
@@ -61,7 +43,7 @@ public sealed class DrModel
 	/// <summary>
 	/// Gets the meshes of this model.
 	/// </summary>
-	public DrModelMeshCollection Meshes { get; }
+	public DrModelMesh[] Meshes { get; }
 
 	/// <summary>
 	/// Gets or sets the root bone of this model.
@@ -164,6 +146,37 @@ public sealed class DrModel
 		for (int i = 0; i < Bones.Length; i++)
 		{
 			destinationBoneTransforms[i] = Bones[i].Transform;
+		}
+	}
+
+	private static void CollectBones(
+		DrModelBone bone,
+		List<DrModelBone> bones,
+		List<DrModelMesh> meshes,
+		HashSet<DrModelBone> visited,
+		bool assignIndices)
+	{
+		if (!visited.Add(bone))
+		{
+			throw new InvalidOperationException(
+				"The bone hierarchy contains a cycle or references the same bone more than once.");
+		}
+
+		if (assignIndices)
+		{
+			bone.Index = bones.Count;
+		}
+
+		bones.Add(bone);
+
+		if (bone.Mesh is not null)
+		{
+			meshes.Add(bone.Mesh);
+		}
+
+		foreach (DrModelBone child in bone.Children)
+		{
+			CollectBones(child, bones, meshes, visited, assignIndices);
 		}
 	}
 }
