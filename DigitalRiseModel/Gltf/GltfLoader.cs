@@ -533,6 +533,21 @@ internal static class GltfLoader
 			throw new InvalidDataException("A mesh primitive has no POSITION attribute.");
 		}
 
+		if (flags.HasFlag(ModelLoadFlags.EnsureUVs)
+			&& !vertexAttributes.Any(
+				attribute => attribute.Usage == VertexElementUsage.TextureCoordinate
+					&& attribute.UsageIndex == 0))
+		{
+			var zeroUVs = new float[vertexCount * 2];
+
+			vertexAttributes.Add(new VertexAttribute(
+				"TEXCOORD_0",
+				VertexElementUsage.TextureCoordinate,
+				0,
+				2,
+				zeroUVs));
+		}
+
 		uint[] sourceIndices;
 
 		if (primitive.Indices is int indexAccessor)

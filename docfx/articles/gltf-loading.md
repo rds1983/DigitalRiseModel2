@@ -44,6 +44,8 @@ DrModel model = assets.LoadDrModel(
 
 This fills `DrModelMeshPart.SourceIndices` and `DrModelMeshPart.SourceVertices`; both remain `null` without the flag. Source vertices use `DigitalRiseModel.Vertices.VertexSkinned` with position, normal, UV0, `Byte4` blend indices and `Vector4` blend weights.
 
+`ModelLoadFlags.EnsureUVs` adds a zero-valued `TEXCOORD_0` attribute to parts that do not have one, so a UV channel is always available.
+
 ## What is loaded
 
 - `.gltf` and `.glb` files.

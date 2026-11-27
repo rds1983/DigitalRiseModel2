@@ -22,5 +22,10 @@ public enum ModelLoadFlags
 	/// <see cref="DrModelMeshPart.SourceIndices"/> and
 	/// <see cref="DrModelMeshPart.SourceVertices"/>. Intended for debugging and testing.
 	/// </summary>
-	KeepSourceGeometry = 2
+	KeepSourceGeometry = 2,
+
+	/// <summary>
+	/// Add a zero-valued <c>TEXCOORD_0</c> attribute to mesh parts that do not have one.
+	/// </summary>
+	EnsureUVs = 4
 }

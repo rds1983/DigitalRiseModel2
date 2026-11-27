@@ -12,6 +12,7 @@ public sealed class ModelLoadFlagsTests
 		Assert.Equal(0, (int)ModelLoadFlags.None);
 		Assert.Equal(1, (int)ModelLoadFlags.ReadableBuffers);
 		Assert.Equal(2, (int)ModelLoadFlags.KeepSourceGeometry);
+		Assert.Equal(4, (int)ModelLoadFlags.EnsureUVs);
 	}
 
 	[Fact]

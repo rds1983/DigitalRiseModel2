@@ -124,6 +124,8 @@ public Byte4 BlendIndices;
 public Vector4 BlendWeights;
 ```
 
+`ModelLoadFlags.EnsureUVs` adds a zero-valued `TEXCOORD_0` channel to parts that have no `TEXCOORD_0` attribute, so shaders and tools can rely on a UV channel always being present.
+
 The loader:
 
 - Reads `.gltf` and `.glb` files through the Khronos `glTF2Loader` package.
