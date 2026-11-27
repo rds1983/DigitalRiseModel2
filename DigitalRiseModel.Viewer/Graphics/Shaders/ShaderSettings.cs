@@ -11,4 +11,9 @@ internal sealed class ShaderSettings
 	/// Zero disables bloom.
 	/// </summary>
 	public float BloomIntensity { get; set; }
+
+	/// <summary>
+	/// Gets or sets whether FXAA is applied to the shaded output.
+	/// </summary>
+	public bool EnableFxaa { get; set; }
 }

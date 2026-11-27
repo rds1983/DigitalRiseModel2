@@ -32,7 +32,7 @@ dotnet run --project DigitalRiseModel.Viewer -- "path/to/model.glb"
 
 The built executable is `drm-viewer`. Left-drag orbits, the mouse wheel zooms and Escape exits. Animated models play their first clip automatically. The animation panel selects clips, controls play/pause/stop, seeks time, toggles looping and reverse playback, and adjusts speed.
 
-`Samples/SimpleViewer` is a stock-effect reference viewer built from the same code. The viewer always renders through the custom metallic-roughness shader with a three-point studio light rig and image-based lighting, normal, occlusion and emissive maps, vertex colors, alpha mask/blend and double-sided materials. The scene renders to an HDR target and is resolved with exposure, ACES tone mapping and gamma. `--bloom <intensity>` adds optional HDR bloom. `--debug-view` and `--exposure` inspect the PBR channels, `F3` cycles debug views, and `--screenshot <file>` captures a frame.
+`Samples/SimpleViewer` is a stock-effect reference viewer built from the same code. The viewer always renders through the custom metallic-roughness shader with a three-point studio light rig and image-based lighting, normal, occlusion and emissive maps, vertex colors, alpha mask/blend and double-sided materials. The scene renders to an HDR target and is resolved with exposure, ACES tone mapping and gamma. `--bloom <intensity>` adds optional HDR bloom and `--fxaa` enables FXAA. `--debug-view` and `--exposure` inspect the PBR channels, `F3` cycles debug views, and `--screenshot <file>` captures a frame.
 
 ## Build
 
@@ -50,7 +50,7 @@ dotnet test DigitalRiseModel.MonoGame.sln
 
 ## Metrics
 
-61 C# files, 9,581 lines (7,279 code), 254.6 KB. 21 public types, 148 tests.
+61 C# files, 9,632 lines (7,325 code), 255.7 KB. 21 public types, 148 tests.
 
 ## License
 

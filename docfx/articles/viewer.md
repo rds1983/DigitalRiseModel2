@@ -20,6 +20,7 @@ Command-line options:
 - `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion`, `emissive`, `diffuse`, `specular`, `ibldiffuse` or `iblspecular`.
 - `--exposure <value>` — set the shaded-output exposure scale.
 - `--bloom <intensity>` — add HDR bloom before tone mapping; `0` disables it.
+- `--fxaa` — apply FXAA to the shaded output.
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
 
 The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma. `Samples/SimpleViewer` remains the stock-effect reference.

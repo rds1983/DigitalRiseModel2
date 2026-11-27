@@ -24,9 +24,12 @@ internal sealed class PostProcessor : IDisposable
 	private RenderTarget2D? _sceneTarget;
 	private RenderTarget2D? _bloomTargetA;
 	private RenderTarget2D? _bloomTargetB;
+	private RenderTarget2D? _ldrTarget;
 	private int _width;
 	private int _height;
 	private float _bloomIntensityValue;
+	private int _debugViewValue;
+	private bool _fxaaEnabled;
 
 	public PostProcessor(GraphicsDevice device, ContentManager content)
 	{
@@ -76,11 +79,28 @@ internal sealed class PostProcessor : IDisposable
 
 		DisposeTargets();
 
-		_sceneTarget = CreateTarget(width, height, DepthFormat.Depth24);
+		_sceneTarget = CreateTarget(
+			width,
+			height,
+			DepthFormat.Depth24,
+			SurfaceFormat.HalfVector4);
 		int bloomWidth = Math.Max(1, width / 2);
 		int bloomHeight = Math.Max(1, height / 2);
-		_bloomTargetA = CreateTarget(bloomWidth, bloomHeight, DepthFormat.None);
-		_bloomTargetB = CreateTarget(bloomWidth, bloomHeight, DepthFormat.None);
+		_bloomTargetA = CreateTarget(
+			bloomWidth,
+			bloomHeight,
+			DepthFormat.None,
+			SurfaceFormat.HalfVector4);
+		_bloomTargetB = CreateTarget(
+			bloomWidth,
+			bloomHeight,
+			DepthFormat.None,
+			SurfaceFormat.HalfVector4);
+		_ldrTarget = CreateTarget(
+			width,
+			height,
+			DepthFormat.None,
+			SurfaceFormat.Color);
 		_width = width;
 		_height = height;
 	}
@@ -93,6 +113,8 @@ internal sealed class PostProcessor : IDisposable
 		_bloomIntensity.SetValue(settings.BloomIntensity);
 		_debugView.SetValue((int)settings.DebugView);
 		_bloomIntensityValue = settings.BloomIntensity;
+		_debugViewValue = (int)settings.DebugView;
+		_fxaaEnabled = settings.EnableFxaa;
 	}
 
 	/// <summary>
@@ -131,7 +153,19 @@ internal sealed class PostProcessor : IDisposable
 			_bloomTexture?.SetValue(_bloomTargetA);
 		}
 
-		DrawPass(null, "Composite", SceneTarget, Vector2.Zero);
+		RenderTarget2D ldrTarget = _ldrTarget
+			?? throw new InvalidOperationException(
+				"The post processor has no LDR target; call EnsureSize first.");
+		DrawPass(ldrTarget, "Composite", SceneTarget, Vector2.Zero);
+
+		string resolveTechnique = _fxaaEnabled && _debugViewValue == 0
+			? "Fxaa"
+			: "Copy";
+		DrawPass(
+			null,
+			resolveTechnique,
+			ldrTarget,
+			GetTexelSize(ldrTarget));
 	}
 
 	public void Dispose()
@@ -171,14 +205,15 @@ internal sealed class PostProcessor : IDisposable
 	private RenderTarget2D CreateTarget(
 		int width,
 		int height,
-		DepthFormat depthFormat)
+		DepthFormat depthFormat,
+		SurfaceFormat surfaceFormat)
 	{
 		return new RenderTarget2D(
 			_device,
 			width,
 			height,
 			false,
-			SurfaceFormat.HalfVector4,
+			surfaceFormat,
 			depthFormat,
 			0,
 			RenderTargetUsage.PreserveContents);
@@ -194,9 +229,11 @@ internal sealed class PostProcessor : IDisposable
 		_sceneTarget?.Dispose();
 		_bloomTargetA?.Dispose();
 		_bloomTargetB?.Dispose();
+		_ldrTarget?.Dispose();
 		_sceneTarget = null;
 		_bloomTargetA = null;
 		_bloomTargetB = null;
+		_ldrTarget = null;
 	}
 
 	private static EffectParameter? FindTextureParameter(

@@ -20,6 +20,7 @@ internal sealed class ViewerGame : Game
 	private readonly ShaderDebugView _debugView;
 	private readonly float _exposure;
 	private readonly float _bloom;
+	private readonly bool _fxaa;
 
 	private AssetManager? _assetManager;
 	private DrModel? _model;
@@ -52,7 +53,8 @@ internal sealed class ViewerGame : Game
 		string? screenshotPath = null,
 		ShaderDebugView debugView = ShaderDebugView.Shaded,
 		float exposure = 1f,
-		float bloom = 0f)
+		float bloom = 0f,
+		bool fxaa = false)
 	{
 		_modelPath = modelPath;
 		_showShaderSmokeTest = shaderTest;
@@ -60,6 +62,7 @@ internal sealed class ViewerGame : Game
 		_debugView = debugView;
 		_exposure = exposure;
 		_bloom = bloom;
+		_fxaa = fxaa;
 		MyraEnvironment.Game = this;
 
 		_ = new GraphicsDeviceManager(this)
@@ -94,6 +97,7 @@ internal sealed class ViewerGame : Game
 		_renderer.Settings.DebugView = _debugView;
 		_renderer.Settings.Exposure = _exposure;
 		_renderer.Settings.BloomIntensity = _bloom;
+		_renderer.Settings.EnableFxaa = _fxaa;
 		_shaderSmokeTest = new FullscreenColorEffect(GraphicsDevice, _content);
 
 		CreateUI();
