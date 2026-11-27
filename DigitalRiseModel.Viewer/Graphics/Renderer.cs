@@ -40,6 +40,7 @@ internal sealed class Renderer : IDisposable
 	private Matrix _viewProjection;
 	private Vector3 _cameraPosition;
 	private int _renderItemCount;
+	private ShaderDebugView? _lastDebugView;
 	private bool _frameOpen;
 
 	private RenderTargetBinding[] _savedRenderTargets = [];
@@ -94,11 +95,17 @@ internal sealed class Renderer : IDisposable
 		_viewProjection = view * projection;
 		_cameraPosition = Matrix.Invert(view).Translation;
 
-		foreach (PbrEffect effect in _pbrEffects.Values)
+		// Lights and IBL resources are immutable for the viewer lifetime and are
+		// uploaded when each effect is created. Debug view changes are rare, so only
+		// update the cached effects when the selected view actually changes.
+		if (_lastDebugView != Settings.DebugView)
 		{
-			effect.SetSettings(Settings);
-			effect.SetLights(Lights);
-			effect.SetIbl(_ibl);
+			foreach (PbrEffect effect in _pbrEffects.Values)
+			{
+				effect.SetSettings(Settings);
+			}
+
+			_lastDebugView = Settings.DebugView;
 		}
 
 		_savedRenderTargets = _device.GetRenderTargets();

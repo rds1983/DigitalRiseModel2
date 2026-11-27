@@ -67,13 +67,14 @@ internal sealed class IblResources : IDisposable
 		for (int face = 0; face < 6; ++face)
 		{
 			var data = new Color[IrradianceSize * IrradianceSize];
+			int currentFace = face;
 
-			for (int y = 0; y < IrradianceSize; ++y)
+			Parallel.For(0, IrradianceSize, y =>
 			{
 				for (int x = 0; x < IrradianceSize; ++x)
 				{
 					Vector3 normal = CubeFaceDirection(
-						face,
+						currentFace,
 						x,
 						y,
 						IrradianceSize);
@@ -106,7 +107,7 @@ internal sealed class IblResources : IDisposable
 					irradiance /= IrradianceSampleCount;
 					data[y * IrradianceSize + x] = ToColor(irradiance);
 				}
-			}
+			});
 
 			texture.SetData((CubeMapFace)face, data);
 		}
@@ -130,12 +131,19 @@ internal sealed class IblResources : IDisposable
 			for (int face = 0; face < 6; ++face)
 			{
 				var data = new Color[size * size];
+				int currentFace = face;
+				int currentSize = size;
+				float currentRoughness = roughness;
 
-				for (int y = 0; y < size; ++y)
+				Parallel.For(0, size, y =>
 				{
-					for (int x = 0; x < size; ++x)
+					for (int x = 0; x < currentSize; ++x)
 					{
-						Vector3 normal = CubeFaceDirection(face, x, y, size);
+						Vector3 normal = CubeFaceDirection(
+							currentFace,
+							x,
+							y,
+							currentSize);
 						Vector3 view = normal;
 						Vector3 prefiltered = Vector3.Zero;
 						float totalWeight = 0f;
@@ -146,7 +154,7 @@ internal sealed class IblResources : IDisposable
 							Vector3 halfVector = ImportanceSampleGGX(
 								xi,
 								normal,
-								roughness);
+								currentRoughness);
 							Vector3 light = Vector3.Normalize(
 								2f * Vector3.Dot(view, halfVector) * halfVector
 									- view);
@@ -163,9 +171,9 @@ internal sealed class IblResources : IDisposable
 						}
 
 						prefiltered /= MathF.Max(totalWeight, 0.0001f);
-						data[y * size + x] = ToColor(prefiltered);
+						data[y * currentSize + x] = ToColor(prefiltered);
 					}
-				}
+				});
 
 				texture.SetData(
 					(CubeMapFace)face,
