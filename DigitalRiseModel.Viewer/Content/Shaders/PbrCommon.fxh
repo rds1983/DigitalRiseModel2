@@ -73,6 +73,12 @@ sampler2D EmissiveSampler = sampler_state
 	AddressV = Wrap;
 };
 
+float3 ACESFilm(float3 color)
+{
+	return saturate((color * (2.51 * color + 0.03))
+		/ (color * (2.43 * color + 0.59) + 0.14));
+}
+
 float4 ShadeSurface(float3 worldPosition, float3 normal, float2 texCoord, float facing)
 {
 	float4 baseColor = BaseColorFactor;
@@ -175,10 +181,16 @@ float4 ShadeSurface(float3 worldPosition, float3 normal, float2 texCoord, float 
 		/ max(4.0 * nDotL * nDotV, 0.001);
 	float3 diffuse = (1.0 - fresnel) * (1.0 - metallic) * baseColor.rgb / 3.14159265;
 
+	float up = normal.y * 0.5 + 0.5;
+	float3 skyColor = float3(0.18, 0.22, 0.30);
+	float3 groundColor = float3(0.04, 0.035, 0.03);
+	float3 ambient = lerp(groundColor, skyColor, up) * baseColor.rgb * occlusion;
+
 	float3 color = (diffuse + specular) * nDotL;
-	color += baseColor.rgb * 0.12 * occlusion;
+	color += ambient;
 	color += emissive;
-	color = pow(saturate(color * Exposure), 1.0 / 2.2);
+	color = ACESFilm(color * Exposure);
+	color = pow(saturate(color), 1.0 / 2.2);
 
 	float outputAlpha = UseBaseColorAlpha > 0.5 ? baseColor.a : 1.0;
 	return float4(color, outputAlpha);
