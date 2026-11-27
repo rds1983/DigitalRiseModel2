@@ -32,7 +32,7 @@ dotnet run --project DigitalRiseModel.Viewer -- "path/to/model.glb"
 
 The built executable is `drm-viewer`. Left-drag orbits, the mouse wheel zooms and Escape exits. Animated models play their first clip automatically. The animation panel selects clips, controls play/pause/stop, seeks time, toggles looping and reverse playback, and adjusts speed.
 
-`Samples/SimpleViewer` is a stock-effect reference viewer built from the same code. Use `--pbr` for the custom metallic-roughness shader with normal, occlusion and emissive maps, and `--screenshot <file>` to capture a frame.
+`Samples/SimpleViewer` is a stock-effect reference viewer built from the same code. Use `--pbr` for the custom metallic-roughness shader with normal, occlusion and emissive maps, alpha mask and double-sided materials, and `--screenshot <file>` to capture a frame.
 
 ## Build
 
@@ -50,7 +50,7 @@ dotnet test DigitalRiseModel.MonoGame.sln
 
 ## Metrics
 
-53 C# files, 8,037 lines (6,044 code), 211.3 KB. 19 public types, 142 tests.
+53 C# files, 8,040 lines (6,047 code), 211.4 KB. 19 public types, 142 tests.
 
 ## License
 

@@ -158,7 +158,7 @@ internal sealed class Renderer : IDisposable
 					effect = _skinnedEffect;
 				}
 				else if (_pbrEffect is not null
-					&& (material is null || material.AlphaMode == DrAlphaMode.Opaque)
+					&& material?.AlphaMode != DrAlphaMode.Blend
 					&& UsesUv0(material?.BaseColorTexture)
 					&& UsesUv0(material?.MetallicRoughnessTexture)
 					&& UsesUv0(material?.NormalTexture)

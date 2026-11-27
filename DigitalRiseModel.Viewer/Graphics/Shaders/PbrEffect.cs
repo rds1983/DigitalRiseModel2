@@ -25,6 +25,7 @@ internal sealed class PbrEffect
 	private readonly EffectParameter _occlusionStrength;
 	private readonly EffectParameter _hasEmissiveTexture;
 	private readonly EffectParameter _emissiveFactor;
+	private readonly EffectParameter _alphaCutoff;
 	private readonly EffectParameter _baseColorTexture;
 	private readonly EffectParameter _metallicRoughnessTexture;
 	private readonly EffectParameter _normalTexture;
@@ -50,6 +51,7 @@ internal sealed class PbrEffect
 		_occlusionStrength = _effect.Parameters["OcclusionStrength"];
 		_hasEmissiveTexture = _effect.Parameters["HasEmissiveTexture"];
 		_emissiveFactor = _effect.Parameters["EmissiveFactor"];
+		_alphaCutoff = _effect.Parameters["AlphaCutoff"];
 		_baseColorTexture = FindTextureParameter(_effect, "BaseColorTexture");
 		_metallicRoughnessTexture = FindTextureParameter(_effect, "MetallicRoughnessTexture");
 		_normalTexture = FindTextureParameter(_effect, "NormalTexture");
@@ -93,6 +95,7 @@ internal sealed class PbrEffect
 		_occlusionStrength.SetValue(material?.OcclusionTexture?.Strength ?? 1f);
 		_hasEmissiveTexture.SetValue(emissiveTexture is not null ? 1f : 0f);
 		_emissiveFactor.SetValue(material?.EmissiveFactor ?? Vector3.Zero);
+		_alphaCutoff.SetValue(material?.AlphaCutoff ?? 0.5f);
 		_baseColorTexture.SetValue(baseColorTexture ?? fallbackTexture);
 		_metallicRoughnessTexture.SetValue(metallicRoughnessTexture ?? fallbackTexture);
 		_normalTexture.SetValue(normalTexture ?? fallbackTexture);

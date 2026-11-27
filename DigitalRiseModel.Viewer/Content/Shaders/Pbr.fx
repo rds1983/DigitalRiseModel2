@@ -13,6 +13,7 @@ float HasOcclusionTexture;
 float OcclusionStrength;
 float HasEmissiveTexture;
 float3 EmissiveFactor;
+float AlphaCutoff;
 
 Texture2D BaseColorTexture;
 sampler2D BaseColorSampler = sampler_state
@@ -103,14 +104,20 @@ VertexOutput MainVS(VertexInput input)
 	return output;
 }
 
-float4 MainPS(VertexOutput input) : SV_Target
+float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 {
-	float3 baseColor = BaseColorFactor.rgb;
+	float4 baseColor = BaseColorFactor;
 
 	if (HasBaseColorTexture > 0.5)
 	{
-		float3 textureColor = tex2D(BaseColorSampler, input.TexCoord).rgb;
-		baseColor *= pow(saturate(textureColor), 2.2);
+		float4 textureColor = tex2D(BaseColorSampler, input.TexCoord);
+		baseColor.rgb *= pow(saturate(textureColor.rgb), 2.2);
+		baseColor.a *= textureColor.a;
+	}
+
+	if (baseColor.a < AlphaCutoff)
+	{
+		discard;
 	}
 
 	float metallic = MetallicFactor;
@@ -136,6 +143,11 @@ float4 MainPS(VertexOutput input) : SV_Target
 		float3 bitangent = normalize(input.Bitangent);
 		float3x3 tangentSpace = float3x3(tangent, bitangent, normal);
 		normal = normalize(mul(sampledNormal, tangentSpace));
+	}
+
+	if (facing < 0.0)
+	{
+		normal = -normal;
 	}
 
 	float occlusion = 1.0;
@@ -172,15 +184,15 @@ float4 MainPS(VertexOutput input) : SV_Target
 	float geometry = (nDotL / (nDotL * (1.0 - k) + k))
 		* (nDotV / (nDotV * (1.0 - k) + k));
 
-	float3 f0 = lerp(float3(0.04, 0.04, 0.04), baseColor, metallic);
+	float3 f0 = lerp(float3(0.04, 0.04, 0.04), baseColor.rgb, metallic);
 	float3 fresnel = f0 + (1.0 - f0) * pow(1.0 - vDotH, 5.0);
 
 	float3 specular = distribution * geometry * fresnel
 		/ max(4.0 * nDotL * nDotV, 0.001);
-	float3 diffuse = (1.0 - fresnel) * (1.0 - metallic) * baseColor / 3.14159265;
+	float3 diffuse = (1.0 - fresnel) * (1.0 - metallic) * baseColor.rgb / 3.14159265;
 
 	float3 color = (diffuse + specular) * nDotL;
-	color += baseColor * 0.12 * occlusion;
+	color += baseColor.rgb * 0.12 * occlusion;
 	color += emissive;
 	color = pow(saturate(color), 1.0 / 2.2);
 
