@@ -14,6 +14,7 @@ float OcclusionStrength;
 float HasEmissiveTexture;
 float3 EmissiveFactor;
 float AlphaCutoff;
+float UseBaseColorAlpha;
 int DebugView;
 float Exposure;
 
@@ -179,5 +180,6 @@ float4 ShadeSurface(float3 worldPosition, float3 normal, float2 texCoord, float 
 	color += emissive;
 	color = pow(saturate(color * Exposure), 1.0 / 2.2);
 
-	return float4(color, 1.0);
+	float outputAlpha = UseBaseColorAlpha > 0.5 ? baseColor.a : 1.0;
+	return float4(color, outputAlpha);
 }

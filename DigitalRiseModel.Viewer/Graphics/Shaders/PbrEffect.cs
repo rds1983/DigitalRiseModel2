@@ -27,6 +27,7 @@ internal sealed class PbrEffect
 	private readonly EffectParameter _hasEmissiveTexture;
 	private readonly EffectParameter _emissiveFactor;
 	private readonly EffectParameter _alphaCutoff;
+	private readonly EffectParameter _useBaseColorAlpha;
 	private readonly EffectParameter _debugView;
 	private readonly EffectParameter _exposure;
 	private readonly EffectParameter? _baseColorTexture;
@@ -56,6 +57,7 @@ internal sealed class PbrEffect
 		_hasEmissiveTexture = _effect.Parameters["HasEmissiveTexture"];
 		_emissiveFactor = _effect.Parameters["EmissiveFactor"];
 		_alphaCutoff = _effect.Parameters["AlphaCutoff"];
+		_useBaseColorAlpha = _effect.Parameters["UseBaseColorAlpha"];
 		_debugView = _effect.Parameters["DebugView"];
 		_exposure = _effect.Parameters["Exposure"];
 		_baseColorTexture = FindTextureParameter(_effect, "BaseColorTexture");
@@ -113,6 +115,8 @@ internal sealed class PbrEffect
 		_hasEmissiveTexture.SetValue(emissiveTexture is not null ? 1f : 0f);
 		_emissiveFactor.SetValue(material?.EmissiveFactor ?? Vector3.Zero);
 		_alphaCutoff.SetValue(material?.AlphaCutoff ?? 0.5f);
+		_useBaseColorAlpha.SetValue(
+			material?.AlphaMode == DrAlphaMode.Blend ? 1f : 0f);
 		_baseColorTexture?.SetValue(baseColorTexture ?? fallbackTexture);
 		_metallicRoughnessTexture?.SetValue(metallicRoughnessTexture ?? fallbackTexture);
 		_normalTexture?.SetValue(normalTexture ?? fallbackTexture);
