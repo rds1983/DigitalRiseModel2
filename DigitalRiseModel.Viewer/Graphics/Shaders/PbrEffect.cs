@@ -15,27 +15,27 @@ internal sealed class PbrEffect
 	private readonly Effect _effect;
 	private readonly EffectParameter? _world;
 	private readonly EffectParameter _worldViewProjection;
-	private readonly EffectParameter _cameraPosition;
+	private readonly EffectParameter? _cameraPosition;
 	private readonly EffectParameter? _bones;
-	private readonly EffectParameter _baseColorFactor;
-	private readonly EffectParameter _metallicFactor;
-	private readonly EffectParameter _roughnessFactor;
-	private readonly EffectParameter _hasBaseColorTexture;
-	private readonly EffectParameter _hasMetallicRoughnessTexture;
+	private readonly EffectParameter? _baseColorFactor;
+	private readonly EffectParameter? _metallicFactor;
+	private readonly EffectParameter? _roughnessFactor;
+	private readonly EffectParameter? _hasBaseColorTexture;
+	private readonly EffectParameter? _hasMetallicRoughnessTexture;
 	private readonly EffectParameter? _hasNormalTexture;
 	private readonly EffectParameter? _normalScale;
-	private readonly EffectParameter _hasOcclusionTexture;
-	private readonly EffectParameter _occlusionStrength;
-	private readonly EffectParameter _hasEmissiveTexture;
-	private readonly EffectParameter _emissiveFactor;
-	private readonly EffectParameter _emissiveStrength;
-	private readonly EffectParameter _alphaCutoff;
-	private readonly EffectParameter _useBaseColorAlpha;
-	private readonly EffectParameter _useUV1BaseColor;
-	private readonly EffectParameter _useUV1MetallicRoughness;
+	private readonly EffectParameter? _hasOcclusionTexture;
+	private readonly EffectParameter? _occlusionStrength;
+	private readonly EffectParameter? _hasEmissiveTexture;
+	private readonly EffectParameter? _emissiveFactor;
+	private readonly EffectParameter? _emissiveStrength;
+	private readonly EffectParameter? _alphaCutoff;
+	private readonly EffectParameter? _useBaseColorAlpha;
+	private readonly EffectParameter? _useUV1BaseColor;
+	private readonly EffectParameter? _useUV1MetallicRoughness;
 	private readonly EffectParameter? _useUV1Normal;
-	private readonly EffectParameter _useUV1Occlusion;
-	private readonly EffectParameter _useUV1Emissive;
+	private readonly EffectParameter? _useUV1Occlusion;
+	private readonly EffectParameter? _useUV1Emissive;
 	private readonly EffectParameter? _baseColorTransform;
 	private readonly EffectParameter? _baseColorRotation;
 	private readonly EffectParameter? _metallicRoughnessTransform;
@@ -46,15 +46,15 @@ internal sealed class PbrEffect
 	private readonly EffectParameter? _occlusionRotation;
 	private readonly EffectParameter? _emissiveTransform;
 	private readonly EffectParameter? _emissiveRotation;
-	private readonly EffectParameter _debugView;
+	private readonly EffectParameter? _debugView;
 	private readonly EffectParameter? _baseColorTexture;
 	private readonly EffectParameter? _metallicRoughnessTexture;
 	private readonly EffectParameter? _normalTexture;
 	private readonly EffectParameter? _occlusionTexture;
 	private readonly EffectParameter? _emissiveTexture;
-	private readonly EffectParameter _directionalLightDirections;
-	private readonly EffectParameter _directionalLightColors;
-	private readonly EffectParameter _directionalLightCount;
+	private readonly EffectParameter? _directionalLightDirections;
+	private readonly EffectParameter? _directionalLightColors;
+	private readonly EffectParameter? _directionalLightCount;
 	private readonly EffectParameter? _irradianceTexture;
 	private readonly EffectParameter? _prefilteredSpecularTexture;
 	private readonly EffectParameter? _brdfLutTexture;
@@ -131,7 +131,7 @@ internal sealed class PbrEffect
 
 	public void SetCameraPosition(Vector3 position)
 	{
-		_cameraPosition.SetValue(position);
+		_cameraPosition?.SetValue(position);
 	}
 
 	public void SetSkinTransforms(Matrix[] transforms)
@@ -141,7 +141,7 @@ internal sealed class PbrEffect
 
 	public void SetSettings(ShaderSettings settings)
 	{
-		_debugView.SetValue((int)settings.DebugView);
+		_debugView?.SetValue((int)settings.DebugView);
 	}
 
 	public void SetLights(LightSet lights)
@@ -181,9 +181,9 @@ internal sealed class PbrEffect
 			_packedLightColors[i] = Vector4.Zero;
 		}
 
-		_directionalLightDirections.SetValue(_packedLightDirections);
-		_directionalLightColors.SetValue(_packedLightColors);
-		_directionalLightCount.SetValue(count);
+		_directionalLightDirections?.SetValue(_packedLightDirections);
+		_directionalLightColors?.SetValue(_packedLightColors);
+		_directionalLightCount?.SetValue(count);
 	}
 
 	public void SetIbl(IblResources ibl)
@@ -203,27 +203,31 @@ internal sealed class PbrEffect
 		Texture2D? occlusionTexture = material?.OcclusionTexture?.Texture;
 		Texture2D? emissiveTexture = material?.EmissiveTexture?.Texture;
 
-		_baseColorFactor.SetValue(material?.BaseColorFactor ?? Vector4.One);
-		_metallicFactor.SetValue(material?.MetallicFactor ?? 1f);
-		_roughnessFactor.SetValue(material?.RoughnessFactor ?? 1f);
-		_hasBaseColorTexture.SetValue(baseColorTexture is not null ? 1f : 0f);
-		_hasMetallicRoughnessTexture.SetValue(metallicRoughnessTexture is not null ? 1f : 0f);
+		_baseColorFactor?.SetValue(material?.BaseColorFactor ?? Vector4.One);
+		_metallicFactor?.SetValue(material?.MetallicFactor ?? 1f);
+		_roughnessFactor?.SetValue(material?.RoughnessFactor ?? 1f);
+		_hasBaseColorTexture?.SetValue(baseColorTexture is not null ? 1f : 0f);
+		_hasMetallicRoughnessTexture?.SetValue(
+			metallicRoughnessTexture is not null ? 1f : 0f);
 		_hasNormalTexture?.SetValue(normalTexture is not null ? 1f : 0f);
 		_normalScale?.SetValue(material?.NormalTexture?.Scale ?? 1f);
-		_hasOcclusionTexture.SetValue(occlusionTexture is not null ? 1f : 0f);
-		_occlusionStrength.SetValue(material?.OcclusionTexture?.Strength ?? 1f);
-		_hasEmissiveTexture.SetValue(emissiveTexture is not null ? 1f : 0f);
-		_emissiveFactor.SetValue(material?.EmissiveFactor ?? Vector3.Zero);
-		_emissiveStrength.SetValue(material?.EmissiveStrength ?? 1f);
-		_alphaCutoff.SetValue(material?.AlphaCutoff ?? 0.5f);
-		_useBaseColorAlpha.SetValue(
+		_hasOcclusionTexture?.SetValue(occlusionTexture is not null ? 1f : 0f);
+		_occlusionStrength?.SetValue(material?.OcclusionTexture?.Strength ?? 1f);
+		_hasEmissiveTexture?.SetValue(emissiveTexture is not null ? 1f : 0f);
+		_emissiveFactor?.SetValue(material?.EmissiveFactor ?? Vector3.Zero);
+		_emissiveStrength?.SetValue(material?.EmissiveStrength ?? 1f);
+		_alphaCutoff?.SetValue(material?.AlphaCutoff ?? 0.5f);
+		_useBaseColorAlpha?.SetValue(
 			material?.AlphaMode == DrAlphaMode.Blend ? 1f : 0f);
-		_useUV1BaseColor.SetValue(material?.BaseColorTexture is { TexCoord: 1 } ? 1f : 0f);
-		_useUV1MetallicRoughness.SetValue(
+		_useUV1BaseColor?.SetValue(
+			material?.BaseColorTexture is { TexCoord: 1 } ? 1f : 0f);
+		_useUV1MetallicRoughness?.SetValue(
 			material?.MetallicRoughnessTexture is { TexCoord: 1 } ? 1f : 0f);
 		_useUV1Normal?.SetValue(material?.NormalTexture is { TexCoord: 1 } ? 1f : 0f);
-		_useUV1Occlusion.SetValue(material?.OcclusionTexture is { TexCoord: 1 } ? 1f : 0f);
-		_useUV1Emissive.SetValue(material?.EmissiveTexture is { TexCoord: 1 } ? 1f : 0f);
+		_useUV1Occlusion?.SetValue(
+			material?.OcclusionTexture is { TexCoord: 1 } ? 1f : 0f);
+		_useUV1Emissive?.SetValue(
+			material?.EmissiveTexture is { TexCoord: 1 } ? 1f : 0f);
 		SetTextureTransform(
 			_baseColorTransform,
 			_baseColorRotation,

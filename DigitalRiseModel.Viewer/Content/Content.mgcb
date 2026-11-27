@@ -106,3 +106,31 @@
 /processorParam:DebugMode=Auto
 /processorParam:Defines=SKINNED;HAS_COLOR;HAS_NORMAL;HAS_TANGENT
 /build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR_HAS_NORMAL_HAS_TANGENT_SKINNED.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=UNLIT
+/build:Shaders/Pbr.fx;Shaders/Pbr_UNLIT.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=HAS_COLOR;UNLIT
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR_UNLIT.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=SKINNED;UNLIT
+/build:Shaders/Pbr.fx;Shaders/Pbr_SKINNED_UNLIT.xnb
+
+#begin Shaders/Pbr.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/processorParam:Defines=HAS_COLOR;SKINNED;UNLIT
+/build:Shaders/Pbr.fx;Shaders/Pbr_HAS_COLOR_SKINNED_UNLIT.xnb

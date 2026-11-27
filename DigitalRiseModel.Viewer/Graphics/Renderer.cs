@@ -17,6 +17,7 @@ internal sealed class Renderer : IDisposable
 	private const int NormalFlag = 2;
 	private const int TangentFlag = 4;
 	private const int SkinnedFlag = 8;
+	private const int UnlitFlag = 16;
 
 	private readonly GraphicsDevice _device;
 	private readonly DrModelInstance _instance;
@@ -181,9 +182,17 @@ internal sealed class Renderer : IDisposable
 		bool skinned,
 		bool hasNormal,
 		bool hasTangent,
-		bool hasColor)
+		bool hasColor,
+		bool unlit)
 	{
 		int flags = 0;
+
+		if (unlit)
+		{
+			flags |= UnlitFlag;
+			hasNormal = false;
+			hasTangent = false;
+		}
 
 		if (hasColor)
 		{
@@ -245,6 +254,11 @@ internal sealed class Renderer : IDisposable
 			name += "_SKINNED";
 		}
 
+		if ((flags & UnlitFlag) != 0)
+		{
+			name += "_UNLIT";
+		}
+
 		return name;
 	}
 
@@ -275,7 +289,13 @@ internal sealed class Renderer : IDisposable
 			&& HasElement(declaration, VertexElementUsage.BlendWeight);
 		bool skinned = item.SkinTransforms is not null && hasBlend && hasTexCoord;
 
-		PbrEffect pbr = GetEffect(skinned, hasNormal, hasTangent, hasColor);
+		bool unlit = material?.Unlit == true;
+		PbrEffect pbr = GetEffect(
+			skinned,
+			hasNormal,
+			hasTangent,
+			hasColor,
+			unlit);
 
 		if (skinned)
 		{

@@ -79,6 +79,12 @@ public sealed class DrMaterial
 	public bool DoubleSided { get; set; }
 
 	/// <summary>
+	/// Gets or sets whether the material uses <c>KHR_materials_unlit</c> and
+	/// should bypass lighting.
+	/// </summary>
+	public bool Unlit { get; set; }
+
+	/// <summary>
 	/// Gets or sets an object that identifies this material.
 	/// </summary>
 	public object? Tag { get; set; }

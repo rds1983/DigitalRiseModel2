@@ -277,7 +277,8 @@ internal static partial class GltfLoader
 			AlphaCutoff = material.AlphaCutoff,
 			DoubleSided = material.DoubleSided,
 			EmissiveFactor = ToVector3(material.EmissiveFactor),
-			EmissiveStrength = ReadEmissiveStrength(material)
+			EmissiveStrength = ReadEmissiveStrength(material),
+			Unlit = material.Extensions?.ContainsKey("KHR_materials_unlit") == true
 		};
 
 		if (material.PbrMetallicRoughness is { } pbr)

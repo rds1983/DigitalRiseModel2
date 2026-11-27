@@ -91,6 +91,7 @@ public sealed class GltfLoaderTests
 		Assert.Equal(0.8f, red.OcclusionTexture!.Strength, 5);
 		Assert.Equal(new Vector3(0.1f, 0.2f, 0.3f), red.EmissiveFactor);
 		Assert.Equal(1f, red.EmissiveStrength);
+		Assert.False(red.Unlit);
 
 		DrMaterial blue = Assert.IsType<DrMaterial>(mesh.MeshParts[1].Material);
 		Assert.Equal("Blue", blue.Name);
@@ -122,6 +123,16 @@ public sealed class GltfLoaderTests
 		Assert.Equal(new Vector2(0.1f, 0.2f), transform.Offset);
 		Assert.Equal(0.5f, transform.Rotation, 5);
 		Assert.Equal(new Vector2(2f, 3f), transform.Scale);
+	}
+
+	[Fact]
+	public void Load_UnlitExtension_SetsUnlit()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("unlit.gltf"));
+		DrModelMeshPart part = Assert.Single(Assert.Single(model.Meshes).MeshParts);
+		DrMaterial material = Assert.IsType<DrMaterial>(part.Material);
+
+		Assert.True(material.Unlit);
 	}
 
 	[Fact]

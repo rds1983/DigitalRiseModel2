@@ -56,6 +56,7 @@ This fills `DrModelMeshPart.SourceIndices` and `DrModelMeshPart.SourceVertices`;
 - POSITION, NORMAL, TANGENT, TEXCOORD_n, COLOR_n, JOINTS_n and WEIGHTS_n vertex attributes.
 - Metallic-roughness materials as `DrMaterial` with `DrTextureInfo` references.
 - `KHR_materials_emissive_strength` as `DrMaterial.EmissiveStrength`.
+- `KHR_materials_unlit` as `DrMaterial.Unlit`.
 - `KHR_texture_transform` as `DrTextureInfo.TextureTransform`, including the `texCoord` override.
 - Textures as `Texture2D` in `DrTextureInfo.Texture`.
 - Node skins as `DrSkin`, assigned to the parts of that node's mesh.

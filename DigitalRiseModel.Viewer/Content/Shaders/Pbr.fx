@@ -94,6 +94,29 @@ VertexOutput MainVS(VertexInput input)
 	return output;
 }
 
+#ifdef UNLIT
+float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
+{
+#if defined(HAS_COLOR)
+	float4 vertexColor = input.Color;
+#else
+	float4 vertexColor = float4(1.0, 1.0, 1.0, 1.0);
+#endif
+
+	float4 baseColor = GetBaseColor(
+		input.TexCoord,
+		input.TexCoord1,
+		vertexColor);
+
+	if (baseColor.a < AlphaCutoff)
+	{
+		discard;
+	}
+
+	float outputAlpha = UseBaseColorAlpha > 0.5 ? baseColor.a : 1.0;
+	return float4(baseColor.rgb, outputAlpha);
+}
+#else
 float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 {
 	float3 normal = float3(0.0, 1.0, 0.0);
@@ -133,6 +156,7 @@ float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 		facing,
 		vertexColor);
 }
+#endif
 
 technique
 {

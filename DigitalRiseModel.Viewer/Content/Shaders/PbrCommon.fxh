@@ -192,6 +192,31 @@ float2 ApplyTextureTransform(float2 uv, float4 offsetScale, float rotation)
 	return rotated + offsetScale.xy;
 }
 
+float4 GetBaseColor(
+	float2 texCoord,
+	float2 texCoord1,
+	float4 vertexColor)
+{
+	float2 baseColorUV = UseUV1BaseColor > 0.5 ? texCoord1 : texCoord;
+	baseColorUV = ApplyTextureTransform(
+		baseColorUV,
+		BaseColorTransform,
+		BaseColorRotation);
+
+	float4 baseColor = BaseColorFactor;
+
+	if (HasBaseColorTexture > 0.5)
+	{
+		float4 textureColor = tex2D(BaseColorSampler, baseColorUV);
+		baseColor.rgb *= pow(saturate(textureColor.rgb), 2.2);
+		baseColor.a *= textureColor.a;
+	}
+
+	baseColor.rgb *= vertexColor.rgb;
+	baseColor.a *= vertexColor.a;
+	return baseColor;
+}
+
 float4 ShadeSurface(
 	float3 worldPosition,
 	float3 normal,
@@ -200,11 +225,13 @@ float4 ShadeSurface(
 	float facing,
 	float4 vertexColor)
 {
-	float2 baseColorUV = UseUV1BaseColor > 0.5 ? texCoord1 : texCoord;
-	baseColorUV = ApplyTextureTransform(
-		baseColorUV,
-		BaseColorTransform,
-		BaseColorRotation);
+	float4 baseColor = GetBaseColor(texCoord, texCoord1, vertexColor);
+
+	if (baseColor.a < AlphaCutoff)
+	{
+		discard;
+	}
+
 	float2 metallicRoughnessUV = UseUV1MetallicRoughness > 0.5 ? texCoord1 : texCoord;
 	metallicRoughnessUV = ApplyTextureTransform(
 		metallicRoughnessUV,
@@ -220,23 +247,6 @@ float4 ShadeSurface(
 		emissiveUV,
 		EmissiveTransform,
 		EmissiveRotation);
-
-	float4 baseColor = BaseColorFactor;
-
-	if (HasBaseColorTexture > 0.5)
-	{
-		float4 textureColor = tex2D(BaseColorSampler, baseColorUV);
-		baseColor.rgb *= pow(saturate(textureColor.rgb), 2.2);
-		baseColor.a *= textureColor.a;
-	}
-
-	baseColor.rgb *= vertexColor.rgb;
-	baseColor.a *= vertexColor.a;
-
-	if (baseColor.a < AlphaCutoff)
-	{
-		discard;
-	}
 
 	float metallic = MetallicFactor;
 	float roughness = RoughnessFactor;
