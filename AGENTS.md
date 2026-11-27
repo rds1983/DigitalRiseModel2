@@ -17,9 +17,8 @@ DigitalRiseModel/
   *.cs                                     # root model types at the project root
   Gltf/                                    # DigitalRiseModel.Gltf (internal loader)
 DigitalRiseModel.Tests/                    # xUnit test project
+DigitalRiseModel.Viewer/                   # MonoGame glTF viewer and drm-viewer tool
 docfx/                                     # DocFX config and articles
-Samples/
-  DigitalRiseModel.Viewer/                 # MonoGame glTF viewer sample
 README.md
 AGENTS.md
 LICENSE
@@ -133,8 +132,8 @@ Rules:
 
 ## Samples and documentation
 
-- Each sample is a separate runnable MonoGame project under `Samples/<Name>/` and references the library project.
-- `Samples/DigitalRiseModel.Viewer` takes one glTF/GLB path argument and renders with stock effects. Keep it runnable with the current public API.
+- Each sample is a separate runnable MonoGame project at the repository root and references the library project.
+- `DigitalRiseModel.Viewer` takes one glTF/GLB path argument and renders with stock effects. It is packaged as the `drm-viewer` tool (`PackAsTool`, `ToolCommandName=drm-viewer`). Keep it runnable and packable with the current public API.
 - Samples must compile and run with the current API; update them when the API changes.
 - Public API changes require matching XML docs and, when user-visible behavior changes, a README or DocFX update.
 - Keep README claims honest: mark unimplemented features as planned, not shipped.

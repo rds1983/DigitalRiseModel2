@@ -13,6 +13,9 @@ TestResults/
 *.user
 *.suo
 
+# Local run profiles
+**/Properties/launchSettings.json
+
 # DocFX
 docfx/_site/
 docfx/api/

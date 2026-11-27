@@ -1,9 +1,15 @@
 # Viewer
 
-`Samples/DigitalRiseModel.Viewer` is a small MonoGame window viewer for glTF and GLB models.
+`DigitalRiseModel.Viewer` is a small MonoGame window viewer for glTF and GLB models. It is also packaged as the `drm-viewer` .NET tool.
 
 ```bash
-dotnet run --project Samples/DigitalRiseModel.Viewer -- "path/to/model.glb"
+dotnet run --project DigitalRiseModel.Viewer -- "path/to/model.glb"
+```
+
+```bash
+dotnet pack DigitalRiseModel.Viewer -c Release -o artifacts
+dotnet tool install --global DigitalRiseModel.Viewer --add-source artifacts
+drm-viewer "path/to/model.glb"
 ```
 
 ## Controls

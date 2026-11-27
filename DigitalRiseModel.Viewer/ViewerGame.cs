@@ -17,6 +17,10 @@ internal sealed class ViewerGame : Game
 	private BoundingSphere _bounds;
 	private Vector3 _target;
 	private float _cameraDistance = 1f;
+	private float _minCameraDistance = 0.0001f;
+	private float _maxCameraDistance = 100000f;
+	private float _nearPlane = 0.01f;
+	private float _farPlane = 10000f;
 	private float _yaw = MathHelper.PiOver4;
 	private float _pitch = -0.25f;
 	private MouseState _previousMouse;
@@ -86,7 +90,7 @@ internal sealed class ViewerGame : Game
 		if (scrollDelta != 0)
 		{
 			_cameraDistance *= MathF.Pow(0.9f, scrollDelta / 120f);
-			_cameraDistance = Math.Clamp(_cameraDistance, 0.05f, 100000f);
+			_cameraDistance = Math.Clamp(_cameraDistance, _minCameraDistance, _maxCameraDistance);
 		}
 
 		_previousMouse = mouse;
@@ -110,8 +114,8 @@ internal sealed class ViewerGame : Game
 		Matrix projection = Matrix.CreatePerspectiveFieldOfView(
 			MathHelper.PiOver4,
 			GraphicsDevice.Viewport.AspectRatio,
-			0.01f,
-			Math.Max(10000f, _cameraDistance * 20f));
+			_nearPlane,
+			_farPlane);
 
 		foreach (Drawable drawable in _drawables)
 		{
@@ -290,8 +294,20 @@ internal sealed class ViewerGame : Game
 			_bounds = new BoundingSphere(Vector3.Zero, 1f);
 		}
 
+		float radius = MathF.Max(_bounds.Radius, 0.0001f);
+		float verticalFov = MathHelper.PiOver4;
+		float aspect = GraphicsDevice.Viewport.AspectRatio;
+		float horizontalFov = aspect > 0f
+			? 2f * MathF.Atan(MathF.Tan(verticalFov * 0.5f) * aspect)
+			: verticalFov;
+		float limitingFov = MathF.Min(verticalFov, horizontalFov);
+
 		_target = _bounds.Center;
-		_cameraDistance = Math.Max(_bounds.Radius * 2.5f, 1f);
+		_cameraDistance = radius / MathF.Sin(limitingFov * 0.5f) * 1.2f;
+		_minCameraDistance = MathF.Max(radius * 0.01f, 0.0001f);
+		_maxCameraDistance = MathF.Max(radius * 1000f, 1f);
+		_nearPlane = MathF.Max(_cameraDistance * 0.0005f, 0.00001f);
+		_farPlane = MathF.Max(_cameraDistance * 100f, radius * 100f);
 		_yaw = MathHelper.PiOver4;
 		_pitch = -0.25f;
 	}

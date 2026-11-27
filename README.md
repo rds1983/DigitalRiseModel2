@@ -120,10 +120,18 @@ Animations are not loaded yet. Sparse accessors and non-triangle primitive modes
 
 ## Viewer
 
-`Samples/DigitalRiseModel.Viewer` is a small MonoGame window viewer that loads a glTF model through `AssetManager` and renders it with stock effects.
+`DigitalRiseModel.Viewer` is a small MonoGame window viewer that loads a glTF model through `AssetManager` and renders it with stock effects. It is also packaged as the `drm-viewer` .NET tool.
 
 ```bash
-dotnet run --project Samples/DigitalRiseModel.Viewer -- "path/to/model.glb"
+dotnet run --project DigitalRiseModel.Viewer -- "path/to/model.glb"
+```
+
+Install and run the tool locally:
+
+```bash
+dotnet pack DigitalRiseModel.Viewer -c Release -o artifacts
+dotnet tool install --global DigitalRiseModel.Viewer --add-source artifacts
+drm-viewer "path/to/model.glb"
 ```
 
 Controls:
@@ -146,9 +154,8 @@ DigitalRiseModel/
   *.cs                               # root model types (DrModel, DrModelMesh, DrMaterial, ...)
   Gltf/                              # DigitalRiseModel.Gltf (loader)
 DigitalRiseModel.Tests/              # xUnit tests
+DigitalRiseModel.Viewer/             # MonoGame glTF viewer and drm-viewer tool
 docfx/                               # DocFX configuration, articles and API output
-Samples/
-  DigitalRiseModel.Viewer/           # MonoGame glTF viewer
 .config/dotnet-tools.json            # local DocFX tool manifest
 ```
 
@@ -214,7 +221,7 @@ The site includes a getting-started guide, model-data concepts and the generated
 - [ ] Import/export: OBJ and a versioned native format.
 - [ ] Animation: clips, sampling and blending.
 - [x] DocFX documentation site with guides and API reference.
-- [x] Runnable MonoGame viewer sample.
+- [x] MonoGame viewer packaged as the `drm-viewer` .NET tool.
 - [ ] Additional samples and tooling.
 
 ## Contributing
