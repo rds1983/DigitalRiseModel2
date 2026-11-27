@@ -30,7 +30,7 @@ internal sealed class PbrEffect
 	private readonly EffectParameter _useBaseColorAlpha;
 	private readonly EffectParameter _useUV1BaseColor;
 	private readonly EffectParameter _useUV1MetallicRoughness;
-	private readonly EffectParameter _useUV1Normal;
+	private readonly EffectParameter? _useUV1Normal;
 	private readonly EffectParameter _useUV1Occlusion;
 	private readonly EffectParameter _useUV1Emissive;
 	private readonly EffectParameter _debugView;
@@ -130,7 +130,7 @@ internal sealed class PbrEffect
 		_useUV1BaseColor.SetValue(material?.BaseColorTexture is { TexCoord: 1 } ? 1f : 0f);
 		_useUV1MetallicRoughness.SetValue(
 			material?.MetallicRoughnessTexture is { TexCoord: 1 } ? 1f : 0f);
-		_useUV1Normal.SetValue(material?.NormalTexture is { TexCoord: 1 } ? 1f : 0f);
+		_useUV1Normal?.SetValue(material?.NormalTexture is { TexCoord: 1 } ? 1f : 0f);
 		_useUV1Occlusion.SetValue(material?.OcclusionTexture is { TexCoord: 1 } ? 1f : 0f);
 		_useUV1Emissive.SetValue(material?.EmissiveTexture is { TexCoord: 1 } ? 1f : 0f);
 		_baseColorTexture?.SetValue(baseColorTexture ?? fallbackTexture);
