@@ -162,7 +162,8 @@ internal sealed class ViewerGame : Game
 			_renderer.BeginFrame(view, projection);
 			try
 			{
-				_renderer.Clear(new Color(28, 32, 40));
+				// Linear background; the post-process pass applies ACES and gamma.
+				_renderer.Clear(new Color(4, 5, 6));
 				_renderer.DrawModel();
 			}
 			finally

@@ -1,4 +1,5 @@
 using DigitalRiseModel.Viewer.Graphics.Lighting;
+using DigitalRiseModel.Viewer.Graphics.PostProcessing;
 using DigitalRiseModel.Viewer.Graphics.Shaders;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -23,12 +24,15 @@ internal sealed class Renderer : IDisposable
 	private readonly ContentManager _content;
 	private readonly Dictionary<int, PbrEffect> _pbrEffects = [];
 	private readonly IblResources _ibl;
+	private readonly PostProcessor _postProcessor;
 	private readonly Texture2D _fallbackTexture;
 
 	private Matrix _viewProjection;
 	private Vector3 _cameraPosition;
 	private bool _frameOpen;
 
+	private RenderTargetBinding[] _savedRenderTargets = [];
+	private Viewport _savedViewport;
 	private BlendState _savedBlendState = BlendState.Opaque;
 	private DepthStencilState _savedDepthStencilState = DepthStencilState.Default;
 	private RasterizerState _savedRasterizerState = RasterizerState.CullCounterClockwise;
@@ -53,6 +57,7 @@ internal sealed class Renderer : IDisposable
 		_model = instance.Model;
 		_content = content;
 		_ibl = new IblResources(device);
+		_postProcessor = new PostProcessor(device, content);
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
@@ -85,17 +90,27 @@ internal sealed class Renderer : IDisposable
 			effect.SetIbl(_ibl);
 		}
 
+		_savedRenderTargets = _device.GetRenderTargets();
+		_savedViewport = _device.Viewport;
 		_savedBlendState = _device.BlendState;
 		_savedDepthStencilState = _device.DepthStencilState;
 		_savedRasterizerState = _device.RasterizerState;
 		_savedSamplerState = _device.SamplerStates[0];
 		_savedScissorRectangle = _device.ScissorRectangle;
 
+		int width = _device.PresentationParameters.BackBufferWidth;
+		int height = _device.PresentationParameters.BackBufferHeight;
+
+		_postProcessor.EnsureSize(width, height);
+		_postProcessor.SetSettings(Settings);
+		_device.SetRenderTarget(_postProcessor.SceneTarget);
+		_device.Viewport = new Viewport(0, 0, width, height);
+
 		_device.BlendState = BlendState.Opaque;
 		_device.DepthStencilState = DepthStencilState.Default;
 		_device.RasterizerState = RasterizerState.CullCounterClockwise;
 		_device.SamplerStates[0] = SamplerState.LinearWrap;
-		_device.ScissorRectangle = _device.Viewport.Bounds;
+		_device.ScissorRectangle = new Rectangle(0, 0, width, height);
 	}
 
 	public void Clear(Color color)
@@ -300,11 +315,28 @@ internal sealed class Renderer : IDisposable
 
 		_frameOpen = false;
 
-		_device.BlendState = _savedBlendState;
-		_device.DepthStencilState = _savedDepthStencilState;
-		_device.RasterizerState = _savedRasterizerState;
-		_device.SamplerStates[0] = _savedSamplerState;
-		_device.ScissorRectangle = _savedScissorRectangle;
+		try
+		{
+			_postProcessor.Draw();
+		}
+		finally
+		{
+			if (_savedRenderTargets.Length == 0)
+			{
+				_device.SetRenderTarget(null);
+			}
+			else
+			{
+				_device.SetRenderTargets(_savedRenderTargets);
+			}
+
+			_device.Viewport = _savedViewport;
+			_device.BlendState = _savedBlendState;
+			_device.DepthStencilState = _savedDepthStencilState;
+			_device.RasterizerState = _savedRasterizerState;
+			_device.SamplerStates[0] = _savedSamplerState;
+			_device.ScissorRectangle = _savedScissorRectangle;
+		}
 	}
 
 	public BoundingSphere ComputeBounds()
@@ -316,6 +348,7 @@ internal sealed class Renderer : IDisposable
 	{
 		_fallbackTexture.Dispose();
 		_ibl.Dispose();
+		_postProcessor.Dispose();
 	}
 
 	private static Matrix GetMeshWorld(

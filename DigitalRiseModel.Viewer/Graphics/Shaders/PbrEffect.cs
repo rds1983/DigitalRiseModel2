@@ -36,7 +36,6 @@ internal sealed class PbrEffect
 	private readonly EffectParameter _useUV1Occlusion;
 	private readonly EffectParameter _useUV1Emissive;
 	private readonly EffectParameter _debugView;
-	private readonly EffectParameter _exposure;
 	private readonly EffectParameter? _baseColorTexture;
 	private readonly EffectParameter? _metallicRoughnessTexture;
 	private readonly EffectParameter? _normalTexture;
@@ -81,7 +80,6 @@ internal sealed class PbrEffect
 		_useUV1Occlusion = _effect.Parameters["UseUV1Occlusion"];
 		_useUV1Emissive = _effect.Parameters["UseUV1Emissive"];
 		_debugView = _effect.Parameters["DebugView"];
-		_exposure = _effect.Parameters["Exposure"];
 		_baseColorTexture = FindTextureParameter(_effect, "BaseColorTexture");
 		_metallicRoughnessTexture = FindTextureParameter(_effect, "MetallicRoughnessTexture");
 		_normalTexture = FindTextureParameter(_effect, "NormalTexture");
@@ -122,7 +120,6 @@ internal sealed class PbrEffect
 	public void SetSettings(ShaderSettings settings)
 	{
 		_debugView.SetValue((int)settings.DebugView);
-		_exposure.SetValue(settings.Exposure);
 	}
 
 	public void SetLights(LightSet lights)

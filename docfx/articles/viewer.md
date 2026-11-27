@@ -21,7 +21,7 @@ Command-line options:
 - `--exposure <value>` — set the shaded-output exposure scale.
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
 
-The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment. `Samples/SimpleViewer` remains the stock-effect reference.
+The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma. `Samples/SimpleViewer` remains the stock-effect reference.
 
 `F2` toggles the shader smoke test; `F3` cycles PBR debug views and updates the window title.
 

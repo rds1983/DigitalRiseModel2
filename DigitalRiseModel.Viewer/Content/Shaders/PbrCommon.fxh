@@ -31,7 +31,6 @@ float UseUV1Normal;
 float UseUV1Occlusion;
 float UseUV1Emissive;
 int DebugView;
-float Exposure;
 
 Texture2D BaseColorTexture;
 sampler2D BaseColorSampler = sampler_state
@@ -120,12 +119,6 @@ sampler2D BrdfLutSampler = sampler_state
 	AddressU = Clamp;
 	AddressV = Clamp;
 };
-
-float3 ACESFilm(float3 color)
-{
-	return saturate((color * (2.51 * color + 0.03))
-		/ (color * (2.43 * color + 0.59) + 0.14));
-}
 
 float FastAtan2(float y, float x)
 {
@@ -239,7 +232,7 @@ float4 ShadeSurface(
 
 	if (DebugView == 1)
 	{
-		return float4(pow(saturate(baseColor.rgb), 1.0 / 2.2), 1.0);
+		return float4(baseColor.rgb, 1.0);
 	}
 	else if (DebugView == 2)
 	{
@@ -259,7 +252,7 @@ float4 ShadeSurface(
 	}
 	else if (DebugView == 6)
 	{
-		return float4(pow(saturate(emissive), 1.0 / 2.2), 1.0);
+		return float4(emissive, 1.0);
 	}
 
 	float3 view = normalize(CameraPosition - worldPosition);
@@ -323,33 +316,23 @@ float4 ShadeSurface(
 
 	if (DebugView == 7)
 	{
-		return float4(
-			pow(saturate(directDiffuse * Exposure), 1.0 / 2.2),
-			1.0);
+		return float4(directDiffuse, 1.0);
 	}
 	else if (DebugView == 8)
 	{
-		return float4(
-			pow(saturate(directSpecular * Exposure), 1.0 / 2.2),
-			1.0);
+		return float4(directSpecular, 1.0);
 	}
 	else if (DebugView == 9)
 	{
-		return float4(
-			pow(saturate(iblDiffuse * diffuseWeight * Exposure), 1.0 / 2.2),
-			1.0);
+		return float4(iblDiffuse * diffuseWeight, 1.0);
 	}
 	else if (DebugView == 10)
 	{
-		return float4(
-			pow(saturate(iblSpecular * Exposure), 1.0 / 2.2),
-			1.0);
+		return float4(iblSpecular, 1.0);
 	}
 
 	float3 ambient = (iblDiffuse * diffuseWeight + iblSpecular) * occlusion;
 	float3 color = directDiffuse + directSpecular + ambient + emissive;
-	color = ACESFilm(color * Exposure);
-	color = pow(saturate(color), 1.0 / 2.2);
 
 	float outputAlpha = UseBaseColorAlpha > 0.5 ? baseColor.a : 1.0;
 	return float4(color, outputAlpha);

@@ -18,6 +18,12 @@
 /processorParam:DebugMode=Auto
 /build:Shaders/FullscreenColor.fx
 
+#begin Shaders/PostProcess.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Shaders/PostProcess.fx
+
 #begin Shaders/Pbr.fx
 /importer:EffectImporter
 /processor:EffectProcessor
