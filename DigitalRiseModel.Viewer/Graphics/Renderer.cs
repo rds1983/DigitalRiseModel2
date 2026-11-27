@@ -24,12 +24,22 @@ internal sealed class Renderer : IDisposable
 	private readonly DrModel _model;
 	private readonly ContentManager _content;
 	private readonly Dictionary<int, PbrEffect> _pbrEffects = [];
+	private readonly Dictionary<DrModelMeshPart, PartDrawInfo> _partDrawInfo = [];
+	private readonly List<RenderItem> _opaqueItems = [];
+	private readonly List<RenderItem> _transparentItems = [];
+	private readonly List<RenderItem> _renderItemPool = [];
 	private readonly IblResources _ibl;
 	private readonly PostProcessor _postProcessor;
 	private readonly Texture2D _fallbackTexture;
 
+	private static readonly Comparison<RenderItem> OpaqueComparison =
+		CompareOpaque;
+	private static readonly Comparison<RenderItem> TransparentComparison =
+		CompareTransparent;
+
 	private Matrix _viewProjection;
 	private Vector3 _cameraPosition;
+	private int _renderItemCount;
 	private bool _frameOpen;
 
 	private RenderTargetBinding[] _savedRenderTargets = [];
@@ -128,8 +138,9 @@ internal sealed class Renderer : IDisposable
 		EnsureFrameOpen();
 
 		Matrix[] absoluteBoneTransforms = _instance.AbsoluteBoneTransforms;
-		var opaqueItems = new List<RenderItem>();
-		var transparentItems = new List<RenderItem>();
+		_opaqueItems.Clear();
+		_transparentItems.Clear();
+		_renderItemCount = 0;
 
 		foreach (DrModelMesh mesh in _model.Meshes)
 		{
@@ -145,37 +156,88 @@ internal sealed class Renderer : IDisposable
 					? _instance.GetSkinTransforms(skin.Index)
 					: null;
 				Vector3 center = Vector3.Transform(part.BoundingSphere.Center, world);
-				var item = new RenderItem
-				{
-					Part = part,
-					Material = part.Material,
-					World = world,
-					SkinTransforms = skinTransforms,
-					DistanceSquared = Vector3.DistanceSquared(center, _cameraPosition)
-				};
+				PartDrawInfo drawInfo = GetPartDrawInfo(part, skinTransforms);
+				RenderItem item = GetRenderItem();
+				item.Part = part;
+				item.Material = part.Material;
+				item.World = world;
+				item.SkinTransforms = skinTransforms;
+				item.DistanceSquared = Vector3.DistanceSquared(
+					center,
+					_cameraPosition);
+				item.Effect = drawInfo.Effect;
+				item.Skinned = drawInfo.Skinned;
 
 				if (item.Material?.AlphaMode == DrAlphaMode.Blend)
 				{
-					transparentItems.Add(item);
+					_transparentItems.Add(item);
 				}
 				else
 				{
-					opaqueItems.Add(item);
+					_opaqueItems.Add(item);
 				}
 			}
 		}
 
-		transparentItems.Sort((a, b) => b.DistanceSquared.CompareTo(a.DistanceSquared));
+		_opaqueItems.Sort(OpaqueComparison);
+		_transparentItems.Sort(TransparentComparison);
 
-		foreach (RenderItem item in opaqueItems)
+		foreach (RenderItem item in _opaqueItems)
 		{
 			DrawItem(item);
 		}
 
-		foreach (RenderItem item in transparentItems)
+		foreach (RenderItem item in _transparentItems)
 		{
 			DrawItem(item);
 		}
+	}
+
+	private PartDrawInfo GetPartDrawInfo(
+		DrModelMeshPart part,
+		Matrix[]? skinTransforms)
+	{
+		if (_partDrawInfo.TryGetValue(part, out PartDrawInfo? drawInfo))
+		{
+			return drawInfo;
+		}
+
+		VertexDeclaration declaration = part.VertexDeclaration
+			?? part.VertexBuffer!.VertexDeclaration;
+
+		bool hasNormal = HasElement(declaration, VertexElementUsage.Normal);
+		bool hasTangent = HasElement(declaration, VertexElementUsage.Tangent);
+		bool hasColor = HasElement(declaration, VertexElementUsage.Color);
+		bool hasTexCoord = HasElement(
+			declaration,
+			VertexElementUsage.TextureCoordinate);
+		bool hasBlend = HasElement(declaration, VertexElementUsage.BlendIndices)
+			&& HasElement(declaration, VertexElementUsage.BlendWeight);
+		bool skinned = skinTransforms is not null && hasBlend && hasTexCoord;
+		bool unlit = part.Material?.Unlit == true;
+
+		drawInfo = new PartDrawInfo
+		{
+			Skinned = skinned,
+			Effect = GetEffect(
+				skinned,
+				hasNormal,
+				hasTangent,
+				hasColor,
+				unlit)
+		};
+		_partDrawInfo[part] = drawInfo;
+		return drawInfo;
+	}
+
+	private RenderItem GetRenderItem()
+	{
+		if (_renderItemCount == _renderItemPool.Count)
+		{
+			_renderItemPool.Add(new RenderItem());
+		}
+
+		return _renderItemPool[_renderItemCount++];
 	}
 
 	public PbrEffect GetEffect(
@@ -278,26 +340,9 @@ internal sealed class Renderer : IDisposable
 			? RasterizerState.CullNone
 			: RasterizerState.CullCounterClockwise;
 
-		VertexDeclaration declaration = part.VertexDeclaration
-			?? part.VertexBuffer!.VertexDeclaration;
+		PbrEffect pbr = item.Effect;
 
-		bool hasNormal = HasElement(declaration, VertexElementUsage.Normal);
-		bool hasTangent = HasElement(declaration, VertexElementUsage.Tangent);
-		bool hasColor = HasElement(declaration, VertexElementUsage.Color);
-		bool hasTexCoord = HasElement(declaration, VertexElementUsage.TextureCoordinate);
-		bool hasBlend = HasElement(declaration, VertexElementUsage.BlendIndices)
-			&& HasElement(declaration, VertexElementUsage.BlendWeight);
-		bool skinned = item.SkinTransforms is not null && hasBlend && hasTexCoord;
-
-		bool unlit = material?.Unlit == true;
-		PbrEffect pbr = GetEffect(
-			skinned,
-			hasNormal,
-			hasTangent,
-			hasColor,
-			unlit);
-
-		if (skinned)
+		if (item.Skinned)
 		{
 			pbr.SetWorld(Matrix.Identity);
 			pbr.SetWorldViewProjection(_viewProjection);
@@ -408,16 +453,37 @@ internal sealed class Renderer : IDisposable
 		}
 	}
 
+	private static int CompareOpaque(RenderItem a, RenderItem b)
+	{
+		return a.DistanceSquared.CompareTo(b.DistanceSquared);
+	}
+
+	private static int CompareTransparent(RenderItem a, RenderItem b)
+	{
+		return b.DistanceSquared.CompareTo(a.DistanceSquared);
+	}
+
+	private sealed class PartDrawInfo
+	{
+		public required PbrEffect Effect { get; init; }
+
+		public bool Skinned { get; init; }
+	}
+
 	private sealed class RenderItem
 	{
-		public required DrModelMeshPart Part { get; init; }
+		public DrModelMeshPart Part { get; set; } = null!;
 
-		public DrMaterial? Material { get; init; }
+		public DrMaterial? Material { get; set; }
 
-		public Matrix World { get; init; }
+		public Matrix World { get; set; }
 
-		public Matrix[]? SkinTransforms { get; init; }
+		public Matrix[]? SkinTransforms { get; set; }
 
-		public float DistanceSquared { get; init; }
+		public float DistanceSquared { get; set; }
+
+		public PbrEffect Effect { get; set; } = null!;
+
+		public bool Skinned { get; set; }
 	}
 }
