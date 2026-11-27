@@ -133,6 +133,10 @@ float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 			normalUV,
 			NormalTransform,
 			NormalRotation);
+		normalUV = ApplySamplerSettings(
+			normalUV,
+			NormalSamplerInfo,
+			NormalTextureSize);
 		float3 sampledNormal = tex2D(NormalSampler, normalUV).xyz * 2.0 - 1.0;
 		sampledNormal.xy *= NormalScale;
 		float3 tangent = normalize(input.Tangent);

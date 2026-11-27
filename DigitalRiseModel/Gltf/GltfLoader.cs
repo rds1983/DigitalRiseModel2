@@ -205,7 +205,11 @@ internal static partial class GltfLoader
 				.ToArray();
 		}
 
-		DrMaterial[] materials = ConvertMaterials(document, textureProvider);
+		DrTextureSampler?[] textureSamplers = ConvertTextureSamplers(document);
+		DrMaterial[] materials = ConvertMaterials(
+			document,
+			textureProvider,
+			textureSamplers);
 		DrSkin?[] skins = ConvertSkins(document, nodeBones, bufferProvider, bufferCache);
 
 		for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
@@ -252,23 +256,84 @@ internal static partial class GltfLoader
 
 	private static DrMaterial[] ConvertMaterials(
 		GltfDocument document,
-		Func<int, Texture2D?>? textureProvider)
+		Func<int, Texture2D?>? textureProvider,
+		DrTextureSampler?[] textureSamplers)
 	{
 		GltfMaterial[] source = document.Materials ?? [];
 		var materials = new DrMaterial[source.Length];
 
 		for (int i = 0; i < source.Length; i++)
 		{
-			materials[i] = ConvertMaterial(source[i], i, textureProvider);
+			materials[i] = ConvertMaterial(
+				source[i],
+				i,
+				textureProvider,
+				textureSamplers);
 		}
 
 		return materials;
 	}
 
+	private static DrTextureSampler?[] ConvertTextureSamplers(
+		GltfDocument document)
+	{
+		GltfTexture[] textures = document.Textures ?? [];
+		Sampler[] samplers = document.Samplers ?? [];
+		var result = new DrTextureSampler?[textures.Length];
+
+		for (int i = 0; i < textures.Length; i++)
+		{
+			if (textures[i].Sampler is not int samplerIndex)
+			{
+				continue;
+			}
+
+			if ((uint)samplerIndex >= (uint)samplers.Length)
+			{
+				throw new InvalidDataException(
+					$"Texture {i} references sampler {samplerIndex}, which is outside the sampler collection.");
+			}
+
+			Sampler sampler = samplers[samplerIndex];
+			result[i] = new DrTextureSampler
+			{
+				AddressU = ConvertWrapMode((int)sampler.WrapS),
+				AddressV = ConvertWrapMode((int)sampler.WrapT),
+				PointFiltering = IsNearest(sampler.MagFilter)
+					|| IsNearest(sampler.MinFilter)
+			};
+		}
+
+		return result;
+	}
+
+	private static TextureAddressMode ConvertWrapMode(int wrapMode)
+	{
+		return wrapMode switch
+		{
+			(int)Sampler.WrapSEnum.CLAMP_TO_EDGE => TextureAddressMode.Clamp,
+			(int)Sampler.WrapSEnum.MIRRORED_REPEAT => TextureAddressMode.Mirror,
+			_ => TextureAddressMode.Wrap
+		};
+	}
+
+	private static bool IsNearest(Sampler.MagFilterEnum? filter)
+	{
+		return filter == Sampler.MagFilterEnum.NEAREST;
+	}
+
+	private static bool IsNearest(Sampler.MinFilterEnum? filter)
+	{
+		return filter is Sampler.MinFilterEnum.NEAREST
+			or Sampler.MinFilterEnum.NEAREST_MIPMAP_NEAREST
+			or Sampler.MinFilterEnum.NEAREST_MIPMAP_LINEAR;
+	}
+
 	private static DrMaterial ConvertMaterial(
 		GltfMaterial material,
 		int index,
-		Func<int, Texture2D?>? textureProvider)
+		Func<int, Texture2D?>? textureProvider,
+		DrTextureSampler?[] textureSamplers)
 	{
 		var result = new DrMaterial
 		{
@@ -284,23 +349,34 @@ internal static partial class GltfLoader
 		if (material.PbrMetallicRoughness is { } pbr)
 		{
 			result.BaseColorFactor = ToVector4(pbr.BaseColorFactor);
-			result.BaseColorTexture = ConvertTextureInfo(pbr.BaseColorTexture, textureProvider);
+			result.BaseColorTexture = ConvertTextureInfo(
+				pbr.BaseColorTexture,
+				textureProvider,
+				textureSamplers);
 			result.MetallicFactor = pbr.MetallicFactor;
 			result.RoughnessFactor = pbr.RoughnessFactor;
-			result.MetallicRoughnessTexture = ConvertTextureInfo(pbr.MetallicRoughnessTexture, textureProvider);
+			result.MetallicRoughnessTexture = ConvertTextureInfo(
+				pbr.MetallicRoughnessTexture,
+				textureProvider,
+				textureSamplers);
 		}
 
 		result.NormalTexture = ConvertTextureInfo(
 			material.NormalTexture,
 			textureProvider,
+			textureSamplers,
 			scale: material.NormalTexture?.Scale ?? 1f);
 
 		result.OcclusionTexture = ConvertTextureInfo(
 			material.OcclusionTexture,
 			textureProvider,
+			textureSamplers,
 			strength: material.OcclusionTexture?.Strength ?? 1f);
 
-		result.EmissiveTexture = ConvertTextureInfo(material.EmissiveTexture, textureProvider);
+		result.EmissiveTexture = ConvertTextureInfo(
+			material.EmissiveTexture,
+			textureProvider,
+			textureSamplers);
 
 		return result;
 	}
@@ -335,6 +411,7 @@ internal static partial class GltfLoader
 	private static DrTextureInfo? ConvertTextureInfo(
 		TextureInfo? info,
 		Func<int, Texture2D?>? textureProvider,
+		DrTextureSampler?[] textureSamplers,
 		float scale = 1f,
 		float strength = 1f)
 	{
@@ -345,12 +422,16 @@ internal static partial class GltfLoader
 
 		(DrTextureTransform? textureTransform, int texCoord) =
 			ReadTextureTransform(info);
+		DrTextureSampler? sampler = (uint)info.Index < (uint)textureSamplers.Length
+			? textureSamplers[info.Index]
+			: null;
 
 		return new DrTextureInfo
 		{
 			TextureIndex = info.Index,
 			TexCoord = texCoord,
 			TextureTransform = textureTransform,
+			Sampler = sampler,
 			Scale = scale,
 			Strength = strength,
 			Texture = textureProvider?.Invoke(info.Index)

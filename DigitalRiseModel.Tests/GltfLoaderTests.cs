@@ -84,6 +84,7 @@ public sealed class GltfLoaderTests
 		Assert.Equal(0, red.BaseColorTexture!.TextureIndex);
 		Assert.Equal(1, red.BaseColorTexture.TexCoord);
 		Assert.Null(red.BaseColorTexture.TextureTransform);
+		Assert.Null(red.BaseColorTexture.Sampler);
 		Assert.Null(red.BaseColorTexture.Texture);
 		Assert.NotNull(red.NormalTexture);
 		Assert.Equal(0.5f, red.NormalTexture!.Scale, 5);
@@ -133,6 +134,22 @@ public sealed class GltfLoaderTests
 		DrMaterial material = Assert.IsType<DrMaterial>(part.Material);
 
 		Assert.True(material.Unlit);
+	}
+
+	[Fact]
+	public void Load_TextureSampler_ReadsWrapAndFilterModes()
+	{
+		DrModel model = GltfLoader.Load(TestDataPath("texture-sampler.gltf"));
+		DrModelMeshPart part = Assert.Single(Assert.Single(model.Meshes).MeshParts);
+		DrMaterial material = Assert.IsType<DrMaterial>(part.Material);
+		DrTextureInfo texture = Assert.IsType<DrTextureInfo>(
+			material.BaseColorTexture);
+		DrTextureSampler sampler = Assert.IsType<DrTextureSampler>(
+			texture.Sampler);
+
+		Assert.Equal(TextureAddressMode.Clamp, sampler.AddressU);
+		Assert.Equal(TextureAddressMode.Mirror, sampler.AddressV);
+		Assert.True(sampler.PointFiltering);
 	}
 
 	[Fact]

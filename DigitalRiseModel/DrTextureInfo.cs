@@ -24,6 +24,12 @@ public sealed class DrTextureInfo
 	public DrTextureTransform? TextureTransform { get; set; }
 
 	/// <summary>
+	/// Gets or sets the sampler settings, or <see langword="null"/> when the
+	/// texture uses glTF default sampler behavior.
+	/// </summary>
+	public DrTextureSampler? Sampler { get; set; }
+
+	/// <summary>
 	/// Gets or sets the normal-map scale. This value is used only for normal textures.
 	/// </summary>
 	public float Scale { get; set; } = 1f;

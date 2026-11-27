@@ -44,6 +44,18 @@ float OcclusionRotation;
 float4 EmissiveTransform;
 float EmissiveRotation;
 
+// x = wrap U (0 repeat, 1 clamp, 2 mirror), y = wrap V, z = point filtering.
+float4 BaseColorSamplerInfo;
+float2 BaseColorTextureSize;
+float4 MetallicRoughnessSamplerInfo;
+float2 MetallicRoughnessTextureSize;
+float4 NormalSamplerInfo;
+float2 NormalTextureSize;
+float4 OcclusionSamplerInfo;
+float2 OcclusionTextureSize;
+float4 EmissiveSamplerInfo;
+float2 EmissiveTextureSize;
+
 int DebugView;
 
 Texture2D BaseColorTexture;
@@ -192,6 +204,39 @@ float2 ApplyTextureTransform(float2 uv, float4 offsetScale, float rotation)
 	return rotated + offsetScale.xy;
 }
 
+float WrapTextureCoordinate(float coordinate, float wrapMode)
+{
+	if (wrapMode < 0.5)
+	{
+		return frac(coordinate);
+	}
+	else if (wrapMode < 1.5)
+	{
+		return saturate(coordinate);
+	}
+
+	float mirrored = frac(coordinate * 0.5);
+	return 1.0 - abs(mirrored * 2.0 - 1.0);
+}
+
+float2 ApplySamplerSettings(
+	float2 uv,
+	float4 samplerInfo,
+	float2 textureSize)
+{
+	uv.x = WrapTextureCoordinate(uv.x, samplerInfo.x);
+	uv.y = WrapTextureCoordinate(uv.y, samplerInfo.y);
+
+	if (samplerInfo.z > 0.5)
+	{
+		float2 clamped = clamp(uv, 0.0, 1.0);
+		float2 texelCenters = (floor(clamped * textureSize) + 0.5) / textureSize;
+		uv = min(texelCenters, (textureSize - 0.5) / textureSize);
+	}
+
+	return uv;
+}
+
 float4 GetBaseColor(
 	float2 texCoord,
 	float2 texCoord1,
@@ -202,6 +247,10 @@ float4 GetBaseColor(
 		baseColorUV,
 		BaseColorTransform,
 		BaseColorRotation);
+	baseColorUV = ApplySamplerSettings(
+		baseColorUV,
+		BaseColorSamplerInfo,
+		BaseColorTextureSize);
 
 	float4 baseColor = BaseColorFactor;
 
@@ -237,16 +286,28 @@ float4 ShadeSurface(
 		metallicRoughnessUV,
 		MetallicRoughnessTransform,
 		MetallicRoughnessRotation);
+	metallicRoughnessUV = ApplySamplerSettings(
+		metallicRoughnessUV,
+		MetallicRoughnessSamplerInfo,
+		MetallicRoughnessTextureSize);
 	float2 occlusionUV = UseUV1Occlusion > 0.5 ? texCoord1 : texCoord;
 	occlusionUV = ApplyTextureTransform(
 		occlusionUV,
 		OcclusionTransform,
 		OcclusionRotation);
+	occlusionUV = ApplySamplerSettings(
+		occlusionUV,
+		OcclusionSamplerInfo,
+		OcclusionTextureSize);
 	float2 emissiveUV = UseUV1Emissive > 0.5 ? texCoord1 : texCoord;
 	emissiveUV = ApplyTextureTransform(
 		emissiveUV,
 		EmissiveTransform,
 		EmissiveRotation);
+	emissiveUV = ApplySamplerSettings(
+		emissiveUV,
+		EmissiveSamplerInfo,
+		EmissiveTextureSize);
 
 	float metallic = MetallicFactor;
 	float roughness = RoughnessFactor;

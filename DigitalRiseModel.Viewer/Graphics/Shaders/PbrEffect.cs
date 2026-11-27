@@ -46,6 +46,16 @@ internal sealed class PbrEffect
 	private readonly EffectParameter? _occlusionRotation;
 	private readonly EffectParameter? _emissiveTransform;
 	private readonly EffectParameter? _emissiveRotation;
+	private readonly EffectParameter? _baseColorSamplerInfo;
+	private readonly EffectParameter? _baseColorTextureSize;
+	private readonly EffectParameter? _metallicRoughnessSamplerInfo;
+	private readonly EffectParameter? _metallicRoughnessTextureSize;
+	private readonly EffectParameter? _normalSamplerInfo;
+	private readonly EffectParameter? _normalTextureSize;
+	private readonly EffectParameter? _occlusionSamplerInfo;
+	private readonly EffectParameter? _occlusionTextureSize;
+	private readonly EffectParameter? _emissiveSamplerInfo;
+	private readonly EffectParameter? _emissiveTextureSize;
 	private readonly EffectParameter? _debugView;
 	private readonly EffectParameter? _baseColorTexture;
 	private readonly EffectParameter? _metallicRoughnessTexture;
@@ -101,6 +111,18 @@ internal sealed class PbrEffect
 		_occlusionRotation = _effect.Parameters["OcclusionRotation"];
 		_emissiveTransform = _effect.Parameters["EmissiveTransform"];
 		_emissiveRotation = _effect.Parameters["EmissiveRotation"];
+		_baseColorSamplerInfo = _effect.Parameters["BaseColorSamplerInfo"];
+		_baseColorTextureSize = _effect.Parameters["BaseColorTextureSize"];
+		_metallicRoughnessSamplerInfo =
+			_effect.Parameters["MetallicRoughnessSamplerInfo"];
+		_metallicRoughnessTextureSize =
+			_effect.Parameters["MetallicRoughnessTextureSize"];
+		_normalSamplerInfo = _effect.Parameters["NormalSamplerInfo"];
+		_normalTextureSize = _effect.Parameters["NormalTextureSize"];
+		_occlusionSamplerInfo = _effect.Parameters["OcclusionSamplerInfo"];
+		_occlusionTextureSize = _effect.Parameters["OcclusionTextureSize"];
+		_emissiveSamplerInfo = _effect.Parameters["EmissiveSamplerInfo"];
+		_emissiveTextureSize = _effect.Parameters["EmissiveTextureSize"];
 		_debugView = _effect.Parameters["DebugView"];
 		_baseColorTexture = FindTextureParameter(_effect, "BaseColorTexture");
 		_metallicRoughnessTexture = FindTextureParameter(_effect, "MetallicRoughnessTexture");
@@ -248,6 +270,26 @@ internal sealed class PbrEffect
 			_emissiveTransform,
 			_emissiveRotation,
 			material?.EmissiveTexture);
+		SetSamplerSettings(
+			_baseColorSamplerInfo,
+			_baseColorTextureSize,
+			material?.BaseColorTexture);
+		SetSamplerSettings(
+			_metallicRoughnessSamplerInfo,
+			_metallicRoughnessTextureSize,
+			material?.MetallicRoughnessTexture);
+		SetSamplerSettings(
+			_normalSamplerInfo,
+			_normalTextureSize,
+			material?.NormalTexture);
+		SetSamplerSettings(
+			_occlusionSamplerInfo,
+			_occlusionTextureSize,
+			material?.OcclusionTexture);
+		SetSamplerSettings(
+			_emissiveSamplerInfo,
+			_emissiveTextureSize,
+			material?.EmissiveTexture);
 		_baseColorTexture?.SetValue(baseColorTexture ?? fallbackTexture);
 		_metallicRoughnessTexture?.SetValue(metallicRoughnessTexture ?? fallbackTexture);
 		_normalTexture?.SetValue(normalTexture ?? fallbackTexture);
@@ -275,6 +317,38 @@ internal sealed class PbrEffect
 			transform.Scale.X,
 			transform.Scale.Y));
 		rotationParameter?.SetValue(transform.Rotation);
+	}
+
+	private static void SetSamplerSettings(
+		EffectParameter? samplerInfoParameter,
+		EffectParameter? textureSizeParameter,
+		DrTextureInfo? texture)
+	{
+		DrTextureSampler? sampler = texture?.Sampler;
+		TextureAddressMode addressU = sampler?.AddressU ?? TextureAddressMode.Wrap;
+		TextureAddressMode addressV = sampler?.AddressV ?? TextureAddressMode.Wrap;
+		bool pointFiltering = sampler?.PointFiltering ?? false;
+
+		samplerInfoParameter?.SetValue(new Vector4(
+			GetWrapCode(addressU),
+			GetWrapCode(addressV),
+			pointFiltering ? 1f : 0f,
+			0f));
+
+		Texture2D? texture2D = texture?.Texture;
+		textureSizeParameter?.SetValue(new Vector2(
+			texture2D?.Width ?? 1,
+			texture2D?.Height ?? 1));
+	}
+
+	private static float GetWrapCode(TextureAddressMode addressMode)
+	{
+		return addressMode switch
+		{
+			TextureAddressMode.Clamp => 1f,
+			TextureAddressMode.Mirror => 2f,
+			_ => 0f
+		};
 	}
 
 	private static EffectParameter? FindTextureParameter(Effect effect, string textureName)

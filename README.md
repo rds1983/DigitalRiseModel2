@@ -50,7 +50,7 @@ dotnet test DigitalRiseModel.MonoGame.sln
 
 ## Metrics
 
-60 C# files, 9,267 lines (7,015 code), 245.4 KB. 20 public types, 147 tests.
+61 C# files, 9,470 lines (7,182 code), 251.7 KB. 21 public types, 148 tests.
 
 ## License
 

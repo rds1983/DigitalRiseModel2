@@ -58,6 +58,7 @@ This fills `DrModelMeshPart.SourceIndices` and `DrModelMeshPart.SourceVertices`;
 - `KHR_materials_emissive_strength` as `DrMaterial.EmissiveStrength`.
 - `KHR_materials_unlit` as `DrMaterial.Unlit`.
 - `KHR_texture_transform` as `DrTextureInfo.TextureTransform`, including the `texCoord` override.
+- glTF sampler wrap/filter settings as `DrTextureInfo.Sampler`.
 - Textures as `Texture2D` in `DrTextureInfo.Texture`.
 - Node skins as `DrSkin`, assigned to the parts of that node's mesh.
 - Animation clips as `AnimationClip` instances in `DrModel.Animations`.
