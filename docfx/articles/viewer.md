@@ -53,7 +53,7 @@ Three panels overlay the scene:
 
 - Top left: camera and exit hints.
 - Top right: smoothed FPS, frame time, draw calls (including post-processing) and triangle count.
-- Bottom right: FXAA, bloom and exposure, initialized from `--fxaa`/`--no-fxaa`, `--bloom` and `--exposure`, plus a **Show bounding spheres** toggle that draws each mesh part's bounding sphere as a yellow wireframe. This is useful for checking exported bounds against the visible geometry.
+- Bottom right: FXAA, bloom and exposure, initialized from `--fxaa`/`--no-fxaa`, `--bloom` and `--exposure`, plus two overlays. **Show bounding spheres** draws each mesh part's bounding sphere as a yellow wireframe. **Show skeleton** draws the bone hierarchy as a cyan wireframe, with a line from each bone to its parent and a marker at every joint; it is drawn over the shaded scene so bones inside the mesh stay visible. Both are useful for checking exported data against the visible geometry.
 
 ## Animation panel
 

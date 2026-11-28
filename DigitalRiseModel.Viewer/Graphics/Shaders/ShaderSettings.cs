@@ -21,4 +21,9 @@ internal sealed class ShaderSettings
 	/// Gets or sets whether mesh part bounding spheres are drawn as wireframes.
 	/// </summary>
 	public bool ShowBoundingSpheres { get; set; }
+
+	/// <summary>
+	/// Gets or sets whether the bone hierarchy is drawn as a skeleton overlay.
+	/// </summary>
+	public bool ShowSkeleton { get; set; }
 }

@@ -28,6 +28,11 @@ internal sealed class Renderer : IDisposable
 
 	private static readonly Vector3 BoundingSphereColor = new(1f, 0.85f, 0.1f);
 
+	private static readonly Vector3 SkeletonColor = new(0.35f, 0.85f, 1f);
+
+	/// <summary>Axis-aligned line segments used for each joint marker.</summary>
+	private const int SkeletonMarkerLines = 3;
+
 	/// <summary>
 	/// Depth-tests bounding spheres against the scene but never writes depth, so the
 	/// overlay does not affect the shaded result or other overlays.
@@ -54,6 +59,10 @@ internal sealed class Renderer : IDisposable
 	private DrModelMeshPart? _boundsSphere;
 	private Matrix _boundsView;
 	private Matrix _boundsProjection;
+
+	private VertexPosition[] _skeletonVertices = [];
+	private Vector3[] _skeletonPositions = [];
+	private VertexBuffer? _skeletonVertexBuffer;
 
 	private static readonly Comparison<RenderItem> OpaqueComparison =
 		CompareOpaque;
@@ -500,6 +509,207 @@ internal sealed class Renderer : IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Draws the skeleton as a wireframe: a line from each bone to its parent and a small axis
+	/// marker at every joint, using the instance's current pose.
+	/// </summary>
+	/// <remarks>
+	/// When the model has skins, only bones that participate in a skin are drawn. glTF exporters
+	/// often park the armature root at the model origin, so drawing it would add a spurious line
+	/// from the ground to the pelvis. Models without skins fall back to the full bone hierarchy,
+	/// which covers rigid node-animated scenes.
+	/// </remarks>
+	public void DrawSkeleton(DrModelInstance instance)
+	{
+		ArgumentNullException.ThrowIfNull(instance);
+
+		EnsureFrameOpen();
+
+		DrModelBone[] bones = instance.Model.Bones;
+		Matrix[] absoluteBoneTransforms = instance.AbsoluteBoneTransforms;
+
+		if (bones.Length == 0)
+		{
+			return;
+		}
+
+		HashSet<DrModelBone>? joints = CollectSkinJoints(instance.Model);
+
+		Vector3[] positions = GetSkeletonPositions(bones.Length);
+
+		for (int i = 0; i < bones.Length; i++)
+		{
+			positions[i] = absoluteBoneTransforms[i].Translation;
+		}
+
+		float markerScale = GetSkeletonMarkerScale(positions, bones.Length);
+
+		// One line to each parent plus three axis lines per joint marker.
+		int vertexCount = (bones.Length * (1 + SkeletonMarkerLines)) * 2;
+
+		if (_skeletonVertices.Length < vertexCount)
+		{
+			_skeletonVertices = new VertexPosition[vertexCount];
+		}
+
+		int count = 0;
+
+		for (int i = 0; i < bones.Length; i++)
+		{
+			DrModelBone bone = bones[i];
+			DrModelBone? parent = bone.Parent;
+
+			if (parent is null
+				|| (uint)parent.Index >= (uint)absoluteBoneTransforms.Length
+				|| !IsSkeletonBone(bone, joints)
+				|| !IsSkeletonBone(parent, joints))
+			{
+				continue;
+			}
+
+			_skeletonVertices[count++] = new VertexPosition(positions[i]);
+			_skeletonVertices[count++] = new VertexPosition(positions[parent.Index]);
+		}
+
+		for (int i = 0; i < bones.Length; i++)
+		{
+			if (!IsSkeletonBone(bones[i], joints))
+			{
+				continue;
+			}
+
+			count = AddJointMarker(_skeletonVertices, count, positions[i], markerScale);
+		}
+
+		if (count == 0)
+		{
+			return;
+		}
+
+		_device.BlendState = BlendState.Opaque;
+		// Bones sit inside the mesh, so the skeleton is drawn over the shaded scene.
+		_device.DepthStencilState = DepthStencilState.None;
+		_device.RasterizerState = RasterizerState.CullNone;
+
+		_boundsEffect.VertexColorEnabled = false;
+		_boundsEffect.DiffuseColor = SkeletonColor;
+		_boundsEffect.LightingEnabled = false;
+		_boundsEffect.TextureEnabled = false;
+		_boundsEffect.World = Matrix.Identity;
+		_boundsEffect.View = _boundsView;
+		_boundsEffect.Projection = _boundsProjection;
+
+		if (_skeletonVertexBuffer is null
+			|| _skeletonVertexBuffer.VertexCount < _skeletonVertices.Length)
+		{
+			_skeletonVertexBuffer?.Dispose();
+			_skeletonVertexBuffer = new VertexBuffer(
+				_device,
+				VertexPosition.VertexDeclaration,
+				_skeletonVertices.Length,
+				BufferUsage.WriteOnly);
+		}
+
+		_skeletonVertexBuffer.SetData(_skeletonVertices, 0, count);
+		_device.SetVertexBuffer(_skeletonVertexBuffer);
+		_device.Indices = null;
+
+		foreach (EffectPass pass in _boundsEffect.CurrentTechnique.Passes)
+		{
+			pass.Apply();
+			_device.DrawPrimitives(PrimitiveType.LineList, 0, count / 2);
+			Statistics.AddDrawCall();
+		}
+	}
+
+	/// <summary>
+	/// Collects every bone that takes part in a skin, or <see langword="null"/> when the model
+	/// has no skins so the caller can fall back to the whole hierarchy.
+	/// </summary>
+	private static HashSet<DrModelBone>? CollectSkinJoints(DrModel model)
+	{
+		HashSet<DrModelBone>? joints = null;
+
+		foreach (DrModelMesh mesh in model.Meshes)
+		{
+			foreach (DrModelMeshPart part in mesh.MeshParts)
+			{
+				if (part.Skin is not { Joints.Length: > 0 } skin)
+				{
+					continue;
+				}
+
+				joints ??= [];
+
+				foreach (DrSkinJoint joint in skin.Joints)
+				{
+					joints.Add(joint.Bone);
+				}
+			}
+		}
+
+		return joints;
+	}
+
+	private static bool IsSkeletonBone(
+		DrModelBone bone,
+		HashSet<DrModelBone>? joints)
+	{
+		return joints is null || joints.Contains(bone);
+	}
+
+	/// <summary>
+	/// Writes three axis-aligned line segments centered on <paramref name="center"/> starting
+	/// at <paramref name="offset"/> and returns the new vertex count.
+	/// </summary>
+	private static int AddJointMarker(
+		VertexPosition[] vertices,
+		int offset,
+		Vector3 center,
+		float scale)
+	{
+		vertices[offset++] = new VertexPosition(center - Vector3.UnitX * scale);
+		vertices[offset++] = new VertexPosition(center + Vector3.UnitX * scale);
+		vertices[offset++] = new VertexPosition(center - Vector3.UnitY * scale);
+		vertices[offset++] = new VertexPosition(center + Vector3.UnitY * scale);
+		vertices[offset++] = new VertexPosition(center - Vector3.UnitZ * scale);
+		vertices[offset++] = new VertexPosition(center + Vector3.UnitZ * scale);
+		return offset;
+	}
+
+	private Vector3[] GetSkeletonPositions(int boneCount)
+	{
+		if (_skeletonPositions.Length < boneCount)
+		{
+			_skeletonPositions = new Vector3[boneCount];
+		}
+
+		return _skeletonPositions;
+	}
+
+	/// <summary>
+	/// Sizes the joint markers from the skeleton extent so they read at any model scale.
+	/// </summary>
+	private static float GetSkeletonMarkerScale(Vector3[] positions, int count)
+	{
+		if (count == 0)
+		{
+			return 0.02f;
+		}
+
+		var min = new Vector3(float.MaxValue);
+		var max = new Vector3(float.MinValue);
+
+		for (int i = 0; i < count; i++)
+		{
+			min = Vector3.Min(min, positions[i]);
+			max = Vector3.Max(max, positions[i]);
+		}
+
+		float extent = (max - min).Length();
+		return extent > 1e-6f ? extent * 0.01f : 0.02f;
+	}
+
 	public void EndFrame()
 	{
 		EnsureFrameOpen();
@@ -540,6 +750,7 @@ internal sealed class Renderer : IDisposable
 	public void Dispose()
 	{
 		_boundsSphere?.Dispose();
+		_skeletonVertexBuffer?.Dispose();
 		_boundsEffect.Dispose();
 		_fallbackTexture.Dispose();
 		_ibl.Dispose();

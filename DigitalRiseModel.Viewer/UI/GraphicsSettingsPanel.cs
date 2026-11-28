@@ -22,6 +22,7 @@ namespace DigitalRiseModel.Viewer.UI
 			_bloomSlider.Value = settings.BloomIntensity;
 			_exposureSlider.Value = settings.Exposure;
 			_boundingSpheresCheck.IsChecked = settings.ShowBoundingSpheres;
+			_skeletonCheck.IsChecked = settings.ShowSkeleton;
 			UpdateLabels();
 
 			_fxaaCheck.IsCheckedChanged += (_, _) =>
@@ -32,6 +33,8 @@ namespace DigitalRiseModel.Viewer.UI
 				SetExposure(args.NewValue);
 			_boundingSpheresCheck.IsCheckedChanged += (_, _) =>
 				_settings.ShowBoundingSpheres = _boundingSpheresCheck.IsChecked;
+			_skeletonCheck.IsCheckedChanged += (_, _) =>
+				_settings.ShowSkeleton = _skeletonCheck.IsChecked;
 		}
 
 		private void SetBloom(float value)

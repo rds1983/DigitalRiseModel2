@@ -17,5 +17,8 @@
     <CheckButton Id="_boundingSpheresCheck">
       <Label Text="Show bounding spheres" />
     </CheckButton>
+    <CheckButton Id="_skeletonCheck">
+      <Label Text="Show skeleton" />
+    </CheckButton>
   </VerticalStackPanel>
 </Project>

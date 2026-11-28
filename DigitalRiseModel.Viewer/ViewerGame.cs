@@ -174,6 +174,11 @@ internal sealed class ViewerGame : Game
 				{
 					_renderer.DrawBoundingSpheres(_instance!);
 				}
+
+				if (_renderer.Settings.ShowSkeleton)
+				{
+					_renderer.DrawSkeleton(_instance!);
+				}
 			}
 			finally
 			{
