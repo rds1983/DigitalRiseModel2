@@ -28,7 +28,7 @@ internal sealed class ViewerGame : Game
 	private DrModel? _model;
 	private DrModelInstance? _instance;
 	private AnimationController? _animation;
-	private Renderer? _renderer;
+	private SceneRenderer? _renderer;
 	private Desktop? _desktop;
 	private AnimationPanel? _animationPanel;
 	private GraphicsSettingsPanel? _graphicsSettingsPanel;
@@ -95,7 +95,7 @@ internal sealed class ViewerGame : Game
 		_animation = new AnimationController(_instance);
 
 		_content = new ContentManager(Services, "Content");
-		_renderer = new Renderer(GraphicsDevice, _instance, _content);
+		_renderer = new SceneRenderer(GraphicsDevice, _instance, _content);
 		_renderer.Settings.DebugView = _debugView;
 		_renderer.Settings.Exposure = _exposure;
 		_renderer.Settings.BloomIntensity = _bloom;
@@ -217,7 +217,7 @@ internal sealed class ViewerGame : Game
 			: 0.0;
 
 		_statsLabel.Text = FormattableString.Invariant(
-			$"{fps:0.0} FPS  {_smoothedFrameTimeMs:0.0} ms\nDraw calls: {drawCalls}\nTriangles: {triangles:N0}");
+			$"{fps:0.0} FPS  {_smoothedFrameTimeMs:0.0} ms\nScene draws: {drawCalls}\nTriangles: {triangles:N0}");
 	}
 
 	private void SaveScreenshot(string path)
@@ -294,7 +294,7 @@ internal sealed class ViewerGame : Game
 
 		_statsLabel = new Label
 		{
-			Text = "0.0 FPS  0.0 ms\nDraw calls: 0\nTriangles: 0"
+			Text = "0.0 FPS  0.0 ms\nScene draws: 0\nTriangles: 0"
 		};
 
 		var statsPanel = new VerticalStackPanel

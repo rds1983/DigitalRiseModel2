@@ -31,6 +31,11 @@ internal sealed class PostProcessor : IDisposable
 	private int _debugViewValue;
 	private bool _fxaaEnabled;
 
+	/// <summary>
+	/// Number of full-screen passes issued by the last <see cref="Draw"/> call.
+	/// </summary>
+	public int DrawCalls { get; private set; }
+
 	public PostProcessor(GraphicsDevice device, ContentManager content)
 	{
 		ArgumentNullException.ThrowIfNull(device);
@@ -123,6 +128,7 @@ internal sealed class PostProcessor : IDisposable
 	/// </summary>
 	public void Draw()
 	{
+		DrawCalls = 0;
 		_sceneTexture?.SetValue(SceneTarget);
 		_bloomTexture?.SetValue(_bloomTargetA ?? SceneTarget);
 
@@ -206,6 +212,7 @@ internal sealed class PostProcessor : IDisposable
 		{
 			pass.Apply();
 			_device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
+			++DrawCalls;
 		}
 	}
 

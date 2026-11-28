@@ -32,7 +32,7 @@ dotnet run --project DigitalRiseModel.Viewer -- "path/to/model.glb"
 
 The built executable is `drm-viewer`. Left-drag orbits, the mouse wheel zooms and Escape exits. Animated models play their first clip automatically. The animation panel selects clips, controls play/pause/stop, seeks time, toggles looping and reverse playback, and adjusts speed. A graphics panel exposes FXAA, bloom and exposure based on the matching command-line arguments.
 
-`Samples/SimpleViewer` is a stock-effect reference viewer built from the same code. The viewer always renders through the custom metallic-roughness shader with a three-point studio light rig and image-based lighting, normal, occlusion and emissive maps, vertex colors, alpha mask/blend and double-sided materials. The scene renders to an HDR target and is resolved with exposure, ACES tone mapping and gamma. `--bloom <intensity>` adds optional HDR bloom and `--fxaa` enables FXAA. A stats panel shows FPS, frame time, draw calls and triangles. `--debug-view` and `--exposure` inspect the PBR channels, `F3` cycles debug views, and `--screenshot <file>` captures a frame.
+`Samples/SimpleViewer` is a stock-effect reference viewer built from the same code. The viewer always renders through the custom metallic-roughness shader with a three-point studio light rig and image-based lighting, normal, occlusion and emissive maps, vertex colors, alpha mask/blend and double-sided materials. The scene renders to an HDR target and is resolved with exposure, ACES tone mapping and gamma. `--bloom <intensity>` adds optional HDR bloom and `--fxaa` enables FXAA. A stats panel shows FPS, frame time, scene draw calls and triangles. `--debug-view` and `--exposure` inspect the PBR channels, `F3` cycles debug views, and `--screenshot <file>` captures a frame.
 
 ## Shader support
 
@@ -71,7 +71,7 @@ dotnet test DigitalRiseModel.MonoGame.sln
 
 ## Metrics
 
-63 C# files, 9,929 lines (7,567 code), 263 KB. 21 public types, 148 tests.
+64 C# files, 10,021 lines (7,617 code), 265.1 KB. 21 public types, 148 tests.
 
 ## License
 
