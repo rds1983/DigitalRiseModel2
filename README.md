@@ -64,6 +64,7 @@ dotnet test DigitalRiseModel.MonoGame.sln
 - [Loading glTF](docfx/articles/gltf-loading.md)
 - [Model data](docfx/articles/model-data.md)
 - [Viewer and shaders](docfx/articles/viewer.md)
+- [Shader validation](docfx/articles/shader-validation.md)
 - [Agent instructions](AGENTS.md)
 
 ## Metrics

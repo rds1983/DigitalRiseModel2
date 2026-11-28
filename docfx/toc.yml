@@ -8,5 +8,7 @@
   href: articles/gltf-loading.md
 - name: Viewer
   href: articles/viewer.md
+- name: Shader validation
+  href: articles/shader-validation.md
 - name: API reference
   href: api/DigitalRiseModel.yml
