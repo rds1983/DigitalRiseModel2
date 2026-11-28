@@ -8,5 +8,3 @@
   href: gltf-loading.md
 - name: Viewer
   href: viewer.md
-- name: Shader validation
-  href: shader-validation.md

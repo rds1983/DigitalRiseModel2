@@ -12,9 +12,7 @@ dotnet tool install --global DigitalRiseModel.Viewer --add-source artifacts
 drm-viewer "path/to/model.glb"
 ```
 
-`Samples/SimpleViewer` is a stock-effect reference viewer. It mirrors the main viewer while the main viewer gains the custom shader system.
-
-Command-line options:
+## Command-line options
 
 - `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion`, `emissive`, `diffuse`, `specular`, `ibldiffuse` or `iblspecular`.
 - `--exposure <value>` — set the shaded-output exposure scale.
@@ -22,37 +20,22 @@ Command-line options:
 - `--fxaa` / `--no-fxaa` — enable or disable FXAA (enabled by default).
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
 
-The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma. `Samples/SimpleViewer` remains the stock-effect reference.
-
-`F3` cycles PBR debug views and updates the window title. A top-right stats panel shows smoothed FPS, frame time, draw calls (including post-processing) and triangle count. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from `--fxaa`/`--no-fxaa`, `--bloom` and `--exposure`.
-
 ## Controls
 
 - Left-drag: orbit the camera.
 - Mouse wheel: zoom.
 - Escape: exit.
+- `F3`: cycle PBR debug views and update the window title.
 
 Camera orbit and zoom are ignored while the mouse is over a UI panel.
 
+The viewer always renders through the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma.
+
+A top-right stats panel shows smoothed FPS, frame time, draw calls (including post-processing) and triangle count. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from `--fxaa`/`--no-fxaa`, `--bloom` and `--exposure`.
+
+## Animation panel
+
 The animation panel appears only when the model has animations. It selects a clip, plays/pauses/stops playback, seeks through the current clip, toggles looping and reverse playback, and adjusts playback speed. Animated models start with their first clip selected and playing automatically.
-
-## Rendering
-
-The viewer loads assets through `AssetManager.LoadDrModel`, so external buffers and textures resolve relative to the model file.
-
-Low-level rendering is isolated in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`:
-
-- It owns the cached PBR effects, IBL resources, device state and draw queues.
-- `Pbr.fx` variants handle static, skinned, vertex-color, normal-mapped and unlit parts.
-- `DrMaterial` supplies metallic-roughness values, texture references, texture transforms, sampler settings and alpha state.
-- A three-point studio rig provides direct lighting; procedural cubemap IBL provides diffuse and prefiltered specular lighting.
-- The scene renders to an HDR target and resolves with exposure, ACES tone mapping, gamma, optional bloom and optional FXAA.
-- Opaque parts sort front-to-back; blended parts sort back-to-front. Static parts are frustum-culled.
-- glTF winding is normalized using the node global-transform determinant and drawn with `CullCounterClockwise`; double-sided materials use `CullNone`.
-
-`ViewerGame` owns model loading, camera input, bounds and the Myra UI. The camera frames the merged model bounds on startup.
-
-Custom shader content is built through `DigitalRiseModel.Viewer/Content/Content.mgcb`.
 
 ## Supported features and limitations
 
@@ -69,41 +52,8 @@ Not implemented:
 - Normal maps require authored `TANGENT` attributes; tangent generation is not implemented.
 - Shadows and HDR environment loading are not available.
 - Transparent parts are sorted per part; skinned parts are not frustum-culled.
-- Bloom is initialized from `--bloom` and FXAA is enabled by default; the graphics panel adjusts both at runtime.
 
-## Troubleshooting
+## Related
 
-### Shader compilation
-
-- The DesktopGL effect compiler accepts SM 3.0 shaders (`vs_3_0` / `ps_3_0`). SM 4-only intrinsics fail to compile.
-- MGCB does not prune stale `.xnb` files. After renaming effect outputs, delete `Content/bin`, `Content/obj` and the viewer output `Content` folder.
-- `TEXTURE_SETTINGS` doubles the PBR variant set. Full content rebuilds can take several minutes.
-
-### Color and brightness
-
-- Base color and emissive textures are sRGB and are linearized in the shader. Normal, metallic-roughness and occlusion textures remain linear.
-- Rendering is HDR/linear; exposure, ACES tone mapping and gamma are applied only by the post-process pass. Do not apply gamma again in material shaders.
-- Debug views bypass tone mapping, so their brightness is not representative of the shaded output.
-- Bloom starts from `--bloom`, and FXAA is on by default; both can be changed in the graphics panel.
-
-## UI panels
-
-The overlay is Myra UI defined in `DigitalRiseModel.Viewer/UI/*.xmmp`:
-
-- `ControlsPanel` shows camera and exit hints.
-- `AnimationPanel` provides clip selection, playback buttons, time and speed sliders, plus loop and reverse-playback toggles.
-
-Regenerate a panel after editing its `.xmmp`:
-
-```bash
-myra-export DigitalRiseModel.Viewer/UI/AnimationPanel.xmmp \
-  --namespace DigitalRiseModel.Viewer.UI \
-  --class AnimationPanel \
-  --output DigitalRiseModel.Viewer/UI
-```
-
-Only `*.Generated.cs` is overwritten by the exporter. Keep event handlers and other custom behavior in the companion `.cs` file.
-
-`ViewerGame` hosts both panels on a Myra `Desktop`.
-
-The viewer uses the library's dynamic vertex declarations directly with the stock effects.
+- `Samples/SimpleViewer` is a stock-effect reference viewer built from the same code.
+- `Samples/PrimitivesDemo` shows the primitives without any asset files.
