@@ -107,9 +107,11 @@ public sealed class DrModelInstance
 	}
 
 	/// <summary>
-	/// Gets the bounding sphere of the model instance in its current pose. Mesh bounding
-	/// spheres are transformed by their parent bones' absolute transforms and merged.
-	/// The sphere is recalculated when queried after a local transform change.
+	/// Gets the bounding sphere of the model instance in its current pose. Static mesh
+	/// bounding spheres are transformed by their parent bones' absolute transforms and
+	/// merged. Skinned meshes use their own bounds because glTF skinning ignores the
+	/// mesh node transform. The sphere is recalculated when queried after a local
+	/// transform change.
 	/// </summary>
 	/// <exception cref="InvalidOperationException">
 	/// A parent bone appears after its child in <see cref="DrModel.Bones"/>.
@@ -202,10 +204,14 @@ public sealed class DrModelInstance
 
 		foreach (DrModelMesh mesh in Model.Meshes)
 		{
-			Matrix meshTransform = mesh.ParentBone is { } parentBone
-				&& (uint)parentBone.Index < (uint)_absoluteBoneTransforms.Length
-				? _absoluteBoneTransforms[parentBone.Index]
-				: Matrix.Identity;
+			Matrix meshTransform = Matrix.Identity;
+
+			if (!IsSkinned(mesh)
+				&& mesh.ParentBone is { } parentBone
+				&& (uint)parentBone.Index < (uint)_absoluteBoneTransforms.Length)
+			{
+				meshTransform = _absoluteBoneTransforms[parentBone.Index];
+			}
 
 			BoundingSphere sphere = mesh.BoundingSphere.Transform(meshTransform);
 
@@ -216,6 +222,19 @@ public sealed class DrModelInstance
 		}
 
 		return result;
+	}
+
+	private static bool IsSkinned(DrModelMesh mesh)
+	{
+		foreach (DrModelMeshPart part in mesh.MeshParts)
+		{
+			if (part.Skin is not null)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private void UpdateAbsoluteBoneTransforms()

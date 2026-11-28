@@ -177,6 +177,31 @@ public sealed class DrModelInstanceTests
 	}
 
 	[Fact]
+	public void BoundingSphere_SkinnedMesh_IgnoresParentBoneTransform()
+	{
+		var root = new DrModelBone("Root")
+		{
+			Transform = Matrix.CreateScale(0.01f)
+		};
+		var part = new DrModelMeshPart
+		{
+			BoundingSphere = new BoundingSphere(new Vector3(0, 1, 0), 1f),
+			Skin = new DrSkin(0)
+			{
+				Joints = [new DrSkinJoint(root, Matrix.Identity)]
+			}
+		};
+		root.Mesh = new DrModelMesh([part]);
+
+		var instance = new DrModelInstance(new DrModel(root));
+
+		BoundingSphere bounds = instance.BoundingSphere;
+
+		Assert.Equal(new Vector3(0, 1, 0), bounds.Center);
+		Assert.Equal(1f, bounds.Radius);
+	}
+
+	[Fact]
 	public void GetSkinTransforms_ReturnsInverseBindTimesAbsoluteTransform()
 	{
 		var instance = new DrModelInstance(CreateSkinnedModel(
