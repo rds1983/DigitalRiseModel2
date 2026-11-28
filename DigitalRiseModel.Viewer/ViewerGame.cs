@@ -31,6 +31,7 @@ internal sealed class ViewerGame : Game
 	private Renderer? _renderer;
 	private Desktop? _desktop;
 	private AnimationPanel? _animationPanel;
+	private GraphicsSettingsPanel? _graphicsSettingsPanel;
 	private ContentManager? _content;
 	private ShaderHotReload? _shaderHotReload;
 	private KeyboardState _previousKeyboard;
@@ -309,6 +310,7 @@ internal sealed class ViewerGame : Game
 		_content = null;
 
 		_animationPanel = null;
+		_graphicsSettingsPanel = null;
 		_animation = null;
 		_instance = null;
 
@@ -337,6 +339,14 @@ internal sealed class ViewerGame : Game
 		};
 
 		root.Widgets.Add(controlsPanel);
+
+		_graphicsSettingsPanel = new GraphicsSettingsPanel(_renderer!.Settings)
+		{
+			HorizontalAlignment = HorizontalAlignment.Right,
+			VerticalAlignment = VerticalAlignment.Bottom,
+			Margin = new Thickness(8)
+		};
+		root.Widgets.Add(_graphicsSettingsPanel);
 
 		_statsLabel = new Label
 		{

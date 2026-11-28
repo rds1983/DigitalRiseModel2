@@ -1,0 +1,18 @@
+<Project>
+  <VerticalStackPanel Spacing="4" Padding="8" Background="Black" Width="320">
+    <Label Text="Graphics" TextColor="White" />
+    <CheckButton Id="_fxaaCheck">
+      <Label Text="FXAA" />
+    </CheckButton>
+    <HorizontalStackPanel Spacing="4">
+      <Label Text="Bloom" TextColor="White" />
+      <Label Id="_bloomLabel" Text="0.00" TextColor="White" />
+    </HorizontalStackPanel>
+    <HorizontalSlider Id="_bloomSlider" />
+    <HorizontalStackPanel Spacing="4">
+      <Label Text="Exposure" TextColor="White" />
+      <Label Id="_exposureLabel" Text="1.00" TextColor="White" />
+    </HorizontalStackPanel>
+    <HorizontalSlider Id="_exposureSlider" />
+  </VerticalStackPanel>
+</Project>
