@@ -24,7 +24,7 @@ Command-line options:
 
 The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma. `Samples/SimpleViewer` remains the stock-effect reference.
 
-`F3` cycles PBR debug views and updates the window title. A top-right stats panel shows smoothed FPS, frame time, scene draw calls and triangle count. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from `--fxaa`, `--bloom` and `--exposure`.
+`F3` cycles PBR debug views and updates the window title. A top-right stats panel shows smoothed FPS, frame time, draw calls and triangle count. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from `--fxaa`, `--bloom` and `--exposure`.
 
 ## Controls
 
@@ -42,9 +42,7 @@ The viewer loads assets through `AssetManager.LoadDrModel`, so external buffers 
 
 Low-level rendering is isolated in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`:
 
-- It owns the HDR scene target, post-process passes, device state and draw statistics.
-- `DrawMeshPart(part, effect, transform)` draws one part with a caller-supplied effect and world transform; skin transforms and other effect state are set by the caller.
-- `SceneRenderer` selects PBR variants from vertex layout and material features, owns the effect cache, IBL resources, lights and settings, and performs culling and draw sorting.
+- It owns the cached PBR effects, IBL resources, device state and draw queues.
 - `Pbr.fx` variants handle static, skinned, vertex-color, normal-mapped and unlit parts.
 - `DrMaterial` supplies metallic-roughness values, texture references, texture transforms, sampler settings and alpha state.
 - A three-point studio rig provides direct lighting; procedural cubemap IBL provides diffuse and prefiltered specular lighting.
