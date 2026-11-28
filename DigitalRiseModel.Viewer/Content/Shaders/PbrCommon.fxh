@@ -43,6 +43,9 @@ float OcclusionRotation;
 float4 EmissiveTransform;
 float EmissiveRotation;
 
+float UseTextureTransforms;
+float UseSamplerSettings;
+
 // x = wrap U (0 repeat, 1 clamp, 2 mirror), y = wrap V, z = point filtering.
 float4 BaseColorSamplerInfo;
 float2 BaseColorTextureSize;
@@ -222,14 +225,21 @@ float4 GetBaseColor(
 	float4 vertexColor)
 {
 	float2 baseColorUV = UseUV1BaseColor > 0.5 ? texCoord1 : texCoord;
-	baseColorUV = ApplyTextureTransform(
-		baseColorUV,
-		BaseColorTransform,
-		BaseColorRotation);
-	baseColorUV = ApplySamplerSettings(
-		baseColorUV,
-		BaseColorSamplerInfo,
-		BaseColorTextureSize);
+	if (UseTextureTransforms > 0.5)
+	{
+		baseColorUV = ApplyTextureTransform(
+			baseColorUV,
+			BaseColorTransform,
+			BaseColorRotation);
+	}
+
+	if (UseSamplerSettings > 0.5)
+	{
+		baseColorUV = ApplySamplerSettings(
+			baseColorUV,
+			BaseColorSamplerInfo,
+			BaseColorTextureSize);
+	}
 
 	float4 baseColor = BaseColorFactor;
 
@@ -261,32 +271,40 @@ float4 ShadeSurface(
 	}
 
 	float2 metallicRoughnessUV = UseUV1MetallicRoughness > 0.5 ? texCoord1 : texCoord;
-	metallicRoughnessUV = ApplyTextureTransform(
-		metallicRoughnessUV,
-		MetallicRoughnessTransform,
-		MetallicRoughnessRotation);
-	metallicRoughnessUV = ApplySamplerSettings(
-		metallicRoughnessUV,
-		MetallicRoughnessSamplerInfo,
-		MetallicRoughnessTextureSize);
 	float2 occlusionUV = UseUV1Occlusion > 0.5 ? texCoord1 : texCoord;
-	occlusionUV = ApplyTextureTransform(
-		occlusionUV,
-		OcclusionTransform,
-		OcclusionRotation);
-	occlusionUV = ApplySamplerSettings(
-		occlusionUV,
-		OcclusionSamplerInfo,
-		OcclusionTextureSize);
 	float2 emissiveUV = UseUV1Emissive > 0.5 ? texCoord1 : texCoord;
-	emissiveUV = ApplyTextureTransform(
-		emissiveUV,
-		EmissiveTransform,
-		EmissiveRotation);
-	emissiveUV = ApplySamplerSettings(
-		emissiveUV,
-		EmissiveSamplerInfo,
-		EmissiveTextureSize);
+
+	if (UseTextureTransforms > 0.5)
+	{
+		metallicRoughnessUV = ApplyTextureTransform(
+			metallicRoughnessUV,
+			MetallicRoughnessTransform,
+			MetallicRoughnessRotation);
+		occlusionUV = ApplyTextureTransform(
+			occlusionUV,
+			OcclusionTransform,
+			OcclusionRotation);
+		emissiveUV = ApplyTextureTransform(
+			emissiveUV,
+			EmissiveTransform,
+			EmissiveRotation);
+	}
+
+	if (UseSamplerSettings > 0.5)
+	{
+		metallicRoughnessUV = ApplySamplerSettings(
+			metallicRoughnessUV,
+			MetallicRoughnessSamplerInfo,
+			MetallicRoughnessTextureSize);
+		occlusionUV = ApplySamplerSettings(
+			occlusionUV,
+			OcclusionSamplerInfo,
+			OcclusionTextureSize);
+		emissiveUV = ApplySamplerSettings(
+			emissiveUV,
+			EmissiveSamplerInfo,
+			EmissiveTextureSize);
+	}
 
 	float metallic = MetallicFactor;
 	float roughness = RoughnessFactor;
