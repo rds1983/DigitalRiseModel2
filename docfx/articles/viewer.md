@@ -66,7 +66,7 @@ Supported:
 
 Not implemented:
 
-- `KHR_lights_punctual`, clearcoat/sheen/transmission, Basis Universal textures, Draco compression and morph targets.
+- `KHR_lights_punctual`, clearcoat/sheen/transmission, Basis Universal textures, Draco compression and morph targets. Clearcoat/sheen/transmission are deferred to a separate milestone.
 - Normal maps require authored `TANGENT` attributes; tangent generation is not implemented.
 - Shadows and HDR environment loading are not available.
 - Transparent parts are sorted per part; skinned parts are not frustum-culled.
