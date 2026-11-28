@@ -33,6 +33,7 @@ internal sealed class ViewerGame : Game
 	private AnimationPanel? _animationPanel;
 	private ContentManager? _content;
 	private FullscreenColorEffect? _shaderSmokeTest;
+	private ShaderHotReload? _shaderHotReload;
 	private KeyboardState _previousKeyboard;
 	private bool _showShaderSmokeTest;
 	private bool _screenshotCaptured;
@@ -104,6 +105,7 @@ internal sealed class ViewerGame : Game
 		_renderer.Settings.BloomIntensity = _bloom;
 		_renderer.Settings.EnableFxaa = _fxaa;
 		_shaderSmokeTest = new FullscreenColorEffect(GraphicsDevice, _content);
+		TryStartShaderHotReload();
 
 		CreateUI();
 		ResetCamera();
@@ -138,6 +140,11 @@ internal sealed class ViewerGame : Game
 
 		if (keyboard.IsKeyDown(Keys.F5)
 			&& _previousKeyboard.IsKeyUp(Keys.F5))
+		{
+			ReloadEffects();
+		}
+
+		if (_shaderHotReload?.ConsumeReloadRequest() == true)
 		{
 			ReloadEffects();
 		}
@@ -207,6 +214,20 @@ internal sealed class ViewerGame : Game
 		}
 
 		base.Draw(gameTime);
+	}
+
+	private void TryStartShaderHotReload()
+	{
+		try
+		{
+			_shaderHotReload = new ShaderHotReload();
+			Console.WriteLine("Shader hot reload enabled.");
+		}
+		catch (Exception exception)
+		{
+			_shaderHotReload = null;
+			Console.WriteLine($"Shader hot reload disabled: {exception.Message}");
+		}
 	}
 
 	private void ReloadEffects()
@@ -304,6 +325,9 @@ internal sealed class ViewerGame : Game
 
 		_shaderSmokeTest?.Dispose();
 		_shaderSmokeTest = null;
+
+		_shaderHotReload?.Dispose();
+		_shaderHotReload = null;
 
 		_content?.Dispose();
 		_content = null;

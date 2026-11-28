@@ -25,7 +25,7 @@ Command-line options:
 
 The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma. `Samples/SimpleViewer` remains the stock-effect reference.
 
-`F2` toggles the shader smoke test; `F3` cycles PBR debug views and updates the window title; `F5` reloads compiled effect binaries after a content rebuild. A top-right stats panel shows smoothed FPS, frame time, draw calls and triangle count.
+`F2` toggles the shader smoke test; `F3` cycles PBR debug views and updates the window title; `F5` reloads compiled effect binaries after a content rebuild. In a development checkout, shader source changes trigger an automatic MGCB rebuild and reload. A top-right stats panel shows smoothed FPS, frame time, draw calls and triangle count.
 
 ## Controls
 
