@@ -1,6 +1,8 @@
 # Loading glTF
 
-glTF 2.0 files are loaded through the recursive `AssetManager` loader. The public entry point is the `LoadDrModel` extension method:
+## How do I load a model?
+
+Create an `AssetManager`, then call `LoadDrModel` with a graphics device and a path relative to the manager root:
 
 ```csharp
 using AssetManagementBase;
@@ -10,7 +12,25 @@ var assets = AssetManager.CreateFileAssetManager("Content");
 DrModel model = assets.LoadDrModel(graphicsDevice, "models/robot.glb");
 ```
 
-The graphics device is required because the loader creates MonoGame buffers and textures. The loader itself is internal; use `AssetManager` for loading.
+That single call returns a fully loaded `DrModel`: bones, meshes, materials, textures, skins and animation clips. Nothing is drawn or animated yet; see [Animation](animation.md) for playback.
+
+The graphics device is required because the loader creates MonoGame vertex and index buffers and texture objects. The loader itself is internal; always go through `AssetManager`.
+
+### Do I need the graphics device?
+
+Yes, for `LoadDrModel`, because buffers and textures are created eagerly. Pass an `AssetManager` that resolves relative paths so `.bin` buffers and image files referenced by the model are found next to it.
+
+### How do I know which model a scene came from?
+
+`LoadDrModel` has an optional `sceneIndex` argument. Omit it to load the default scene, or pass an index to pick one from a multi-scene file:
+
+```csharp
+DrModel model = assets.LoadDrModel(graphicsDevice, "models/level.glb", sceneIndex: 2);
+```
+
+### Where do the textures go?
+
+Textures are loaded into `DrMaterial` texture slots as `Texture2D`, reachable through `DrTextureInfo.Texture`. Your renderer binds them; the library never does.
 
 ## Recursive assets
 

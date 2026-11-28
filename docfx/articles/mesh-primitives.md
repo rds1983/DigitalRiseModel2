@@ -1,6 +1,43 @@
 # Mesh primitives
 
-`MeshPrimitives` builds ready-to-render `DrModelMeshPart` objects for common shapes. Use it for prototypes, gizmos, collision debug shapes and test scenes when you do not want to author or load a model.
+## How do I create a shape without a model file?
+
+Call one of the `MeshPrimitives.Create*` methods with a graphics device. Each returns a `DrModelMeshPart` you can attach to a bone:
+
+```csharp
+using DigitalRiseModel;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+
+DrModelMeshPart part = MeshPrimitives.CreateSphere(graphicsDevice, radius: 1f);
+rootBone.Mesh = new DrModelMesh(new[] { part });
+```
+
+The part is ready to draw: buffers are uploaded, counts and bounds are filled. Assign a `DrMaterial` if you want it shaded, then draw it like any other mesh part.
+
+Use primitives for prototypes, gizmos, collision debug shapes and test scenes when you do not want to author or load a model.
+
+### Solid or wireframe?
+
+Every shape has a `*Lines` twin that returns the same geometry as a wireframe:
+
+```csharp
+DrModelMeshPart wireframe = MeshPrimitives.CreateBoxLines(graphicsDevice, Vector3.One);
+```
+
+### Which shape do I need?
+
+| Factory | Shape |
+| --- | --- |
+| `CreatePlane(device, width, depth, segmentsX = 1, segmentsZ = 1)` | Rectangle in the XZ plane facing +Y |
+| `CreateBox(device, size)` | Axis-aligned box with per-face normals and UVs |
+| `CreateSphere(device, radius, slices = 32, stacks = 16)` | UV sphere |
+| `CreateCylinder(device, radius, height, slices = 32)` | Y-aligned cylinder with flat caps |
+| `CreateCone(device, radius, height, slices = 32)` | Y-aligned cone, apex up, flat base |
+| `CreateCapsule(device, radius, height, slices = 32, stacks = 16)` | Cylinder plus two hemispherical caps |
+| `CreateTorus(device, majorRadius, minorRadius, majorSlices = 32, minorSlices = 16)` | Torus in the XZ plane |
+
+All primitives are centered on the origin and use Y as up.
 
 ## Requirements
 
@@ -12,20 +49,7 @@ Each factory needs a `GraphicsDevice` because it creates the vertex and index bu
 
 The library never draws. It fills the part and returns it; your renderer issues the draw call.
 
-## Create one part
-
-```csharp
-using DigitalRiseModel;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-
-DrModelMeshPart part = MeshPrimitives.CreateSphere(graphicsDevice, radius: 1f);
-
-var mesh = new DrModelMesh(new[] { part });
-rootBone.Mesh = mesh;
-```
-
-The returned part has these fields filled in:
+## The returned part
 
 | Member | Value |
 | --- | --- |
@@ -40,27 +64,13 @@ The returned part has these fields filled in:
 
 Because a part owns its buffers, dispose it (or its owning `DrModelMesh`) when you are done.
 
-## Available primitives
-
-All primitives are centered on the origin and use Y as up.
-
-| Factory | Shape |
-| --- | --- |
-| `CreatePlane(device, width, depth, segmentsX = 1, segmentsZ = 1)` | Rectangle in the XZ plane facing +Y |
-| `CreateBox(device, size)` | Axis-aligned box with per-face normals and UVs |
-| `CreateSphere(device, radius, slices = 32, stacks = 16)` | UV sphere |
-| `CreateCylinder(device, radius, height, slices = 32)` | Y-aligned cylinder with flat caps |
-| `CreateCone(device, radius, height, slices = 32)` | Y-aligned cone, apex up, flat base |
-| `CreateCapsule(device, radius, height, slices = 32, stacks = 16)` | Cylinder plus two hemispherical caps |
-| `CreateTorus(device, majorRadius, minorRadius, majorSlices = 32, minorSlices = 16)` | Torus in the XZ plane |
-
 `CreateCapsule` treats `height` as the total height including both caps, so it must be at least `2 * radius`. `CreateTorus` measures `majorRadius` to the center of the tube and `minorRadius` as the tube radius.
 
 Every factory validates its arguments: non-positive sizes and slice counts below the documented minimums throw `ArgumentOutOfRangeException`.
 
 ## Line primitives
 
-Every factory has a `*Lines` counterpart that returns the same shape as a wireframe:
+Every factory has a `*Lines` counterpart:
 
 | Lines factory | Solid factory |
 | --- | --- |

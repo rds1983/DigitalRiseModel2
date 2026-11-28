@@ -1,19 +1,91 @@
 # Animation
 
-The `DigitalRiseModel.Animation` namespace holds animation data and a single-clip player. Like the rest of the library it is data-only: clips are stored as keyframes, and applying a pose is up to `AnimationController` or your own code.
+## How do I animate a model?
+
+Three steps: load a model with animations, create a `DrModelInstance`, and drive an `AnimationController` from your update loop.
+
+```csharp
+using DigitalRiseModel;
+using DigitalRiseModel.Animation;
+
+// 1. Load. Clips arrive in model.Animations, keyed by name.
+DrModel model = assets.LoadDrModel(graphicsDevice, "models/robot.glb");
+
+// 2. One instance owns the pose.
+var instance = new DrModelInstance(model);
+
+// 3. Play a clip and advance it each frame.
+var animation = new AnimationController(instance);
+animation.Play("Walk");
+
+// In Update:
+animation.Update(gameTime.ElapsedGameTime);
+```
+
+That is the whole loop. The controller writes sampled poses into the instance's local bone transforms, and your renderer draws the instance as usual — if the mesh is skinned, pass `instance.GetSkinTransforms(skin.Index)` to your effect.
+
+```csharp
+// In Draw, for each skinned part:
+Matrix[] bones = instance.GetSkinTransforms(part.Skin.Index);
+```
+
+Nothing about the shared `DrModel` changes, so you can create as many instances as you like from one model, each with its own pose.
+
+### Which clips does my model have?
+
+```csharp
+foreach (string name in model.Animations.Keys)
+{
+    Console.WriteLine(name);
+}
+```
+
+`Play(name)` returns `false` when the name is missing, so guard on the result if the clip is optional:
+
+```csharp
+if (!animation.Play("Walk"))
+{
+    animation.Play(model.Animations.Keys.First());
+}
+```
+
+### How do I start at a specific frame or scrub?
+
+Use `Pause`, `Seek` and `Resume`. `Seek` clamps to the clip and applies that pose without changing play state, which is what a timeline slider needs:
+
+```csharp
+animation.Pause();
+animation.Seek(TimeSpan.FromSeconds(0.75));
+animation.Resume();
+```
+
+### How do I play once, or in reverse?
+
+```csharp
+animation.Loop = false;          // stop on the last frame instead of wrapping
+animation.PlayBackwards = true;  // play from the end to the start
+animation.Speed = 0.5f;          // half speed; must be non-negative
+```
+
+`Speed` combined with `PlayBackwards` gives reverse at any rate. `IsPlaying` becomes `false` when a non-looping clip reaches its end.
+
+### What if I don't want the controller?
+
+Sample the channels yourself and write the transforms wherever you like:
+
+```csharp
+foreach (AnimationChannel channel in clip.Channels)
+{
+    SrtTransform pose = channel.Sample(elapsed);
+    instance.SetLocalTransform(channel.BoneIndex, pose.ToMatrix());
+}
+```
+
+This is the same work the controller does. It is useful when you need blending, layering or a different time source.
 
 ## Animation data
 
 `DrModel.Animations` is a `Dictionary<string, AnimationClip>` keyed by clip name. Loaded glTF animations populate it; you can also build clips by hand.
-
-```csharp
-using DigitalRiseModel.Animation;
-
-foreach (var pair in model.Animations)
-{
-    Console.WriteLine($"{pair.Key}: {pair.Value.Duration:0.##}s, {pair.Value.Channels.Length} channels");
-}
-```
 
 ### AnimationClip
 
@@ -60,67 +132,41 @@ var channel = new AnimationChannel(
 };
 ```
 
-## Sampling poses
-
-`AnimationChannel.Sample(TimeSpan)` evaluates the channel without touching any model data:
+## Building a clip by hand
 
 ```csharp
-SrtTransform pose = channel.Sample(TimeSpan.FromSeconds(0.5f));
-Matrix local = pose.ToMatrix();
-```
-
-Sampling rules:
-
-- Times at or before the first keyframe return the first pose; times at or after the last return the last pose, so there is no clamping configuration to think about.
-- Between keyframes, each component interpolates with its own mode. `Step` holds the earlier value, `Linear` blends, and rotation uses shortest-path spherical interpolation.
-- `CubicSpline` channels are treated as linear at runtime: baked keyframes do not keep the cubic tangents. glTF cubic tracks are still converted correctly at load time.
-- Sampling a channel with no keyframes throws `InvalidOperationException`.
-
-A custom player can sample channels directly and write the result wherever it likes:
-
-```csharp
-foreach (AnimationChannel channel in clip.Channels)
+var clip = new AnimationClip
 {
-    SrtTransform pose = channel.Sample(elapsed);
-    instance.SetLocalTransform(channel.BoneIndex, pose.ToMatrix());
-}
-```
-
-## Playback
-
-`AnimationController` owns single-clip playback for one `DrModelInstance`. It records the current time and writes sampled poses into the instance's local transforms; shared `DrModel` data is never modified.
-
-```csharp
-using DigitalRiseModel.Animation;
-
-var instance = new DrModelInstance(model);
-var animation = new AnimationController(instance)
-{
-    Loop = true,
-    Speed = 1f
+    Name = "Bob",
+    Duration = 2f,
+    Channels = [channel]
 };
 
-if (animation.Play("Walk"))
-{
-    // In your update loop:
-    animation.Update(gameTime.ElapsedGameTime);
-}
+model.Animations["Bob"] = clip;
 ```
 
-### Playback state
+## Sampling rules
+
+`AnimationChannel.Sample(TimeSpan)` evaluates a channel:
+
+- Times at or before the first keyframe return the first pose; times at or after the last return the last pose, so there is no clamping configuration to think about.
+- Between keyframes, each component uses its own mode. `Step` holds the earlier value, `Linear` blends, and rotation uses shortest-path spherical interpolation.
+- `CubicSpline` channels are linear at runtime: baked keyframes do not keep the cubic tangents. glTF cubic tracks are still converted correctly at load time.
+- Sampling a channel with no keyframes throws `InvalidOperationException`.
+
+## Controller reference
+
+`AnimationController` owns single-clip playback for one `DrModelInstance`.
 
 | Member | Meaning |
 | --- | --- |
 | `Instance` | The animated `DrModelInstance`. |
 | `CurrentClip` | The active clip, or `null`. |
-| `Time` | Current time within the clip. |
-| `Duration` | Current clip's duration, or `TimeSpan.Zero`. |
+| `Time` / `Duration` | Current time and clip length. |
 | `IsPlaying` | `true` while the clip is advancing. |
 | `Loop` | Wrap at the ends. Defaults to `true`. |
 | `Speed` | Non-negative multiplier. Defaults to `1`. |
 | `PlayBackwards` | Reverse direction. Defaults to `false`. |
-
-### Methods
 
 | Method | Behavior |
 | --- | --- |
@@ -131,10 +177,6 @@ if (animation.Play("Walk"))
 | `Resume()` | Continues from the current time, restarting if the clip had finished. |
 | `Seek(TimeSpan time)` | Jumps to a clamped time and applies that pose without changing play state. |
 | `Stop()` | Clears the clip and restores the bind pose. |
-
-`speed` multiplies the elapsed time and `PlayBackwards` negates it, so `Speed = 2` with `PlayBackwards = true` plays at double speed in reverse. With `Loop = false`, playback stops at the last frame; with `Loop = true`, time wraps in either direction.
-
-Binding `Seek` to a slider and `Pause`/`Resume` to a button is enough to build a scrubber. `Samples/SimpleViewer` and the viewer both do this in their animation panel.
 
 ## glTF mapping
 

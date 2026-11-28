@@ -29,6 +29,14 @@
         "src": "."
       }
     ],
+    "resource": [
+      {
+        "files": [
+          "articles/images/**"
+        ],
+        "src": "."
+      }
+    ],
     "dest": "_site",
     "template": [
       "default",
