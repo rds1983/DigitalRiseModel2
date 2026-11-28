@@ -1,0 +1,7 @@
+<Project>
+  <VerticalStackPanel Spacing="4" Padding="8" Background="Black">
+    <Label Id="_fpsLabel" Text="0.0 FPS  0.0 ms" TextColor="White" />
+    <Label Id="_drawCallsLabel" Text="Draw calls: 0" TextColor="White" />
+    <Label Id="_trianglesLabel" Text="Triangles: 0" TextColor="White" />
+  </VerticalStackPanel>
+</Project>

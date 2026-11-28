@@ -8,7 +8,7 @@ namespace Character;
 /// Low-level 3D drawing service built on stock MonoGame effects. It owns no scene content:
 /// <see cref="DrModelMeshPart.Skin"/> selects <see cref="SkinnedEffect"/>, otherwise
 /// <see cref="BasicEffect"/>, mirroring the viewer's renderer. The same <see cref="BasicEffect"/>
-/// also draws the unskinned ground.
+/// also draws unskinned geometry such as the field.
 /// </summary>
 internal sealed class Renderer : IDisposable
 {
@@ -19,6 +19,7 @@ internal sealed class Renderer : IDisposable
 
 	private Matrix _view;
 	private Matrix _projection;
+	private bool _frameOpen;
 
 	public Renderer(GraphicsDevice device)
 	{
@@ -42,24 +43,85 @@ internal sealed class Renderer : IDisposable
 		_fallbackTexture.SetData([Color.White]);
 	}
 
-	public void SetCamera(Matrix view, Matrix projection)
+	/// <summary>
+	/// Gets the per-frame statistics. Reset by <see cref="BeginFrame"/>.
+	/// </summary>
+	public RenderStatistics Statistics { get; } = new();
+
+	/// <summary>
+	/// Starts a 3D frame. Must be paired with <see cref="EndFrame"/>.
+	/// </summary>
+	public void BeginFrame(Matrix view, Matrix projection)
 	{
+		if (_frameOpen)
+		{
+			throw new InvalidOperationException("A renderer frame is already open.");
+		}
+
+		Statistics.Reset();
+		_frameOpen = true;
 		_view = view;
 		_projection = projection;
 	}
 
+	public void EndFrame()
+	{
+		EnsureFrameOpen();
+		_frameOpen = false;
+	}
+
 	/// <summary>
-	/// Draws one mesh part with the effect that matches its skinning state. The caller supplies
-	/// the world matrix and the instance whose pose drives skinning, so the renderer stays
-	/// scene-agnostic.
+	/// Draws a whole model instance, including every mesh part.
 	/// </summary>
-	public void DrawPart(DrModelMeshPart part, Matrix world, DrModelInstance? instance)
+	public void DrawInstance(DrModelInstance instance)
+	{
+		ArgumentNullException.ThrowIfNull(instance);
+
+		Matrix[] absoluteBoneTransforms = instance.AbsoluteBoneTransforms;
+
+		foreach (DrModelMesh mesh in instance.Model.Meshes)
+		{
+			foreach (DrModelMeshPart part in mesh.MeshParts)
+			{
+				Matrix[]? boneMatrices = part.Skin is { } skin
+					? instance.GetSkinTransforms(skin.Index)
+					: null;
+
+				DrawPart(part, GetMeshWorld(part, absoluteBoneTransforms), boneMatrices);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Draws one mesh part with the effect that matches its skinning state.
+	/// </summary>
+	/// <param name="part">The mesh part to draw.</param>
+	/// <param name="world">The world matrix for static parts.</param>
+	/// <param name="boneMatrices">
+	/// The skinning transforms for a skinned part, as returned by
+	/// <see cref="DrModelInstance.GetSkinTransforms"/>. Pass <see langword="null"/> for static
+	/// parts.
+	/// </param>
+	/// <exception cref="ArgumentNullException"><paramref name="part"/> is <see langword="null"/>.</exception>
+	/// <exception cref="InvalidOperationException">
+	/// <paramref name="part"/> has a <see cref="DrModelMeshPart.Skin"/> but
+	/// <paramref name="boneMatrices"/> is <see langword="null"/>.
+	/// </exception>
+	public void DrawPart(DrModelMeshPart part, Matrix world, Matrix[]? boneMatrices = null)
 	{
 		ArgumentNullException.ThrowIfNull(part);
+		EnsureFrameOpen();
 
 		if (part.VertexBuffer is null || part.IndexBuffer is null)
 		{
 			return;
+		}
+
+		if (part.Skin is not null && boneMatrices is null)
+		{
+			throw new InvalidOperationException(
+				"The mesh part is skinned, so bone matrices are required. " +
+				"Pass instance.GetSkinTransforms(part.Skin.Index).");
 		}
 
 		_device.BlendState = BlendState.Opaque;
@@ -74,7 +136,7 @@ internal sealed class Renderer : IDisposable
 		_device.SetVertexBuffer(part.VertexBuffer);
 		_device.Indices = part.IndexBuffer;
 
-		if (part.Skin is { } skin && instance is not null)
+		if (boneMatrices is not null)
 		{
 			// Skinned parts are placed by their bone transforms, which include root motion,
 			// so the world matrix stays identity. This matches the viewer.
@@ -84,7 +146,7 @@ internal sealed class Renderer : IDisposable
 			_skinnedEffect.DiffuseColor = diffuse;
 			_skinnedEffect.Alpha = color.W;
 			_skinnedEffect.Texture = _fallbackTexture;
-			_skinnedEffect.SetBoneTransforms(instance.GetSkinTransforms(skin.Index));
+			_skinnedEffect.SetBoneTransforms(boneMatrices);
 
 			DrawPasses(_skinnedEffect, part);
 			return;
@@ -113,7 +175,24 @@ internal sealed class Renderer : IDisposable
 				part.VertexOffset,
 				part.StartIndex,
 				part.PrimitiveCount);
+
+			int triangles = part.PrimitiveType == PrimitiveType.TriangleList
+				? part.PrimitiveCount
+				: 0;
+			Statistics.AddDrawCall(triangles);
 		}
+	}
+
+	private static Matrix GetMeshWorld(
+		DrModelMeshPart part,
+		Matrix[] absoluteBoneTransforms)
+	{
+		DrModelBone? parentBone = part.Mesh?.ParentBone;
+
+		return parentBone is not null
+			&& (uint)parentBone.Index < (uint)absoluteBoneTransforms.Length
+			? absoluteBoneTransforms[parentBone.Index]
+			: Matrix.Identity;
 	}
 
 	private static void ConfigureLights(IEffectLights lights)
@@ -144,6 +223,15 @@ internal sealed class Renderer : IDisposable
 		}
 
 		return false;
+	}
+
+	private void EnsureFrameOpen()
+	{
+		if (!_frameOpen)
+		{
+			throw new InvalidOperationException(
+				"This operation requires an open renderer frame.");
+		}
 	}
 
 	public void Dispose()

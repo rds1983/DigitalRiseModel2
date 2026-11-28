@@ -36,7 +36,7 @@ internal sealed class ViewerGame : Game
 	private KeyboardState _previousKeyboard;
 	private bool _screenshotCaptured;
 	private int _drawFrame;
-	private Label? _statsLabel;
+	private StatsPanel? _statsPanel;
 	private long _lastFrameTimestamp;
 	private double _smoothedFrameTimeMs;
 
@@ -215,7 +215,7 @@ internal sealed class ViewerGame : Game
 
 		_lastFrameTimestamp = now;
 
-		if (_statsLabel is null)
+		if (_statsPanel is null)
 		{
 			return;
 		}
@@ -226,8 +226,12 @@ internal sealed class ViewerGame : Game
 			? 1000.0 / _smoothedFrameTimeMs
 			: 0.0;
 
-		_statsLabel.Text = FormattableString.Invariant(
-			$"{fps:0.0} FPS  {_smoothedFrameTimeMs:0.0} ms\nDraw calls: {drawCalls}\nTriangles: {triangles:N0}");
+		_statsPanel._fpsLabel.Text = FormattableString.Invariant(
+			$"{fps:0.0} FPS  {_smoothedFrameTimeMs:0.0} ms");
+		_statsPanel._drawCallsLabel.Text = FormattableString.Invariant(
+			$"Draw calls: {drawCalls}");
+		_statsPanel._trianglesLabel.Text = FormattableString.Invariant(
+			$"Triangles: {triangles:N0}");
 	}
 
 	private void SaveScreenshot(string path)
@@ -302,21 +306,13 @@ internal sealed class ViewerGame : Game
 		};
 		root.Widgets.Add(_graphicsSettingsPanel);
 
-		_statsLabel = new Label
-		{
-			Text = "0.0 FPS  0.0 ms\nDraw calls: 0\nTriangles: 0"
-		};
-
-		var statsPanel = new VerticalStackPanel
+		_statsPanel = new StatsPanel
 		{
 			HorizontalAlignment = HorizontalAlignment.Right,
 			VerticalAlignment = VerticalAlignment.Top,
-			Margin = new Thickness(8),
-			Padding = new Thickness(8),
-			Background = new SolidBrush("Black")
+			Margin = new Thickness(8)
 		};
-		statsPanel.Widgets.Add(_statsLabel);
-		root.Widgets.Add(statsPanel);
+		root.Widgets.Add(_statsPanel);
 
 		if (_model!.Animations.Count > 0)
 		{

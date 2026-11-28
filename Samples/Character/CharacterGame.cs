@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AssetManagementBase;
 using Character.UI;
 using DigitalRiseModel;
@@ -34,6 +35,9 @@ internal sealed class CharacterGame : Game
 	private Desktop? _desktop;
 	private MouseState _previousMouse;
 	private string _currentClip = string.Empty;
+	private StatsPanel? _statsPanel;
+	private long _lastFrameTimestamp;
+	private double _smoothedFrameTimeMs;
 
 	public CharacterGame()
 	{
@@ -107,41 +111,47 @@ internal sealed class CharacterGame : Game
 
 		if (_scene is not null && _renderer is not null)
 		{
-			_renderer.SetCamera(GetView(), GetProjection());
-			DrawScene(_scene, _renderer);
+			_renderer.BeginFrame(GetView(), GetProjection());
+			_scene.Draw(_renderer);
+			_renderer.EndFrame();
 		}
 
+		UpdateStats();
 		_desktop?.Render();
 
 		base.Draw(gameTime);
 	}
 
-	private static void DrawScene(Scene scene, Renderer renderer)
+	private void UpdateStats()
 	{
-		renderer.DrawPart(scene.Field, Matrix.Identity, instance: null);
+		long now = Stopwatch.GetTimestamp();
 
-		Matrix[] absoluteBoneTransforms = scene.Instance.AbsoluteBoneTransforms;
-
-		foreach (DrModelMesh mesh in scene.Model.Meshes)
+		if (_lastFrameTimestamp != 0)
 		{
-			foreach (DrModelMeshPart part in mesh.MeshParts)
-			{
-				Matrix world = GetMeshWorld(part, absoluteBoneTransforms);
-				renderer.DrawPart(part, world, scene.Instance);
-			}
+			double frameTimeMs = Stopwatch.GetElapsedTime(_lastFrameTimestamp, now)
+				.TotalMilliseconds;
+			_smoothedFrameTimeMs = _smoothedFrameTimeMs <= 0
+				? frameTimeMs
+				: _smoothedFrameTimeMs * 0.9 + frameTimeMs * 0.1;
 		}
-	}
 
-	private static Matrix GetMeshWorld(
-		DrModelMeshPart part,
-		Matrix[] absoluteBoneTransforms)
-	{
-		DrModelBone? parentBone = part.Mesh?.ParentBone;
+		_lastFrameTimestamp = now;
 
-		return parentBone is not null
-			&& (uint)parentBone.Index < (uint)absoluteBoneTransforms.Length
-			? absoluteBoneTransforms[parentBone.Index]
-			: Matrix.Identity;
+		if (_statsPanel is null)
+		{
+			return;
+		}
+
+		int drawCalls = _renderer?.Statistics.DrawCalls ?? 0;
+		int triangles = _renderer?.Statistics.Triangles ?? 0;
+		double fps = _smoothedFrameTimeMs > 0 ? 1000.0 / _smoothedFrameTimeMs : 0.0;
+
+		_statsPanel._fpsLabel.Text = FormattableString.Invariant(
+			$"{fps:0.0} FPS  {_smoothedFrameTimeMs:0.0} ms");
+		_statsPanel._drawCallsLabel.Text = FormattableString.Invariant(
+			$"Draw calls: {drawCalls}");
+		_statsPanel._trianglesLabel.Text = FormattableString.Invariant(
+			$"Triangles: {triangles:N0}");
 	}
 
 	protected override void UnloadContent()
@@ -175,6 +185,15 @@ internal sealed class CharacterGame : Game
 		};
 
 		root.Widgets.Add(controlsPanel);
+
+		_statsPanel = new StatsPanel
+		{
+			HorizontalAlignment = HorizontalAlignment.Right,
+			VerticalAlignment = VerticalAlignment.Top,
+			Margin = new Thickness(8)
+		};
+		root.Widgets.Add(_statsPanel);
+
 		_desktop.Root = root;
 	}
 

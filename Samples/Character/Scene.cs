@@ -5,9 +5,8 @@ using Microsoft.Xna.Framework.Graphics;
 namespace Character;
 
 /// <summary>
-/// Holds everything the sample draws: the ground field built with
-/// <see cref="MeshPrimitives"/>, the skinned character, and the state that describes where the
-/// character is and how it moves.
+/// Holds everything the sample draws: the field built with <see cref="MeshPrimitives"/>, the
+/// skinned character, and the state that describes where the character is and how it moves.
 /// </summary>
 internal sealed class Scene : IDisposable
 {
@@ -32,14 +31,13 @@ internal sealed class Scene : IDisposable
 		Model = characterModel;
 		Instance = new DrModelInstance(characterModel);
 
-		// The field is a single primitive quad. Reuse it for the visible ground.
-		Field = MeshPrimitives.CreatePlane(device, FieldSize, FieldSize);
+		// The field is a wireframe grid so the ground reads as an outline without hiding the
+		// character behind a solid plane.
+		Field = MeshPrimitives.CreatePlaneLines(device, FieldSize, FieldSize, segmentsX: 40, segmentsZ: 40);
 		Field.Material = new DrMaterial
 		{
-			Name = "Ground",
-			BaseColorFactor = new Vector4(0.22f, 0.26f, 0.22f, 1f),
-			MetallicFactor = 0f,
-			RoughnessFactor = 1f
+			Name = "Field",
+			BaseColorFactor = new Vector4(0.35f, 0.55f, 0.35f, 1f)
 		};
 	}
 
@@ -54,7 +52,7 @@ internal sealed class Scene : IDisposable
 	public DrModelInstance Instance { get; }
 
 	/// <summary>
-	/// Gets the ground mesh part.
+	/// Gets the field mesh part.
 	/// </summary>
 	public DrModelMeshPart Field { get; }
 
@@ -74,6 +72,19 @@ internal sealed class Scene : IDisposable
 	public bool IsMoving { get; private set; }
 
 	/// <summary>
+	/// Draws the field and the character through the renderer. The renderer must have a frame
+	/// open, that is, it must be called between <see cref="Renderer.BeginFrame"/> and
+	/// <see cref="Renderer.EndFrame"/>.
+	/// </summary>
+	public void Draw(Renderer renderer)
+	{
+		ArgumentNullException.ThrowIfNull(renderer);
+
+		renderer.DrawPart(Field, Matrix.Identity);
+		renderer.DrawInstance(Instance);
+	}
+
+	/// <summary>
 	/// Turns the character by the given angle in radians.
 	/// </summary>
 	public void Turn(float angle)
@@ -82,8 +93,8 @@ internal sealed class Scene : IDisposable
 	}
 
 	/// <summary>
-	/// Moves the character relative to its facing. The input is a normalized-ish direction where
-	/// Y is forward and X is strafe right.
+	/// Moves the character relative to its facing. The input has Y for forward and X for strafe
+	/// right.
 	/// </summary>
 	public void Move(Vector2 input, float deltaSeconds)
 	{
