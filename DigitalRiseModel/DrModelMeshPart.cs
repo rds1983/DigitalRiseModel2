@@ -82,6 +82,17 @@ public sealed class DrModelMeshPart : IDisposable
 	public int PrimitiveCount { get; set; }
 
 	/// <summary>
+	/// Gets or sets the primitive topology used to draw this mesh part.
+	/// </summary>
+	/// <remarks>
+	/// Defaults to <see cref="PrimitiveType.TriangleList"/>, which every glTF-loaded part and
+	/// every solid <see cref="MeshPrimitives"/> part uses. Line-based parts created by
+	/// <see cref="MeshPrimitives"/> use <see cref="PrimitiveType.LineList"/>. Renderers must
+	/// draw with this topology.
+	/// </remarks>
+	public PrimitiveType PrimitiveType { get; set; } = PrimitiveType.TriangleList;
+
+	/// <summary>
 	/// Gets or sets the location in the index buffer at which to start reading indices.
 	/// </summary>
 	public int StartIndex { get; set; }

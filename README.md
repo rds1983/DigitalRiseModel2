@@ -31,7 +31,7 @@ DrModelMeshPart part = MeshPrimitives.CreateSphere(graphicsDevice, radius: 1f);
 root.Mesh = new DrModelMesh(new[] { part });
 ```
 
-`MeshPrimitives` creates plane, box, sphere, cylinder, cone, capsule and torus parts with write-only buffers and clockwise front faces. Pass `cullClockwise: true` for `RasterizerState.CullClockwise`. The parts carry no material, so assign one in your renderer.
+`MeshPrimitives` creates plane, box, sphere, cylinder, cone, capsule and torus parts with write-only buffers and clockwise front faces. Pass `cullClockwise: true` for `RasterizerState.CullClockwise`. Each shape also has a `*Lines` counterpart (for example `CreateBoxLines`) that returns a `VertexPosition` wireframe drawn with `PrimitiveType.LineList`. The parts carry no material, so assign one in your renderer.
 
 ## Viewer
 
@@ -83,13 +83,13 @@ dotnet test DigitalRiseModel.MonoGame.sln
 
 | Area | Files | Lines | Code | Size |
 | --- | ---: | ---: | ---: | ---: |
-| Library | 34 | 5,113 | 3,459 | 139.5 KB |
-| Unit tests | 16 | 2,897 | 2,355 | 78.3 KB |
-| Viewer | 18 | 2,773 | 2,261 | 75.5 KB |
-| Samples | 7 | 853 | 687 | 21.0 KB |
-| **Total** | **75** | **11,636** | **8,762** | **314.3 KB** |
+| Library | 35 | 5,531 | 3,672 | 155.3 KB |
+| Unit tests | 17 | 3,245 | 2,640 | 87.6 KB |
+| Viewer | 18 | 2,774 | 2,262 | 75.5 KB |
+| Samples | 7 | 856 | 690 | 21.3 KB |
+| **Total** | **77** | **12,406** | **9,264** | **339.8 KB** |
 
-22 public types, 198 tests.
+22 public types, 222 tests.
 
 ## License
 

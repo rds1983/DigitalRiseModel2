@@ -14,8 +14,10 @@ internal sealed class MeshBuilder<T> where T : struct, IVertexType
 {
 	private readonly List<T> _vertices = [];
 	private readonly List<int> _indices = [];
+	private readonly HashSet<(int A, int B)> _quadDiagonals = [];
 	private readonly Func<T, Vector3> _positionSelector;
 	private readonly bool _cullClockwise;
+	private readonly PrimitiveType _primitiveType;
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MeshBuilder{T}"/> class.
@@ -30,14 +32,28 @@ internal sealed class MeshBuilder<T> where T : struct, IVertexType
 	/// are emitted counter-clockwise so they are front-facing under
 	/// <see cref="RasterizerState.CullClockwise"/>.
 	/// </param>
+	/// <param name="primitiveType">
+	/// The topology stored on the created part. Use <see cref="PrimitiveType.TriangleList"/> for
+	/// <see cref="AddTriangle"/> and <see cref="AddQuad"/>, or <see cref="PrimitiveType.LineList"/>
+	/// for <see cref="AddLine"/>.
+	/// </param>
 	/// <exception cref="ArgumentNullException"><paramref name="positionSelector"/> is <see langword="null"/>.</exception>
-	public MeshBuilder(Func<T, Vector3> positionSelector, bool cullClockwise = false)
+	public MeshBuilder(
+		Func<T, Vector3> positionSelector,
+		bool cullClockwise = false,
+		PrimitiveType primitiveType = PrimitiveType.TriangleList)
 	{
 		ArgumentNullException.ThrowIfNull(positionSelector);
 
 		_positionSelector = positionSelector;
 		_cullClockwise = cullClockwise;
+		_primitiveType = primitiveType;
 	}
+
+	/// <summary>
+	/// Gets the primitive topology stored on the created part.
+	/// </summary>
+	public PrimitiveType PrimitiveType => _primitiveType;
 
 	/// <summary>
 	/// Gets the number of vertices added so far.
@@ -58,6 +74,16 @@ internal sealed class MeshBuilder<T> where T : struct, IVertexType
 	/// Gets the indices added so far.
 	/// </summary>
 	public IReadOnlyList<int> Indices => _indices;
+
+	/// <summary>
+	/// Gets the vertex index pairs that are internal diagonals of quads added through
+	/// <see cref="AddQuad"/>. Each pair is ordered with the smaller index first.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="MeshPrimitives.AddWireframe"/> uses this to skip diagonals so a box shows its
+	/// 12 edges rather than 18 triangle edges.
+	/// </remarks>
+	public IReadOnlyCollection<(int A, int B)> QuadDiagonals => _quadDiagonals;
 
 	/// <summary>
 	/// Appends a vertex and returns its index.
@@ -114,12 +140,30 @@ internal sealed class MeshBuilder<T> where T : struct, IVertexType
 	/// <param name="d">The fourth vertex index.</param>
 	/// <remarks>
 	/// Indices are given in counter-clockwise order and are emitted like
-	/// <see cref="AddTriangle"/>.
+	/// <see cref="AddTriangle"/>. The diagonal between <paramref name="a"/> and
+	/// <paramref name="c"/> is recorded in <see cref="QuadDiagonals"/>.
 	/// </remarks>
 	public void AddQuad(int a, int b, int c, int d)
 	{
 		AddTriangle(a, b, c);
 		AddTriangle(a, c, d);
+
+		_quadDiagonals.Add(a < c ? (a, c) : (c, a));
+	}
+
+	/// <summary>
+	/// Appends one line segment.
+	/// </summary>
+	/// <param name="a">The first vertex index.</param>
+	/// <param name="b">The second vertex index.</param>
+	/// <remarks>
+	/// Lines have no front face, so the indices are appended in order regardless of the
+	/// <c>cullClockwise</c> setting.
+	/// </remarks>
+	public void AddLine(int a, int b)
+	{
+		_indices.Add(a);
+		_indices.Add(b);
 	}
 
 	/// <summary>
@@ -158,8 +202,7 @@ internal sealed class MeshBuilder<T> where T : struct, IVertexType
 	}
 
 	/// <summary>
-	/// Creates a triangle-list <see cref="DrModelMeshPart"/> whose buffers contain the
-	/// accumulated geometry.
+	/// Creates a <see cref="DrModelMeshPart"/> whose buffers contain the accumulated geometry.
 	/// </summary>
 	/// <param name="graphicsDevice">The device used to create the vertex and index buffers.</param>
 	/// <returns>The created mesh part.</returns>
@@ -170,6 +213,7 @@ internal sealed class MeshBuilder<T> where T : struct, IVertexType
 
 		T[] vertices = _vertices.ToArray();
 		VertexDeclaration declaration = default(T).VertexDeclaration;
+		int indicesPerPrimitive = _primitiveType == PrimitiveType.LineList ? 2 : 3;
 
 		var vertexBuffer = new VertexBuffer(
 			graphicsDevice,
@@ -212,7 +256,8 @@ internal sealed class MeshBuilder<T> where T : struct, IVertexType
 			IndexBuffer = indexBuffer,
 			VertexDeclaration = declaration,
 			NumVertices = vertices.Length,
-			PrimitiveCount = _indices.Count / 3,
+			PrimitiveCount = _indices.Count / indicesPerPrimitive,
+			PrimitiveType = _primitiveType,
 			StartIndex = 0,
 			VertexOffset = 0,
 			BoundingSphere = ComputeBoundingSphere()

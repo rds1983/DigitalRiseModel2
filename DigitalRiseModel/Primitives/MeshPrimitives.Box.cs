@@ -31,6 +31,27 @@ public static partial class MeshPrimitives
 		return builder.CreateMeshPart(graphicsDevice);
 	}
 
+	/// <summary>
+	/// Creates an axis-aligned box centered on the origin as a
+	/// <see cref="PrimitiveType.LineList"/> wireframe.
+	/// </summary>
+	/// <param name="graphicsDevice">The device used to create the vertex and index buffers.</param>
+	/// <param name="size">The full extents along each axis. Every component must be greater than zero.</param>
+	/// <returns>
+	/// The mesh part containing the 12 box edges. It uses the <see cref="VertexPosition"/> layout
+	/// and must be drawn with <see cref="PrimitiveType.LineList"/>.
+	/// </returns>
+	/// <exception cref="ArgumentNullException"><paramref name="graphicsDevice"/> is <see langword="null"/>.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">A size component is not positive.</exception>
+	public static DrModelMeshPart CreateBoxLines(
+		GraphicsDevice graphicsDevice,
+		Vector3 size)
+	{
+		ArgumentNullException.ThrowIfNull(graphicsDevice);
+
+		return CreateLinePart(graphicsDevice, builder => BuildBox(builder, size));
+	}
+
 	internal static void BuildBox(
 		MeshBuilder<VertexPositionNormalTexture> builder,
 		Vector3 size)

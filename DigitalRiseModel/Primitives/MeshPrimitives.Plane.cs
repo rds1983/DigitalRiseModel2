@@ -38,6 +38,37 @@ public static partial class MeshPrimitives
 		return builder.CreateMeshPart(graphicsDevice);
 	}
 
+	/// <summary>
+	/// Creates a rectangle in the XZ plane facing +Y, centered on the origin, as a
+	/// <see cref="PrimitiveType.LineList"/> wireframe.
+	/// </summary>
+	/// <param name="graphicsDevice">The device used to create the vertex and index buffers.</param>
+	/// <param name="width">The size along the X axis. Must be greater than zero.</param>
+	/// <param name="depth">The size along the Z axis. Must be greater than zero.</param>
+	/// <param name="segmentsX">The number of subdivisions along X. Must be at least 1.</param>
+	/// <param name="segmentsZ">The number of subdivisions along Z. Must be at least 1.</param>
+	/// <returns>
+	/// The mesh part containing the plane edges. It uses the <see cref="VertexPosition"/> layout
+	/// and must be drawn with <see cref="PrimitiveType.LineList"/>.
+	/// </returns>
+	/// <exception cref="ArgumentNullException"><paramref name="graphicsDevice"/> is <see langword="null"/>.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// A size is not positive or a segment count is less than 1.
+	/// </exception>
+	public static DrModelMeshPart CreatePlaneLines(
+		GraphicsDevice graphicsDevice,
+		float width,
+		float depth,
+		int segmentsX = 1,
+		int segmentsZ = 1)
+	{
+		ArgumentNullException.ThrowIfNull(graphicsDevice);
+
+		return CreateLinePart(
+			graphicsDevice,
+			builder => BuildPlane(builder, width, depth, segmentsX, segmentsZ));
+	}
+
 	internal static void BuildPlane(
 		MeshBuilder<VertexPositionNormalTexture> builder,
 		float width,

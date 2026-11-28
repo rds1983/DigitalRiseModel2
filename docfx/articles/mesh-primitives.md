@@ -58,6 +58,38 @@ All primitives are centered on the origin and use Y as up.
 
 Every factory validates its arguments: non-positive sizes and slice counts below the documented minimums throw `ArgumentOutOfRangeException`.
 
+## Line primitives
+
+Every factory has a `*Lines` counterpart that returns the same shape as a wireframe:
+
+| Lines factory | Solid factory |
+| --- | --- |
+| `CreatePlaneLines(device, width, depth, segmentsX = 1, segmentsZ = 1)` | `CreatePlane` |
+| `CreateBoxLines(device, size)` | `CreateBox` |
+| `CreateSphereLines(device, radius, slices = 32, stacks = 16)` | `CreateSphere` |
+| `CreateCylinderLines(device, radius, height, slices = 32)` | `CreateCylinder` |
+| `CreateConeLines(device, radius, height, slices = 32)` | `CreateCone` |
+| `CreateCapsuleLines(device, radius, height, slices = 32, stacks = 16)` | `CreateCapsule` |
+| `CreateTorusLines(device, majorRadius, minorRadius, majorSlices = 32, minorSlices = 16)` | `CreateTorus` |
+
+Line parts differ from solid parts in three ways:
+
+- Vertex layout is `VertexPosition` only, because lines have no surface to light or texture.
+- `PrimitiveType` is `PrimitiveType.LineList`, so the part must be drawn with that topology.
+- `PrimitiveCount` is the number of line segments, not triangles.
+
+The wireframe is derived from the solid geometry, so it matches the same shape and tessellation parameters. Edges shared by adjacent triangles are emitted once, and internal quad diagonals are skipped, so `CreateBoxLines` produces exactly 12 edges. Vertices are welded by position, so the 24 box vertices collapse to 8 corner vertices.
+
+```csharp
+DrModelMeshPart wireframe = MeshPrimitives.CreateBoxLines(
+    graphicsDevice,
+    new Vector3(1f, 1f, 1f));
+
+// wireframe.PrimitiveCount == 12
+```
+
+`*Lines` factories have no `cullClockwise` parameter: culling does not apply to lines.
+
 ## Winding and culling
 
 Primitives emit clockwise front faces by default. This matches MonoGame's default `RasterizerState.CullCounterClockwise` and the winding that `AssetManager.LoadDrModel` produces for glTF models, so the same rasterizer state works for both.
@@ -141,7 +173,7 @@ The viewer and samples read `DrMaterial` when binding their shader. See [Model d
 
 ## Render a primitive
 
-Rendering is the same as for any other mesh part:
+Rendering is the same as for any other mesh part. Use `part.PrimitiveType` so solid and line parts both draw correctly:
 
 ```csharp
 graphicsDevice.SetVertexBuffer(part.VertexBuffer);
@@ -151,7 +183,7 @@ foreach (EffectPass pass in effect.CurrentTechnique.Passes)
 {
     pass.Apply();
     graphicsDevice.DrawIndexedPrimitives(
-        PrimitiveType.TriangleList,
+        part.PrimitiveType,
         part.VertexOffset,
         part.StartIndex,
         part.PrimitiveCount);
@@ -162,7 +194,7 @@ Bind your effect, set world/view/projection, and choose a rasterizer state that 
 
 ## Limitations
 
-- Only the `VertexPositionNormalTexture` layout is produced: no tangents, vertex colors, second UV set or skinning weights.
+- Solid parts use only the `VertexPositionNormalTexture` layout: no tangents, vertex colors, second UV set or skinning weights. Line parts use `VertexPosition`.
 - Normal maps that require tangents are not supported unless your renderer derives tangents.
 - The parts are not skinned. Assigning `part.Skin` without matching blend attributes will not animate them.
 

@@ -37,6 +37,35 @@ public static partial class MeshPrimitives
 		return builder.CreateMeshPart(graphicsDevice);
 	}
 
+	/// <summary>
+	/// Creates a cone aligned with the Y axis, centered on the origin, as a
+	/// <see cref="PrimitiveType.LineList"/> wireframe with the apex at the top and a flat base.
+	/// </summary>
+	/// <param name="graphicsDevice">The device used to create the vertex and index buffers.</param>
+	/// <param name="radius">The base radius. Must be greater than zero.</param>
+	/// <param name="height">The full height along Y. Must be greater than zero.</param>
+	/// <param name="slices">The number of radial subdivisions. Must be at least 3.</param>
+	/// <returns>
+	/// The mesh part containing the cone edges. It uses the <see cref="VertexPosition"/> layout
+	/// and must be drawn with <see cref="PrimitiveType.LineList"/>.
+	/// </returns>
+	/// <exception cref="ArgumentNullException"><paramref name="graphicsDevice"/> is <see langword="null"/>.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// A size is not positive or <paramref name="slices"/> is less than 3.
+	/// </exception>
+	public static DrModelMeshPart CreateConeLines(
+		GraphicsDevice graphicsDevice,
+		float radius,
+		float height,
+		int slices = 32)
+	{
+		ArgumentNullException.ThrowIfNull(graphicsDevice);
+
+		return CreateLinePart(
+			graphicsDevice,
+			builder => BuildCone(builder, radius, height, slices));
+	}
+
 	internal static void BuildCone(
 		MeshBuilder<VertexPositionNormalTexture> builder,
 		float radius,

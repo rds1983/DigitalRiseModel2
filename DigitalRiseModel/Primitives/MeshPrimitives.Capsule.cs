@@ -43,6 +43,42 @@ public static partial class MeshPrimitives
 		return builder.CreateMeshPart(graphicsDevice);
 	}
 
+	/// <summary>
+	/// Creates a capsule aligned with the Y axis, centered on the origin, as a
+	/// <see cref="PrimitiveType.LineList"/> wireframe made from a cylinder and two
+	/// hemispherical caps.
+	/// </summary>
+	/// <param name="graphicsDevice">The device used to create the vertex and index buffers.</param>
+	/// <param name="radius">The radius of the cylinder and caps. Must be greater than zero.</param>
+	/// <param name="height">
+	/// The total height along Y, including both caps. Must be at least <c>2 * radius</c>.
+	/// </param>
+	/// <param name="slices">The number of radial subdivisions. Must be at least 3.</param>
+	/// <param name="stacks">The number of subdivisions per hemispherical cap. Must be at least 2.</param>
+	/// <returns>
+	/// The mesh part containing the capsule edges. It uses the <see cref="VertexPosition"/>
+	/// layout and must be drawn with <see cref="PrimitiveType.LineList"/>.
+	/// </returns>
+	/// <exception cref="ArgumentNullException"><paramref name="graphicsDevice"/> is <see langword="null"/>.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// <paramref name="radius"/> is not positive, <paramref name="slices"/> is less than 3,
+	/// <paramref name="stacks"/> is less than 2 or <paramref name="height"/> is less than
+	/// <c>2 * radius</c>.
+	/// </exception>
+	public static DrModelMeshPart CreateCapsuleLines(
+		GraphicsDevice graphicsDevice,
+		float radius,
+		float height,
+		int slices = 32,
+		int stacks = 16)
+	{
+		ArgumentNullException.ThrowIfNull(graphicsDevice);
+
+		return CreateLinePart(
+			graphicsDevice,
+			builder => BuildCapsule(builder, radius, height, slices, stacks));
+	}
+
 	internal static void BuildCapsule(
 		MeshBuilder<VertexPositionNormalTexture> builder,
 		float radius,

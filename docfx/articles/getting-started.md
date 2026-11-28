@@ -93,7 +93,7 @@ Available primitives:
 - `CreateCapsule(graphicsDevice, radius, height, slices, stacks, cullClockwise)`
 - `CreateTorus(graphicsDevice, majorRadius, minorRadius, majorSlices, minorSlices, cullClockwise)`
 
-Primitives are centered on the origin and use Y as up. Their front faces are clockwise by default, matching MonoGame's `RasterizerState.CullCounterClockwise`. Pass `cullClockwise: true` to emit counter-clockwise front faces for `RasterizerState.CullClockwise`. The returned part has no `Material`; assign one before drawing if you need color or textures. See [Mesh primitives](mesh-primitives.md) for winding, tessellation, materials and rendering details.
+Primitives are centered on the origin and use Y as up. Their front faces are clockwise by default, matching MonoGame's `RasterizerState.CullCounterClockwise`. Pass `cullClockwise: true` to emit counter-clockwise front faces for `RasterizerState.CullClockwise`. Every factory also has a `*Lines` counterpart, such as `CreateBoxLines`, that returns the same shape as a `VertexPosition` wireframe using `PrimitiveType.LineList`. The returned part has no `Material`; assign one before drawing if you need color or textures. See [Mesh primitives](mesh-primitives.md) for winding, tessellation, materials and rendering details.
 
 ## Read bone transforms
 

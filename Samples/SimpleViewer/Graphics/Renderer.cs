@@ -162,13 +162,16 @@ internal sealed class Renderer : IDisposable
 				{
 					pass.Apply();
 					_device.DrawIndexedPrimitives(
-						PrimitiveType.TriangleList,
+						part.PrimitiveType,
 						part.VertexOffset,
 						part.StartIndex,
 						part.PrimitiveCount);
 
 					++DrawCalls;
-					Triangles += part.PrimitiveCount;
+					if (part.PrimitiveType == PrimitiveType.TriangleList)
+					{
+						Triangles += part.PrimitiveCount;
+					}
 				}
 			}
 		}

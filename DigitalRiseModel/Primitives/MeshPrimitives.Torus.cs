@@ -40,6 +40,39 @@ public static partial class MeshPrimitives
 		return builder.CreateMeshPart(graphicsDevice);
 	}
 
+	/// <summary>
+	/// Creates a torus lying in the XZ plane and centered on the origin as a
+	/// <see cref="PrimitiveType.LineList"/> wireframe.
+	/// </summary>
+	/// <param name="graphicsDevice">The device used to create the vertex and index buffers.</param>
+	/// <param name="majorRadius">
+	/// The distance from the origin to the center of the tube. Must be greater than zero.
+	/// </param>
+	/// <param name="minorRadius">The tube radius. Must be greater than zero.</param>
+	/// <param name="majorSlices">The number of subdivisions around the Y axis. Must be at least 3.</param>
+	/// <param name="minorSlices">The number of subdivisions around the tube. Must be at least 3.</param>
+	/// <returns>
+	/// The mesh part containing the torus edges. It uses the <see cref="VertexPosition"/> layout
+	/// and must be drawn with <see cref="PrimitiveType.LineList"/>.
+	/// </returns>
+	/// <exception cref="ArgumentNullException"><paramref name="graphicsDevice"/> is <see langword="null"/>.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// A radius is not positive or a slice count is less than 3.
+	/// </exception>
+	public static DrModelMeshPart CreateTorusLines(
+		GraphicsDevice graphicsDevice,
+		float majorRadius,
+		float minorRadius,
+		int majorSlices = 32,
+		int minorSlices = 16)
+	{
+		ArgumentNullException.ThrowIfNull(graphicsDevice);
+
+		return CreateLinePart(
+			graphicsDevice,
+			builder => BuildTorus(builder, majorRadius, minorRadius, majorSlices, minorSlices));
+	}
+
 	internal static void BuildTorus(
 		MeshBuilder<VertexPositionNormalTexture> builder,
 		float majorRadius,
