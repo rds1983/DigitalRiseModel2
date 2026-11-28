@@ -177,7 +177,7 @@ public sealed class DrModelInstanceTests
 	}
 
 	[Fact]
-	public void BoundingSphere_SkinnedMesh_IgnoresParentBoneTransform()
+	public void BoundingSphere_SkinnedMesh_UsesSkinTransform()
 	{
 		var root = new DrModelBone("Root")
 		{
@@ -188,7 +188,7 @@ public sealed class DrModelInstanceTests
 			BoundingSphere = new BoundingSphere(new Vector3(0, 1, 0), 1f),
 			Skin = new DrSkin(0)
 			{
-				Joints = [new DrSkinJoint(root, Matrix.Identity)]
+				Joints = [new DrSkinJoint(root, Matrix.CreateScale(100f))]
 			}
 		};
 		root.Mesh = new DrModelMesh([part]);
