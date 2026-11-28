@@ -210,8 +210,8 @@ internal sealed class ViewerGame : Game
 			return;
 		}
 
-		int drawCalls = _renderer?.DrawCalls ?? 0;
-		int triangles = _renderer?.Triangles ?? 0;
+		int drawCalls = _renderer?.Statistics.DrawCalls ?? 0;
+		int triangles = _renderer?.Statistics.Triangles ?? 0;
 		double fps = _smoothedFrameTimeMs > 0
 			? 1000.0 / _smoothedFrameTimeMs
 			: 0.0;

@@ -14,6 +14,7 @@ internal sealed class PostProcessor : IDisposable
 	private readonly GraphicsDevice _device;
 	private readonly Effect _effect;
 	private readonly VertexBuffer _vertexBuffer;
+	private readonly RenderStatistics _statistics;
 	private readonly EffectParameter _exposure;
 	private readonly EffectParameter _bloomIntensity;
 	private readonly EffectParameter _texelSize;
@@ -31,12 +32,17 @@ internal sealed class PostProcessor : IDisposable
 	private int _debugViewValue;
 	private bool _fxaaEnabled;
 
-	public PostProcessor(GraphicsDevice device, ContentManager content)
+	public PostProcessor(
+		GraphicsDevice device,
+		ContentManager content,
+		RenderStatistics statistics)
 	{
 		ArgumentNullException.ThrowIfNull(device);
 		ArgumentNullException.ThrowIfNull(content);
+		ArgumentNullException.ThrowIfNull(statistics);
 
 		_device = device;
+		_statistics = statistics;
 		_effect = content.Load<Effect>("Shaders/PostProcess");
 		_exposure = _effect.Parameters["Exposure"];
 		_bloomIntensity = _effect.Parameters["BloomIntensity"];
@@ -206,6 +212,7 @@ internal sealed class PostProcessor : IDisposable
 		{
 			pass.Apply();
 			_device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
+			_statistics.AddDrawCall();
 		}
 	}
 

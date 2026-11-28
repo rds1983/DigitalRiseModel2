@@ -57,6 +57,8 @@ internal sealed class Renderer : IDisposable
 
 	public LightSet Lights { get; } = LightSet.CreateStudio();
 
+	public RenderStatistics Statistics { get; } = new();
+
 	public Renderer(
 		GraphicsDevice device,
 		DrModelInstance instance,
@@ -71,15 +73,11 @@ internal sealed class Renderer : IDisposable
 		_model = instance.Model;
 		_content = content;
 		_ibl = new IblResources(device);
-		_postProcessor = new PostProcessor(device, content);
+		_postProcessor = new PostProcessor(device, content, Statistics);
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
 	}
-
-	public int DrawCalls { get; private set; }
-
-	public int Triangles { get; private set; }
 
 	/// <summary>
 	/// Saves device state and starts a 3D frame. Must be paired with <see cref="EndFrame"/>.
@@ -91,8 +89,7 @@ internal sealed class Renderer : IDisposable
 			throw new InvalidOperationException("A renderer frame is already open.");
 		}
 
-		DrawCalls = 0;
-		Triangles = 0;
+		Statistics.Reset();
 		_frameOpen = true;
 		_viewProjection = view * projection;
 		_frustum = new BoundingFrustum(_viewProjection);
@@ -399,8 +396,7 @@ internal sealed class Renderer : IDisposable
 				part.StartIndex,
 				part.PrimitiveCount);
 
-			++DrawCalls;
-			Triangles += part.PrimitiveCount;
+			Statistics.AddDrawCall(part.PrimitiveCount);
 		}
 	}
 
