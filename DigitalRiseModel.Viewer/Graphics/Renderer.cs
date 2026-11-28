@@ -18,6 +18,7 @@ internal sealed class Renderer : IDisposable
 	private const int TangentFlag = 4;
 	private const int SkinnedFlag = 8;
 	private const int UnlitFlag = 16;
+	private const int TextureSettingsFlag = 32;
 
 	private readonly GraphicsDevice _device;
 	private readonly DrModelInstance _instance;
@@ -248,6 +249,7 @@ internal sealed class Renderer : IDisposable
 			&& HasElement(declaration, VertexElementUsage.BlendWeight);
 		bool skinned = skinTransforms is not null && hasBlend && hasTexCoord;
 		bool unlit = part.Material?.Unlit == true;
+		bool textureSettings = HasTextureSettings(part.Material);
 
 		drawInfo = new PartDrawInfo
 		{
@@ -257,7 +259,8 @@ internal sealed class Renderer : IDisposable
 				hasNormal,
 				hasTangent,
 				hasColor,
-				unlit)
+				unlit,
+				textureSettings)
 		};
 		_partDrawInfo[part] = drawInfo;
 		return drawInfo;
@@ -278,7 +281,8 @@ internal sealed class Renderer : IDisposable
 		bool hasNormal,
 		bool hasTangent,
 		bool hasColor,
-		bool unlit)
+		bool unlit,
+		bool textureSettings)
 	{
 		int flags = 0;
 
@@ -307,6 +311,11 @@ internal sealed class Renderer : IDisposable
 		if (skinned)
 		{
 			flags |= SkinnedFlag;
+		}
+
+		if (textureSettings)
+		{
+			flags |= TextureSettingsFlag;
 		}
 
 		if (!_pbrEffects.TryGetValue(flags, out PbrEffect? effect))
@@ -347,6 +356,11 @@ internal sealed class Renderer : IDisposable
 		if ((flags & SkinnedFlag) != 0)
 		{
 			name += "_SKINNED";
+		}
+
+		if ((flags & TextureSettingsFlag) != 0)
+		{
+			name += "_TEXTURE_SETTINGS";
 		}
 
 		if ((flags & UnlitFlag) != 0)
@@ -459,6 +473,20 @@ internal sealed class Renderer : IDisposable
 			&& (uint)parentBone.Index < (uint)absoluteBoneTransforms.Length
 			? absoluteBoneTransforms[parentBone.Index]
 			: Matrix.Identity;
+	}
+
+	private static bool HasTextureSettings(DrMaterial? material)
+	{
+		return material?.BaseColorTexture?.TextureTransform is not null
+			|| material?.MetallicRoughnessTexture?.TextureTransform is not null
+			|| material?.NormalTexture?.TextureTransform is not null
+			|| material?.OcclusionTexture?.TextureTransform is not null
+			|| material?.EmissiveTexture?.TextureTransform is not null
+			|| material?.BaseColorTexture?.Sampler is not null
+			|| material?.MetallicRoughnessTexture?.Sampler is not null
+			|| material?.NormalTexture?.Sampler is not null
+			|| material?.OcclusionTexture?.Sampler is not null
+			|| material?.EmissiveTexture?.Sampler is not null;
 	}
 
 	private static bool HasElement(

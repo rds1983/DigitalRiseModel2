@@ -129,21 +129,16 @@ float4 MainPS(VertexOutput input, float facing : VFACE) : SV_Target
 	if (HasNormalTexture > 0.5)
 	{
 		float2 normalUV = UseUV1Normal > 0.5 ? input.TexCoord1 : input.TexCoord;
-		if (UseTextureTransforms > 0.5)
-		{
-			normalUV = ApplyTextureTransform(
-				normalUV,
-				NormalTransform,
-				NormalRotation);
-		}
-
-		if (UseSamplerSettings > 0.5)
-		{
-			normalUV = ApplySamplerSettings(
-				normalUV,
-				NormalSamplerInfo,
-				NormalTextureSize);
-		}
+#ifdef TEXTURE_SETTINGS
+		normalUV = ApplyTextureTransform(
+			normalUV,
+			NormalTransform,
+			NormalRotation);
+		normalUV = ApplySamplerSettings(
+			normalUV,
+			NormalSamplerInfo,
+			NormalTextureSize);
+#endif
 		float3 sampledNormal = tex2D(NormalSampler, normalUV).xyz * 2.0 - 1.0;
 		sampledNormal.xy *= NormalScale;
 		float3 tangent = normalize(input.Tangent);

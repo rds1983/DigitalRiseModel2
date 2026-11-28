@@ -46,8 +46,6 @@ internal sealed class PbrEffect
 	private readonly EffectParameter? _occlusionRotation;
 	private readonly EffectParameter? _emissiveTransform;
 	private readonly EffectParameter? _emissiveRotation;
-	private readonly EffectParameter? _useTextureTransforms;
-	private readonly EffectParameter? _useSamplerSettings;
 	private readonly EffectParameter? _baseColorSamplerInfo;
 	private readonly EffectParameter? _baseColorTextureSize;
 	private readonly EffectParameter? _metallicRoughnessSamplerInfo;
@@ -113,8 +111,6 @@ internal sealed class PbrEffect
 		_occlusionRotation = _effect.Parameters["OcclusionRotation"];
 		_emissiveTransform = _effect.Parameters["EmissiveTransform"];
 		_emissiveRotation = _effect.Parameters["EmissiveRotation"];
-		_useTextureTransforms = _effect.Parameters["UseTextureTransforms"];
-		_useSamplerSettings = _effect.Parameters["UseSamplerSettings"];
 		_baseColorSamplerInfo = _effect.Parameters["BaseColorSamplerInfo"];
 		_baseColorTextureSize = _effect.Parameters["BaseColorTextureSize"];
 		_metallicRoughnessSamplerInfo =
@@ -232,22 +228,6 @@ internal sealed class PbrEffect
 		Texture2D? normalTexture = material?.NormalTexture?.Texture;
 		Texture2D? occlusionTexture = material?.OcclusionTexture?.Texture;
 		Texture2D? emissiveTexture = material?.EmissiveTexture?.Texture;
-
-		bool useTextureTransforms =
-			material?.BaseColorTexture?.TextureTransform is not null
-			|| material?.MetallicRoughnessTexture?.TextureTransform is not null
-			|| material?.NormalTexture?.TextureTransform is not null
-			|| material?.OcclusionTexture?.TextureTransform is not null
-			|| material?.EmissiveTexture?.TextureTransform is not null;
-		bool useSamplerSettings =
-			material?.BaseColorTexture?.Sampler is not null
-			|| material?.MetallicRoughnessTexture?.Sampler is not null
-			|| material?.NormalTexture?.Sampler is not null
-			|| material?.OcclusionTexture?.Sampler is not null
-			|| material?.EmissiveTexture?.Sampler is not null;
-
-		_useTextureTransforms?.SetValue(useTextureTransforms ? 1f : 0f);
-		_useSamplerSettings?.SetValue(useSamplerSettings ? 1f : 0f);
 
 		_baseColorFactor?.SetValue(material?.BaseColorFactor ?? Vector4.One);
 		_metallicFactor?.SetValue(material?.MetallicFactor ?? 1f);
