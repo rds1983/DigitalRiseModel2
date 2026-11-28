@@ -24,7 +24,7 @@ Command-line options:
 
 The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma. `Samples/SimpleViewer` remains the stock-effect reference.
 
-`F3` cycles PBR debug views and updates the window title; `F5` reloads compiled effect binaries after a content rebuild. In a development checkout, shader source changes trigger an automatic MGCB rebuild and reload. A top-right stats panel shows smoothed FPS, frame time, draw calls and triangle count. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from `--fxaa`, `--bloom` and `--exposure`.
+`F3` cycles PBR debug views and updates the window title. A top-right stats panel shows smoothed FPS, frame time, draw calls and triangle count. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from `--fxaa`, `--bloom` and `--exposure`.
 
 ## Controls
 
@@ -42,7 +42,7 @@ The viewer loads assets through `AssetManager.LoadDrModel`, so external buffers 
 
 Low-level rendering is isolated in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`:
 
-- It owns the cached PBR effects, IBL resources, effect reload, device state and draw queues.
+- It owns the cached PBR effects, IBL resources, device state and draw queues.
 - `Pbr.fx` variants handle static, skinned, vertex-color, normal-mapped and unlit parts.
 - `DrMaterial` supplies metallic-roughness values, texture references, texture transforms, sampler settings and alpha state.
 - A three-point studio rig provides direct lighting; procedural cubemap IBL provides diffuse and prefiltered specular lighting.
@@ -69,7 +69,7 @@ Not implemented:
 - Normal maps require authored `TANGENT` attributes; tangent generation is not implemented.
 - Shadows and HDR environment loading are not available.
 - Transparent parts are sorted per part; skinned parts are not frustum-culled.
-- Bloom and FXAA are startup options rather than runtime toggles.
+- Bloom and FXAA are initialized from `--bloom` and `--fxaa`; the graphics panel adjusts them at runtime.
 
 ## Troubleshooting
 
@@ -78,14 +78,13 @@ Not implemented:
 - The DesktopGL effect compiler accepts SM 3.0 shaders (`vs_3_0` / `ps_3_0`). SM 4-only intrinsics fail to compile.
 - MGCB does not prune stale `.xnb` files. After renaming effect outputs, delete `Content/bin`, `Content/obj` and the viewer output `Content` folder.
 - `TEXTURE_SETTINGS` doubles the PBR variant set. Full content rebuilds can take several minutes.
-- The source watcher and `F5` reload require a development checkout and restored local tools (`dotnet tool restore`).
 
 ### Color and brightness
 
 - Base color and emissive textures are sRGB and are linearized in the shader. Normal, metallic-roughness and occlusion textures remain linear.
 - Rendering is HDR/linear; exposure, ACES tone mapping and gamma are applied only by the post-process pass. Do not apply gamma again in material shaders.
 - Debug views bypass tone mapping, so their brightness is not representative of the shaded output.
-- Bloom and FXAA are selected at startup with `--bloom` and `--fxaa`.
+- Bloom and FXAA start from `--bloom` and `--fxaa` and can be changed in the graphics panel.
 
 ## UI panels
 

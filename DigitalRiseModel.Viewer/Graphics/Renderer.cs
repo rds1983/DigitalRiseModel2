@@ -77,23 +77,6 @@ internal sealed class Renderer : IDisposable
 		_fallbackTexture.SetData([Color.White]);
 	}
 
-	/// <summary>
-	/// Recreates effects from a fresh content manager. Compiled effect binaries must
-	/// have been rebuilt before calling this method.
-	/// </summary>
-	public void ReloadEffects(ContentManager content)
-	{
-		ArgumentNullException.ThrowIfNull(content);
-
-		var postProcessor = new PostProcessor(_device, content);
-		_postProcessor.Dispose();
-		_postProcessor = postProcessor;
-		_content = content;
-		_pbrEffects.Clear();
-		_partDrawInfo.Clear();
-		_lastDebugView = null;
-	}
-
 	public int DrawCalls { get; private set; }
 
 	public int Triangles { get; private set; }

@@ -33,7 +33,6 @@ internal sealed class ViewerGame : Game
 	private AnimationPanel? _animationPanel;
 	private GraphicsSettingsPanel? _graphicsSettingsPanel;
 	private ContentManager? _content;
-	private ShaderHotReload? _shaderHotReload;
 	private KeyboardState _previousKeyboard;
 	private bool _screenshotCaptured;
 	private int _drawFrame;
@@ -101,7 +100,6 @@ internal sealed class ViewerGame : Game
 		_renderer.Settings.Exposure = _exposure;
 		_renderer.Settings.BloomIntensity = _bloom;
 		_renderer.Settings.EnableFxaa = _fxaa;
-		TryStartShaderHotReload();
 
 		CreateUI();
 		ResetCamera();
@@ -127,17 +125,6 @@ internal sealed class ViewerGame : Game
 		{
 			_renderer.Settings.DebugView = NextDebugView(_renderer.Settings.DebugView);
 			UpdateWindowTitle();
-		}
-
-		if (keyboard.IsKeyDown(Keys.F5)
-			&& _previousKeyboard.IsKeyUp(Keys.F5))
-		{
-			ReloadEffects();
-		}
-
-		if (_shaderHotReload?.ConsumeReloadRequest() == true)
-		{
-			ReloadEffects();
 		}
 
 		MouseState mouse = Mouse.GetState();
@@ -202,46 +189,6 @@ internal sealed class ViewerGame : Game
 		base.Draw(gameTime);
 	}
 
-	private void TryStartShaderHotReload()
-	{
-		try
-		{
-			_shaderHotReload = new ShaderHotReload();
-			Console.WriteLine("Shader hot reload enabled.");
-		}
-		catch (Exception exception)
-		{
-			_shaderHotReload = null;
-			Console.WriteLine($"Shader hot reload disabled: {exception.Message}");
-		}
-	}
-
-	private void ReloadEffects()
-	{
-		if (_renderer is null || _content is null)
-		{
-			return;
-		}
-
-		var content = new ContentManager(Services, "Content");
-
-		try
-		{
-			_renderer.ReloadEffects(content);
-
-			ContentManager oldContent = _content;
-			_content = content;
-			oldContent.Dispose();
-
-			Console.WriteLine("Effects reloaded.");
-		}
-		catch (Exception exception)
-		{
-			content.Dispose();
-			Console.WriteLine($"Effect reload failed: {exception.Message}");
-		}
-	}
-
 	private void UpdateStats()
 	{
 		long now = Stopwatch.GetTimestamp();
@@ -302,9 +249,6 @@ internal sealed class ViewerGame : Game
 
 		_renderer?.Dispose();
 		_renderer = null;
-
-		_shaderHotReload?.Dispose();
-		_shaderHotReload = null;
 
 		_content?.Dispose();
 		_content = null;
