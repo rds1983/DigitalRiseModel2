@@ -8,5 +8,13 @@ namespace Character.UI
 		{
 			BuildUI();
 		}
+
+		/// <summary>
+		/// Shows whether the mouse is currently locked to the window.
+		/// </summary>
+		public void SetMouseLocked(bool locked)
+		{
+			_mouseLockLabel.Text = locked ? "Mouse: locked" : "Mouse: unlocked";
+		}
 	}
 }

@@ -1,4 +1,5 @@
 <Project>
+  <Project.ExportOptions Namespace="DigitalRiseModel.Viewer.UI" Class="GraphicsSettingsPanel" OutputPath="DigitalRiseModel.Viewer/UI" FieldsVisibility="Private" />
   <VerticalStackPanel Spacing="4" Padding="8" Background="Black" Width="320">
     <Label Text="Graphics" TextColor="White" />
     <CheckButton Id="_fxaaCheck">

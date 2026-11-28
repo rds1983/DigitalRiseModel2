@@ -1,5 +1,6 @@
 <Project>
-  <VerticalStackPanel Spacing="4" Padding="8" Background="Black">
+  <Project.ExportOptions Namespace="SimpleViewer.UI" Class="ControlsPanel" OutputPath="Samples/SimpleViewer/UI" FieldsVisibility="Private" />
+  <VerticalStackPanel Spacing="4" Padding="8" Background="Black" Width="200">
     <Label Text="Controls" TextColor="White" />
     <Label Text="Left-drag: orbit" TextColor="White" />
     <Label Text="Mouse wheel: zoom" TextColor="White" />

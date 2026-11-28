@@ -1,5 +1,6 @@
 <Project>
-  <VerticalStackPanel Spacing="4" Padding="8" Background="Black">
+  <Project.ExportOptions Namespace="Character.UI" Class="StatsPanel" OutputPath="Samples/Character/UI" FieldsVisibility="Private" />
+  <VerticalStackPanel Spacing="4" Padding="8" Background="Black" Width="170">
     <Label Id="_fpsLabel" Text="0.0 FPS  0.0 ms" TextColor="White" />
     <Label Id="_drawCallsLabel" Text="Draw calls: 0" TextColor="White" />
     <Label Id="_trianglesLabel" Text="Triangles: 0" TextColor="White" />

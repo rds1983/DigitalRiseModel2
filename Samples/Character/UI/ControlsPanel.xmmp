@@ -1,8 +1,10 @@
 <Project>
-  <VerticalStackPanel Spacing="4" Padding="8" Background="Black">
+  <Project.ExportOptions Namespace="Character.UI" Class="ControlsPanel" OutputPath="Samples/Character/UI" FieldsVisibility="Private" />
+  <VerticalStackPanel Spacing="4" Padding="8" Background="Black" Width="200">
     <Label Text="Controls" TextColor="White" />
     <Label Text="WASD: move" TextColor="White" />
-    <Label Text="Mouse: turn" TextColor="White" />
-    <Label Text="Escape: exit" TextColor="White" />
+    <Label Text="Mouse: turn / look" TextColor="White" />
+    <Label Text="Escape: toggle mouse lock" TextColor="White" />
+    <Label Id="_mouseLockLabel" Text="Mouse: unlocked" TextColor="White" />
   </VerticalStackPanel>
 </Project>

@@ -226,12 +226,7 @@ internal sealed class ViewerGame : Game
 			? 1000.0 / _smoothedFrameTimeMs
 			: 0.0;
 
-		_statsPanel._fpsLabel.Text = FormattableString.Invariant(
-			$"{fps:0.0} FPS  {_smoothedFrameTimeMs:0.0} ms");
-		_statsPanel._drawCallsLabel.Text = FormattableString.Invariant(
-			$"Draw calls: {drawCalls}");
-		_statsPanel._trianglesLabel.Text = FormattableString.Invariant(
-			$"Triangles: {triangles:N0}");
+		_statsPanel.SetValues(fps, _smoothedFrameTimeMs, drawCalls, triangles);
 	}
 
 	private void SaveScreenshot(string path)

@@ -23,8 +23,11 @@ internal sealed class CharacterGame : Game
 	private const string RunClip = "Run";
 
 	private const float TurnPerPixel = 0.005f;
+	private const float PitchPerPixel = 0.004f;
+	private const float MinPitch = -0.2f;
+	private const float MaxPitch = 1f;
 	private const float CameraDistance = 4.5f;
-	private const float CameraHeight = 2.2f;
+	private const float CameraHeight = 1.2f;
 
 	private readonly GraphicsDeviceManager _graphics;
 
@@ -36,8 +39,12 @@ internal sealed class CharacterGame : Game
 	private MouseState _previousMouse;
 	private string _currentClip = string.Empty;
 	private StatsPanel? _statsPanel;
+	private ControlsPanel? _controlsPanel;
 	private long _lastFrameTimestamp;
 	private double _smoothedFrameTimeMs;
+	private float _cameraPitch = 0.25f;
+	private bool _mouseLocked;
+	private bool _escapeWasDown;
 
 	public CharacterGame()
 	{
@@ -84,12 +91,21 @@ internal sealed class CharacterGame : Game
 
 		if (keyboard.IsKeyDown(Keys.Escape))
 		{
-			Exit();
+			if (!_escapeWasDown)
+			{
+				ToggleMouseLock();
+			}
+
+			_escapeWasDown = true;
+		}
+		else
+		{
+			_escapeWasDown = false;
 		}
 
 		float deltaSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-		if (!IsMouseOverGui())
+		if (!IsMouseOverGui() && _mouseLocked)
 		{
 			TurnFromMouse();
 		}
@@ -146,12 +162,7 @@ internal sealed class CharacterGame : Game
 		int triangles = _renderer?.Statistics.Triangles ?? 0;
 		double fps = _smoothedFrameTimeMs > 0 ? 1000.0 / _smoothedFrameTimeMs : 0.0;
 
-		_statsPanel._fpsLabel.Text = FormattableString.Invariant(
-			$"{fps:0.0} FPS  {_smoothedFrameTimeMs:0.0} ms");
-		_statsPanel._drawCallsLabel.Text = FormattableString.Invariant(
-			$"Draw calls: {drawCalls}");
-		_statsPanel._trianglesLabel.Text = FormattableString.Invariant(
-			$"Triangles: {triangles:N0}");
+		_statsPanel.SetValues(fps, _smoothedFrameTimeMs, drawCalls, triangles);
 	}
 
 	protected override void UnloadContent()
@@ -177,14 +188,14 @@ internal sealed class CharacterGame : Game
 		_desktop = new Desktop();
 
 		var root = new Panel();
-		var controlsPanel = new ControlsPanel
+		_controlsPanel = new ControlsPanel
 		{
 			HorizontalAlignment = HorizontalAlignment.Left,
 			VerticalAlignment = VerticalAlignment.Top,
 			Margin = new Thickness(8)
 		};
 
-		root.Widgets.Add(controlsPanel);
+		root.Widgets.Add(_controlsPanel);
 
 		_statsPanel = new StatsPanel
 		{
@@ -203,8 +214,27 @@ internal sealed class CharacterGame : Game
 	}
 
 	/// <summary>
-	/// Horizontal mouse motion turns the character. The cursor is re-centred each frame so it
-	/// cannot leave the window.
+	/// Toggles mouse lock. While locked, the cursor is hidden and re-centred each frame so
+	/// horizontal motion turns the character and vertical motion pitches the camera.
+	/// </summary>
+	private void ToggleMouseLock()
+	{
+		_mouseLocked = !_mouseLocked;
+		IsMouseVisible = !_mouseLocked;
+		_controlsPanel?.SetMouseLocked(_mouseLocked);
+
+		if (_mouseLocked)
+		{
+			Mouse.SetPosition(
+				GraphicsDevice.Viewport.Width / 2,
+				GraphicsDevice.Viewport.Height / 2);
+			_previousMouse = Mouse.GetState();
+		}
+	}
+
+	/// <summary>
+	/// Mouse-look while locked. Horizontal motion turns the character, vertical motion pitches
+	/// the camera around it like a third-person game. The cursor is re-centred every frame.
 	/// </summary>
 	private void TurnFromMouse()
 	{
@@ -212,12 +242,23 @@ internal sealed class CharacterGame : Game
 		int centerX = GraphicsDevice.Viewport.Width / 2;
 		int centerY = GraphicsDevice.Viewport.Height / 2;
 
-		if (mouse.X != centerX || mouse.Y != centerY)
+		int deltaX = mouse.X - _previousMouse.X;
+		int deltaY = mouse.Y - _previousMouse.Y;
+
+		if (deltaX != 0)
 		{
-			_scene?.Turn(-(mouse.X - _previousMouse.X) * TurnPerPixel);
-			Mouse.SetPosition(centerX, centerY);
+			_scene?.Turn(-deltaX * TurnPerPixel);
 		}
 
+		if (deltaY != 0)
+		{
+			_cameraPitch = Math.Clamp(
+				_cameraPitch + deltaY * PitchPerPixel,
+				MinPitch,
+				MaxPitch);
+		}
+
+		Mouse.SetPosition(centerX, centerY);
 		_previousMouse = Mouse.GetState();
 	}
 
@@ -262,17 +303,22 @@ internal sealed class CharacterGame : Game
 	}
 
 	/// <summary>
-	/// The camera sits behind the character's back and looks slightly past it.
+	/// The camera orbits behind the character's back. Pitch lifts it above or below the shoulder
+	/// line while the look direction stays aimed at the character.
 	/// </summary>
 	private Matrix GetView()
 	{
 		Vector3 position = _scene?.Position ?? Vector3.Zero;
 		Vector3 forward = _scene?.Forward ?? Vector3.UnitZ;
 
-		Vector3 cameraPosition = position
-			- forward * CameraDistance
-			+ Vector3.Up * CameraHeight;
-		Vector3 target = position + Vector3.Up * 1.1f + forward * 1.5f;
+		Vector3 target = position + Vector3.Up * CameraHeight;
+
+		// Orbit behind the character, lifting the camera as pitch grows.
+		Vector3 right = Vector3.Cross(forward, Vector3.Up);
+		Vector3 offset = Vector3.Transform(
+			-forward * CameraDistance,
+			Matrix.CreateFromAxisAngle(right, -_cameraPitch));
+		Vector3 cameraPosition = target + offset;
 
 		return Matrix.CreateLookAt(cameraPosition, target, Vector3.Up);
 	}
