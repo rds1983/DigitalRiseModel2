@@ -1,16 +1,6 @@
-- name: Introduction
-  href: articles/introduction.md
-- name: Getting started
-  href: articles/getting-started.md
-- name: Model data
-  href: articles/model-data.md
-- name: Mesh primitives
-  href: articles/mesh-primitives.md
-- name: Loading glTF
-  href: articles/gltf-loading.md
-- name: Viewer
-  href: articles/viewer.md
-- name: Shader validation
-  href: articles/shader-validation.md
-- name: API reference
-  href: api/DigitalRiseModel.yml
+- name: Docs
+  href: articles/
+- name: API
+  href: api/
+- name: Source
+  href: https://github.com/rds1983/DigitalRiseModel2
