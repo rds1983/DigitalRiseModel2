@@ -43,16 +43,34 @@ The viewer loads assets through `AssetManager.LoadDrModel`, so external buffers 
 
 Low-level rendering is isolated in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`:
 
-- It owns the stock effects, device state, lighting and draw calls.
-- Non-skinned parts are drawn with `BasicEffect`.
-- Parts with skin data are drawn with `SkinnedEffect`.
-- `DrMaterial` supplies the base color, base-color texture and alpha-blend state.
-- Basic ambient and directional lighting keeps the model visible.
+- It owns the cached PBR effects, IBL resources, effect reload, device state and draw queues.
+- `Pbr.fx` variants handle static, skinned, vertex-color, normal-mapped and unlit parts.
+- `DrMaterial` supplies metallic-roughness values, texture references, texture transforms, sampler settings and alpha state.
+- A three-point studio rig provides direct lighting; procedural cubemap IBL provides diffuse and prefiltered specular lighting.
+- The scene renders to an HDR target and resolves with exposure, ACES tone mapping, gamma, optional bloom and optional FXAA.
+- Opaque parts sort front-to-back; blended parts sort back-to-front. Static parts are frustum-culled.
 - glTF winding is normalized using the node global-transform determinant and drawn with `CullCounterClockwise`; double-sided materials use `CullNone`.
 
 `ViewerGame` owns model loading, camera input, bounds and the Myra UI. The camera frames the merged model bounds on startup.
 
 Custom shader content is built through `DigitalRiseModel.Viewer/Content/Content.mgcb`. A trivial fullscreen shader smoke test can be started with `--shader-test` or toggled with `F2`.
+
+## Supported features and limitations
+
+Supported:
+
+- Core metallic-roughness materials with base color, metallic-roughness, normal, occlusion and emissive maps.
+- Vertex colors, alpha opaque/mask/blend, double-sided materials and skinning.
+- UV0/UV1 selection and sampler wrap/filter settings.
+- `KHR_materials_emissive_strength`, `KHR_texture_transform` and `KHR_materials_unlit`.
+
+Not implemented:
+
+- `KHR_lights_punctual`, clearcoat/sheen/transmission, Basis Universal textures, Draco compression and morph targets.
+- Normal maps require authored `TANGENT` attributes; tangent generation is not implemented.
+- Shadows and HDR environment loading are not available.
+- Transparent parts are sorted per part; skinned parts are not frustum-culled.
+- Bloom and FXAA are startup options rather than runtime toggles.
 
 ## UI panels
 
