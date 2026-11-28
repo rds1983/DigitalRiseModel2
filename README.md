@@ -85,6 +85,14 @@ dotnet test DigitalRiseModel.MonoGame.sln
 - [Shader validation](docfx/articles/shader-validation.md)
 - [Agent instructions](AGENTS.md)
 
+The API documentation is built with DocFX and published to GitHub Pages on every push to `master` (see `.github/workflows/docs.yml`). Build it locally with:
+
+```bash
+dotnet tool restore
+dotnet docfx metadata docfx/docfx.json
+dotnet docfx build docfx/docfx.json
+```
+
 ## Metrics
 
 | Area | Files | Lines | Code | Size |
