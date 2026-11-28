@@ -38,6 +38,9 @@ Useful options:
 | `UnlitTest` | [screenshot.png](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/UnlitTest/screenshot/screenshot.png) | `KHR_materials_unlit` | Pass | Shapes render as flat base color without lighting. |
 | `TextureSettingsTest` | [screenshot.png](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/TextureSettingsTest/screenshot/screenshot.png) | Repeat, clamp and mirrored-repeat samplers | Pass | The test column matches the sample-pass column. Nearest filtering is approximated with texel-center sampling. |
 
+All supported extension tests pass. The dark clearcoat rows in
+`TextureTransformMultiTest` are expected because clearcoat is deferred.
+
 ## Known differences from the Khronos viewer
 
 - The viewer uses a fixed three-point studio rig and a procedural cubemap
