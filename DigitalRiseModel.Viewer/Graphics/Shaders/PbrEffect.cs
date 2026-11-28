@@ -174,38 +174,10 @@ internal sealed class PbrEffect
 	{
 		ArgumentNullException.ThrowIfNull(lights);
 
-		int count = 0;
-
-		foreach (DirectionalLight light in lights.DirectionalLights)
-		{
-			if (count >= LightSet.MaxDirectionalLights)
-			{
-				break;
-			}
-
-			if (light.Intensity <= 0f)
-			{
-				continue;
-			}
-
-			Vector3 direction = light.Direction;
-
-			if (direction.LengthSquared() < 1e-8f)
-			{
-				continue;
-			}
-
-			direction.Normalize();
-			_packedLightDirections[count] = new Vector4(direction, light.Intensity);
-			_packedLightColors[count] = new Vector4(light.Color, 0f);
-			++count;
-		}
-
-		for (int i = count; i < LightSet.MaxDirectionalLights; ++i)
-		{
-			_packedLightDirections[i] = Vector4.Zero;
-			_packedLightColors[i] = Vector4.Zero;
-		}
+		int count = LightPacker.Pack(
+			lights,
+			_packedLightDirections,
+			_packedLightColors);
 
 		_directionalLightDirections?.SetValue(_packedLightDirections);
 		_directionalLightColors?.SetValue(_packedLightColors);

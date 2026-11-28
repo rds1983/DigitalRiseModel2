@@ -27,6 +27,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\DigitalRiseModel.Viewer\Graphics\Lighting\DirectionalLight.cs" Link="Viewer\DirectionalLight.cs" />
+    <Compile Include="..\DigitalRiseModel.Viewer\Graphics\Lighting\LightSet.cs" Link="Viewer\LightSet.cs" />
+    <Compile Include="..\DigitalRiseModel.Viewer\Graphics\Lighting\LightPacker.cs" Link="Viewer\LightPacker.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
