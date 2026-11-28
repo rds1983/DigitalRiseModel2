@@ -95,7 +95,7 @@ internal sealed class ViewerGame : Game
 		_animation = new AnimationController(_instance);
 
 		_content = new ContentManager(Services, "Content");
-		_renderer = new Renderer(GraphicsDevice, _instance, _content);
+		_renderer = new Renderer(GraphicsDevice, _content);
 		_renderer.Settings.DebugView = _debugView;
 		_renderer.Settings.Exposure = _exposure;
 		_renderer.Settings.BloomIntensity = _bloom;
@@ -168,7 +168,7 @@ internal sealed class ViewerGame : Game
 			{
 				// Linear background; the post-process pass applies ACES and gamma.
 				_renderer.Clear(new Color(4, 5, 6));
-				_renderer.DrawModel();
+				_renderer.DrawModel(_instance!);
 			}
 			finally
 			{
@@ -346,7 +346,7 @@ internal sealed class ViewerGame : Game
 
 	private void ResetCamera()
 	{
-		_bounds = _renderer?.ComputeBounds() ?? default;
+		_bounds = _renderer?.ComputeBounds(_instance!) ?? default;
 
 		if (_bounds.Radius <= 0f)
 		{

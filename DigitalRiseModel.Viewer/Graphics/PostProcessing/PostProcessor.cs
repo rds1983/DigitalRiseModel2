@@ -14,7 +14,6 @@ internal sealed class PostProcessor : IDisposable
 	private readonly GraphicsDevice _device;
 	private readonly Effect _effect;
 	private readonly VertexBuffer _vertexBuffer;
-	private readonly RenderStatistics _statistics;
 	private readonly EffectParameter _exposure;
 	private readonly EffectParameter _bloomIntensity;
 	private readonly EffectParameter _texelSize;
@@ -32,17 +31,12 @@ internal sealed class PostProcessor : IDisposable
 	private int _debugViewValue;
 	private bool _fxaaEnabled;
 
-	public PostProcessor(
-		GraphicsDevice device,
-		ContentManager content,
-		RenderStatistics statistics)
+	public PostProcessor(GraphicsDevice device, ContentManager content)
 	{
 		ArgumentNullException.ThrowIfNull(device);
 		ArgumentNullException.ThrowIfNull(content);
-		ArgumentNullException.ThrowIfNull(statistics);
 
 		_device = device;
-		_statistics = statistics;
 		_effect = content.Load<Effect>("Shaders/PostProcess");
 		_exposure = _effect.Parameters["Exposure"];
 		_bloomIntensity = _effect.Parameters["BloomIntensity"];
@@ -127,31 +121,37 @@ internal sealed class PostProcessor : IDisposable
 	/// Resolves the scene target to the back buffer. The caller owns and restores
 	/// device state and render targets.
 	/// </summary>
-	public void Draw()
+	public void Draw(RenderStatistics statistics)
 	{
+		ArgumentNullException.ThrowIfNull(statistics);
+
 		_sceneTexture?.SetValue(SceneTarget);
 		_bloomTexture?.SetValue(_bloomTargetA ?? SceneTarget);
 
 		if (_bloomIntensityValue > 0f && _bloomTargetA is not null
 			&& _bloomTargetB is not null)
 		{
-			DrawPass(_bloomTargetA, "BrightPass", SceneTarget, Vector2.Zero);
+			DrawPass(statistics, _bloomTargetA, "BrightPass", SceneTarget, Vector2.Zero);
 			DrawPass(
+				statistics,
 				_bloomTargetB,
 				"BlurHorizontal",
 				_bloomTargetA,
 				GetTexelSize(_bloomTargetA));
 			DrawPass(
+				statistics,
 				_bloomTargetA,
 				"BlurVertical",
 				_bloomTargetB,
 				GetTexelSize(_bloomTargetA));
 			DrawPass(
+				statistics,
 				_bloomTargetB,
 				"BlurHorizontal",
 				_bloomTargetA,
 				GetTexelSize(_bloomTargetA));
 			DrawPass(
+				statistics,
 				_bloomTargetA,
 				"BlurVertical",
 				_bloomTargetB,
@@ -166,8 +166,9 @@ internal sealed class PostProcessor : IDisposable
 			RenderTarget2D ldrTarget = _ldrTarget
 				?? throw new InvalidOperationException(
 					"The post processor has no LDR target; call EnsureSize first.");
-			DrawPass(ldrTarget, "Composite", SceneTarget, Vector2.Zero);
+			DrawPass(statistics, ldrTarget, "Composite", SceneTarget, Vector2.Zero);
 			DrawPass(
+				statistics,
 				null,
 				"Fxaa",
 				ldrTarget,
@@ -177,7 +178,7 @@ internal sealed class PostProcessor : IDisposable
 		{
 			// Without FXAA the composite can resolve directly to the back buffer,
 			// avoiding an extra full-screen copy pass.
-			DrawPass(null, "Composite", SceneTarget, Vector2.Zero);
+			DrawPass(statistics, null, "Composite", SceneTarget, Vector2.Zero);
 		}
 	}
 
@@ -188,6 +189,7 @@ internal sealed class PostProcessor : IDisposable
 	}
 
 	private void DrawPass(
+		RenderStatistics statistics,
 		RenderTarget2D? target,
 		string technique,
 		Texture2D source,
@@ -212,7 +214,7 @@ internal sealed class PostProcessor : IDisposable
 		{
 			pass.Apply();
 			_device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
-			_statistics.AddDrawCall();
+			statistics.AddDrawCall();
 		}
 	}
 

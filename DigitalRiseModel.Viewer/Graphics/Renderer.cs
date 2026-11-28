@@ -21,8 +21,6 @@ internal sealed class Renderer : IDisposable
 	private const int TextureSettingsFlag = 32;
 
 	private readonly GraphicsDevice _device;
-	private readonly DrModelInstance _instance;
-	private readonly DrModel _model;
 	private ContentManager _content;
 	private readonly Dictionary<int, PbrEffect> _pbrEffects = [];
 	private readonly Dictionary<DrModelMeshPart, PartDrawInfo> _partDrawInfo = [];
@@ -61,19 +59,15 @@ internal sealed class Renderer : IDisposable
 
 	public Renderer(
 		GraphicsDevice device,
-		DrModelInstance instance,
 		ContentManager content)
 	{
 		ArgumentNullException.ThrowIfNull(device);
-		ArgumentNullException.ThrowIfNull(instance);
 		ArgumentNullException.ThrowIfNull(content);
 
 		_device = device;
-		_instance = instance;
-		_model = instance.Model;
 		_content = content;
 		_ibl = new IblResources(device);
-		_postProcessor = new PostProcessor(device, content, Statistics);
+		_postProcessor = new PostProcessor(device, content);
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
@@ -138,18 +132,20 @@ internal sealed class Renderer : IDisposable
 	}
 
 	/// <summary>
-	/// Draws the whole model using the instance's current bone pose.
+	/// Draws the whole model using the supplied instance's current bone pose.
 	/// </summary>
-	public void DrawModel()
+	public void DrawModel(DrModelInstance instance)
 	{
+		ArgumentNullException.ThrowIfNull(instance);
+
 		EnsureFrameOpen();
 
-		Matrix[] absoluteBoneTransforms = _instance.AbsoluteBoneTransforms;
+		Matrix[] absoluteBoneTransforms = instance.AbsoluteBoneTransforms;
 		_opaqueItems.Clear();
 		_transparentItems.Clear();
 		_renderItemCount = 0;
 
-		foreach (DrModelMesh mesh in _model.Meshes)
+		foreach (DrModelMesh mesh in instance.Model.Meshes)
 		{
 			foreach (DrModelMeshPart part in mesh.MeshParts)
 			{
@@ -160,7 +156,7 @@ internal sealed class Renderer : IDisposable
 
 				Matrix world = GetMeshWorld(part, absoluteBoneTransforms);
 				Matrix[]? skinTransforms = part.Skin is { } skin
-					? _instance.GetSkinTransforms(skin.Index)
+					? instance.GetSkinTransforms(skin.Index)
 					: null;
 				BoundingSphere worldBounds = part.BoundingSphere.Transform(world);
 
@@ -408,7 +404,7 @@ internal sealed class Renderer : IDisposable
 
 		try
 		{
-			_postProcessor.Draw();
+			_postProcessor.Draw(Statistics);
 		}
 		finally
 		{
@@ -430,9 +426,11 @@ internal sealed class Renderer : IDisposable
 		}
 	}
 
-	public BoundingSphere ComputeBounds()
+	public BoundingSphere ComputeBounds(DrModelInstance instance)
 	{
-		return _instance.BoundingSphere;
+		ArgumentNullException.ThrowIfNull(instance);
+
+		return instance.BoundingSphere;
 	}
 
 	public void Dispose()
