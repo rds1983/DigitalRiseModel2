@@ -169,7 +169,7 @@ part.Material = new DrMaterial
 };
 ```
 
-The viewer and samples read `DrMaterial` when binding their shader. See [Model data](model-data.md) for the material fields.
+The viewer and samples read `DrMaterial` when binding their shader. See <xref:DigitalRiseModel.DrMaterial> for the material fields.
 
 ## Render a primitive
 

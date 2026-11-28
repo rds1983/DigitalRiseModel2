@@ -1,9 +1,7 @@
 - name: Introduction
   href: introduction.md
-- name: Getting started
-  href: getting-started.md
-- name: Model data
-  href: model-data.md
+- name: Animation
+  href: animation.md
 - name: Mesh primitives
   href: mesh-primitives.md
 - name: Loading glTF

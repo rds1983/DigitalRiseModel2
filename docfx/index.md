@@ -7,8 +7,7 @@ DigitalRiseModel provides `Dr`-prefixed counterparts to the XNA Framework Graphi
 ## Start here
 
 - [Introduction](articles/introduction.md)
-- [Getting started](articles/getting-started.md)
-- [Model data concepts](articles/model-data.md)
+- [Animation](articles/animation.md)
 - [Mesh primitives](articles/mesh-primitives.md)
 - [Loading glTF](articles/gltf-loading.md)
 - [Viewer](articles/viewer.md)
