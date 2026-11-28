@@ -121,7 +121,7 @@ Rules:
 - Framework: xUnit. One test class per production type, named `<Type>Tests`.
 - Test names: `MethodName_Scenario_ExpectedResult`, e.g. `CopyAbsoluteBoneTransformsTo_ParentAfterChild_ThrowsInvalidOperationException`.
 - Cover edge cases: null arguments, missing names, duplicate children, hierarchy cycles and undersized transform arrays.
-- Tests must not require a `GraphicsDevice`, window or GPU. Test data-side behavior only. CPU-only viewer helpers can be linked into the test project; do not reference the viewer executable because that builds content assets.
+- Tests must not require a `GraphicsDevice`, window or GPU. Test data-side behavior only.
 - Use precise assertions for geometry: compare vectors and matrices component-wise with an explicit tolerance, not exact float equality, except where values are exactly representable.
 - Tests must be deterministic, offline, and independent of machine culture (use `CultureInfo.InvariantCulture` in formatting tests).
 - Prefer small inline test assets or tiny generated data over large binaries. If a binary fixture is necessary, keep it under a few kilobytes and document its origin.

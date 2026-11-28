@@ -72,6 +72,22 @@ Not implemented:
 - Transparent parts are sorted per part; skinned parts are not frustum-culled.
 - Bloom and FXAA are startup options rather than runtime toggles.
 
+## Troubleshooting
+
+### Shader compilation
+
+- The DesktopGL effect compiler accepts SM 3.0 shaders (`vs_3_0` / `ps_3_0`). SM 4-only intrinsics fail to compile.
+- MGCB does not prune stale `.xnb` files. After renaming effect outputs, delete `Content/bin`, `Content/obj` and the viewer output `Content` folder.
+- `TEXTURE_SETTINGS` doubles the PBR variant set. Full content rebuilds can take several minutes.
+- The source watcher and `F5` reload require a development checkout and restored local tools (`dotnet tool restore`).
+
+### Color and brightness
+
+- Base color and emissive textures are sRGB and are linearized in the shader. Normal, metallic-roughness and occlusion textures remain linear.
+- Rendering is HDR/linear; exposure, ACES tone mapping and gamma are applied only by the post-process pass. Do not apply gamma again in material shaders.
+- Debug views bypass tone mapping, so their brightness is not representative of the shaded output.
+- Bloom and FXAA are selected at startup with `--bloom` and `--fxaa`.
+
 ## UI panels
 
 The overlay is Myra UI defined in `DigitalRiseModel.Viewer/UI/*.xmmp`:

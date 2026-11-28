@@ -63,11 +63,12 @@ dotnet test DigitalRiseModel.MonoGame.sln
 - [Introduction](docfx/articles/introduction.md)
 - [Loading glTF](docfx/articles/gltf-loading.md)
 - [Model data](docfx/articles/model-data.md)
+- [Viewer and shaders](docfx/articles/viewer.md)
 - [Agent instructions](AGENTS.md)
 
 ## Metrics
 
-64 C# files, 10,340 lines (7,911 code), 272.5 KB. 21 public types, 153 tests.
+63 C# files, 10,221 lines (7,811 code), 269.6 KB. 21 public types, 148 tests.
 
 ## License
 
