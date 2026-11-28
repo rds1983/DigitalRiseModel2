@@ -16,7 +16,6 @@ drm-viewer "path/to/model.glb"
 
 Command-line options:
 
-- `--shader-test` — start with the fullscreen shader smoke test enabled.
 - `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion`, `emissive`, `diffuse`, `specular`, `ibldiffuse` or `iblspecular`.
 - `--exposure <value>` — set the shaded-output exposure scale.
 - `--bloom <intensity>` — add HDR bloom before tone mapping; `0` disables it.
@@ -25,7 +24,7 @@ Command-line options:
 
 The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma. `Samples/SimpleViewer` remains the stock-effect reference.
 
-`F2` toggles the shader smoke test; `F3` cycles PBR debug views and updates the window title; `F5` reloads compiled effect binaries after a content rebuild. In a development checkout, shader source changes trigger an automatic MGCB rebuild and reload. A top-right stats panel shows smoothed FPS, frame time, draw calls and triangle count.
+`F3` cycles PBR debug views and updates the window title; `F5` reloads compiled effect binaries after a content rebuild. In a development checkout, shader source changes trigger an automatic MGCB rebuild and reload. A top-right stats panel shows smoothed FPS, frame time, draw calls and triangle count.
 
 ## Controls
 
@@ -53,7 +52,7 @@ Low-level rendering is isolated in `DigitalRiseModel.Viewer/Graphics/Renderer.cs
 
 `ViewerGame` owns model loading, camera input, bounds and the Myra UI. The camera frames the merged model bounds on startup.
 
-Custom shader content is built through `DigitalRiseModel.Viewer/Content/Content.mgcb`. A trivial fullscreen shader smoke test can be started with `--shader-test` or toggled with `F2`.
+Custom shader content is built through `DigitalRiseModel.Viewer/Content/Content.mgcb`.
 
 ## Supported features and limitations
 

@@ -4,7 +4,6 @@
     <Label Text="Left-drag: orbit" TextColor="White" />
     <Label Text="Mouse wheel: zoom" TextColor="White" />
     <Label Text="Escape: exit" TextColor="White" />
-    <Label Text="F2: shader test" TextColor="White" />
     <Label Text="F3: debug view" TextColor="White" />
     <Label Text="F5: reload effects" TextColor="White" />
   </VerticalStackPanel>

@@ -32,10 +32,8 @@ internal sealed class ViewerGame : Game
 	private Desktop? _desktop;
 	private AnimationPanel? _animationPanel;
 	private ContentManager? _content;
-	private FullscreenColorEffect? _shaderSmokeTest;
 	private ShaderHotReload? _shaderHotReload;
 	private KeyboardState _previousKeyboard;
-	private bool _showShaderSmokeTest;
 	private bool _screenshotCaptured;
 	private int _drawFrame;
 	private Label? _statsLabel;
@@ -55,7 +53,6 @@ internal sealed class ViewerGame : Game
 
 	public ViewerGame(
 		string modelPath,
-		bool shaderTest = false,
 		string? screenshotPath = null,
 		ShaderDebugView debugView = ShaderDebugView.Shaded,
 		float exposure = 1f,
@@ -63,7 +60,6 @@ internal sealed class ViewerGame : Game
 		bool fxaa = false)
 	{
 		_modelPath = modelPath;
-		_showShaderSmokeTest = shaderTest;
 		_screenshotPath = screenshotPath;
 		_debugView = debugView;
 		_exposure = exposure;
@@ -104,7 +100,6 @@ internal sealed class ViewerGame : Game
 		_renderer.Settings.Exposure = _exposure;
 		_renderer.Settings.BloomIntensity = _bloom;
 		_renderer.Settings.EnableFxaa = _fxaa;
-		_shaderSmokeTest = new FullscreenColorEffect(GraphicsDevice, _content);
 		TryStartShaderHotReload();
 
 		CreateUI();
@@ -123,11 +118,6 @@ internal sealed class ViewerGame : Game
 		if (keyboard.IsKeyDown(Keys.Escape))
 		{
 			Exit();
-		}
-
-		if (keyboard.IsKeyDown(Keys.F2) && _previousKeyboard.IsKeyUp(Keys.F2))
-		{
-			_showShaderSmokeTest = !_showShaderSmokeTest;
 		}
 
 		if (_renderer is not null
@@ -198,11 +188,6 @@ internal sealed class ViewerGame : Game
 			}
 		}
 
-		if (_showShaderSmokeTest)
-		{
-			_shaderSmokeTest?.Draw();
-		}
-
 		UpdateStats();
 		_desktop?.Render();
 
@@ -241,13 +226,7 @@ internal sealed class ViewerGame : Game
 
 		try
 		{
-			var shaderSmokeTest = new FullscreenColorEffect(
-				GraphicsDevice,
-				content);
 			_renderer.ReloadEffects(content);
-
-			_shaderSmokeTest?.Dispose();
-			_shaderSmokeTest = shaderSmokeTest;
 
 			ContentManager oldContent = _content;
 			_content = content;
@@ -322,9 +301,6 @@ internal sealed class ViewerGame : Game
 
 		_renderer?.Dispose();
 		_renderer = null;
-
-		_shaderSmokeTest?.Dispose();
-		_shaderSmokeTest = null;
 
 		_shaderHotReload?.Dispose();
 		_shaderHotReload = null;
