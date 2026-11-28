@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "DigitalRiseModel/**"
+      - "DigitalRiseModel.Tests/**"
+      - "DigitalRiseModel.Viewer/**"
+      - "Samples/**"
+      - "DigitalRiseModel.MonoGame.sln"
+      - ".config/dotnet-tools.json"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test
+    # The viewer compiles effects with MGFXC, which requires Wine on Linux.
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore DigitalRiseModel.MonoGame.sln
+
+      - name: Build
+        run: dotnet build DigitalRiseModel.MonoGame.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test DigitalRiseModel.MonoGame.sln -c Release --no-build --verbosity normal

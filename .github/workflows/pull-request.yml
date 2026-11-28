@@ -1,0 +1,41 @@
+name: Pull request
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test
+    # The viewer compiles effects with MGFXC, which requires Wine on Linux.
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore DigitalRiseModel.MonoGame.sln
+
+      - name: Build
+        run: dotnet build DigitalRiseModel.MonoGame.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test DigitalRiseModel.MonoGame.sln -c Release --no-build --verbosity normal

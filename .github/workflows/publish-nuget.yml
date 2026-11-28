@@ -1,0 +1,74 @@
+name: Publish to NuGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version, for example 1.2.3 or 1.2.3-beta.1"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nuget-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, test and push
+    # The viewer compiles effects with MGFXC, which requires Wine on Linux.
+    runs-on: windows-latest
+    environment: nuget
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+          source-url: https://api.nuget.org/v3/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
+
+      - name: Restore
+        run: dotnet restore DigitalRiseModel.MonoGame.sln
+
+      - name: Build
+        run: dotnet build DigitalRiseModel.MonoGame.sln -c Release --no-restore -p:Version=${{ inputs.version }}
+
+      - name: Test
+        run: dotnet test DigitalRiseModel.MonoGame.sln -c Release --no-build --verbosity normal
+
+      - name: Pack library
+        run: >-
+          dotnet pack DigitalRiseModel/DigitalRiseModel.MonoGame.csproj
+          -c Release
+          --no-build
+          -p:Version=${{ inputs.version }}
+          -o artifacts
+
+      - name: Pack viewer tool
+        run: >-
+          dotnet pack DigitalRiseModel.Viewer/DigitalRiseModel.Viewer.csproj
+          -c Release
+          --no-build
+          -p:Version=${{ inputs.version }}
+          -o artifacts
+
+      - name: Push to NuGet
+        run: >-
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+      - name: Upload packages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/*.nupkg
+          if-no-files-found: warn
