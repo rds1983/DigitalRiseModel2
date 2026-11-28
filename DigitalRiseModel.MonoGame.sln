@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleViewer.MonoGame", "Sa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrimitivesDemo.MonoGame", "Samples\PrimitivesDemo\PrimitivesDemo.MonoGame.csproj", "{3A162A7D-8049-423B-8131-70C6A1A0D43F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Character.MonoGame", "Samples\Character\Character.MonoGame.csproj", "{1C916802-AA4D-40A8-B79D-98ED5BCDF785}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,18 @@ Global
 		{3A162A7D-8049-423B-8131-70C6A1A0D43F}.Release|x64.Build.0 = Release|Any CPU
 		{3A162A7D-8049-423B-8131-70C6A1A0D43F}.Release|x86.ActiveCfg = Release|Any CPU
 		{3A162A7D-8049-423B-8131-70C6A1A0D43F}.Release|x86.Build.0 = Release|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Debug|x64.Build.0 = Debug|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Debug|x86.Build.0 = Debug|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Release|x64.ActiveCfg = Release|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Release|x64.Build.0 = Release|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Release|x86.ActiveCfg = Release|Any CPU
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -92,5 +106,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{8D1DCD53-6962-4912-8B80-934B118A28D9} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{3A162A7D-8049-423B-8131-70C6A1A0D43F} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{1C916802-AA4D-40A8-B79D-98ED5BCDF785} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 	EndGlobalSection
 EndGlobal

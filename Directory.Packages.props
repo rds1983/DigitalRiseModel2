@@ -1,0 +1,26 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <!--
+      The library compiles against the oldest supported MonoGame so its public surface stays
+      compatible with any backend. Applications use the latest release.
+    -->
+    <LibraryMonoGameVersion>3.8.1.303</LibraryMonoGameVersion>
+    <AppMonoGameVersion>3.8.6.1</AppMonoGameVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="$(AppMonoGameVersion)" />
+    <PackageVersion Include="MonoGame.Content.Builder.Task" Version="$(AppMonoGameVersion)" />
+    <PackageVersion Include="Myra" Version="1.6.8" />
+    <PackageVersion Include="glTF2Loader" Version="2.0.0" />
+    <PackageVersion Include="XNAssets.MonoGame" Version="0.8.9" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageVersion Include="xunit" Version="2.5.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+</Project>

@@ -22,7 +22,10 @@ DigitalRiseModel.Tests/                    # xUnit test project
 DigitalRiseModel.Viewer/                   # MonoGame glTF viewer and drm-viewer tool
 Samples/
   SimpleViewer/                            # stock-effect reference viewer
+  PrimitivesDemo/                          # MeshPrimitives showcase
+  Character/                               # animated character movement sample
 docfx/                                     # DocFX config and articles
+Directory.Packages.props                   # central package versions
 README.md
 AGENTS.md
 LICENSE
@@ -40,7 +43,7 @@ LICENSE
 1. **Data only.** Model classes must not expose `Draw`, `Effect`, shader, render-state or renderer-callback APIs. `GltfLoader` may create vertex/index buffers using a caller-supplied `GraphicsDevice`, but it must not issue draw calls. Rendering is the developer's responsibility.
 2. **MonoGame data types only.** Use MonoGame data types such as `VertexBuffer`, `IndexBuffer`, `Matrix` and `BoundingSphere`. Do not add Stride, SharpDX, Silk.NET, OpenGL, Vulkan, SDL or custom engine abstractions.
 3. **Mirror XNA behavior, not source.** The public API shape follows the XNA Game Studio 4.0 model classes. Do not copy, port or transliterate source, comments or internal designs from MonoGame, XNA, DigitalRiseModel or DigitalRune. Write the implementation independently and keep it simple.
-4. **Keep dependencies minimal.** The library's package dependencies are `MonoGame.Framework.DesktopGL` (3.8.6.1), Khronos `glTF2Loader` (2.0.0) and `XNAssets.MonoGame` (0.8.9). Tests may use xUnit and the test SDK. Ask before adding another package or changing a platform dependency.
+4. **Keep dependencies minimal.** Package versions are centralized in `Directory.Packages.props`; do not put versions in individual project files. The library compiles against MonoGame `3.8.1.303` — the oldest supported release — and references it with `PrivateAssets="All"` so consumers can use any MonoGame backend and version. Applications (viewer, samples, tests) use the latest MonoGame `3.8.6.1`. The library's other package dependencies are Khronos `glTF2Loader` (2.0.0) and `XNAssets.MonoGame` (0.8.9). Tests may use xUnit and the test SDK. Ask before adding another package or changing a platform dependency.
 5. **Public API is a contract.** Document it, test it, and avoid breaking it. Add `[Obsolete]` with guidance before removing or changing a public member.
 6. **Respect scope.** Make the smallest change that solves the task. Do not refactor unrelated code or reformat whole files.
 
@@ -153,6 +156,8 @@ Rules:
 
 - Samples live under `Samples/` and are separate runnable MonoGame projects that reference the library project.
 - `Samples/SimpleViewer` is the stock-effect reference viewer. Keep it runnable as a baseline while the main viewer moves to the custom shader system.
+- `Samples/PrimitivesDemo` builds a scene from `MeshPrimitives` with no asset files.
+- `Samples/Character` shows animated character movement: WASD over a field built with `MeshPrimitives.CreatePlane`, mouse turning and a chase camera. Keep its `Scene` holding field and character state, and its `Renderer` scene-agnostic like the viewer's — the renderer picks `SkinnedEffect` when `DrModelMeshPart.Skin` is not null and `BasicEffect` otherwise. Skinned parts draw with an identity world matrix because their bone transforms already include root motion. It uses a Myra `ControlsPanel` overlay.
 - `DigitalRiseModel.Viewer` takes one glTF/GLB path argument and renders with stock effects. Its executable/assembly name is `drm-viewer`; it is also packaged as the `drm-viewer` tool (`PackAsTool`, `ToolCommandName=drm-viewer`). Keep it runnable and packable with the current public API.
 - Keep low-level 3D rendering in `DigitalRiseModel.Viewer/Graphics/Renderer.cs`: effects, device state, lighting, draw calls and counters. The renderer owns reusable `BasicEffect` and `SkinnedEffect` instances and selects one per `DrModelMeshPart` based on whether `Skin` is null. `ViewerGame` owns model loading, the `DrModelInstance`/`AnimationController`, camera input, bounds and Myra UI. The animation panel appears only for animated models, auto-plays the first clip and provides clip selection, play/pause/stop, seek, loop, reverse-playback and speed controls. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from the matching command-line arguments. Camera orbit and zoom are ignored while `Desktop.IsMouseOverGUI` is true. The renderer draws from the instance's current pose and recomputes skinned bone transforms every frame.
 - glTF winding is normalized by the loader using the node global-transform determinant (`positive` = glTF CCW, `negative` = glTF CW). The viewer then uses `CullCounterClockwise`, or `CullNone` for double-sided materials.
