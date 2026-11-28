@@ -53,7 +53,7 @@ Three panels overlay the scene:
 
 - Top left: camera and exit hints.
 - Top right: smoothed FPS, frame time, draw calls (including post-processing) and triangle count.
-- Bottom right: FXAA, bloom and exposure, initialized from `--fxaa`/`--no-fxaa`, `--bloom` and `--exposure`.
+- Bottom right: FXAA, bloom and exposure, initialized from `--fxaa`/`--no-fxaa`, `--bloom` and `--exposure`, plus a **Show bounding spheres** toggle that draws each mesh part's bounding sphere as a yellow wireframe. This is useful for checking exported bounds against the visible geometry.
 
 ## Animation panel
 

@@ -14,5 +14,8 @@
       <Label Id="_exposureLabel" Text="1.00" TextColor="White" />
     </HorizontalStackPanel>
     <HorizontalSlider Id="_exposureSlider" />
+    <CheckButton Id="_boundingSpheresCheck">
+      <Label Text="Show bounding spheres" />
+    </CheckButton>
   </VerticalStackPanel>
 </Project>

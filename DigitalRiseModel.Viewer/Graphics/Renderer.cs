@@ -20,6 +20,25 @@ internal sealed class Renderer : IDisposable
 	private const int UnlitFlag = 16;
 	private const int TextureSettingsFlag = 32;
 
+	/// <summary>
+	/// Longitudinal segments used for the bounding sphere wireframe. Kept low so the
+	/// overlay stays readable over the shaded model.
+	/// </summary>
+	private const int BoundingSphereSegments = 12;
+
+	private static readonly Vector3 BoundingSphereColor = new(1f, 0.85f, 0.1f);
+
+	/// <summary>
+	/// Depth-tests bounding spheres against the scene but never writes depth, so the
+	/// overlay does not affect the shaded result or other overlays.
+	/// </summary>
+	private static readonly DepthStencilState BoundingSphereDepthState = new()
+	{
+		DepthBufferEnable = true,
+		DepthBufferWriteEnable = false,
+		DepthBufferFunction = CompareFunction.LessEqual
+	};
+
 	private readonly GraphicsDevice _device;
 	private ContentManager _content;
 	private readonly Dictionary<int, PbrEffect> _pbrEffects = [];
@@ -30,6 +49,11 @@ internal sealed class Renderer : IDisposable
 	private readonly IblResources _ibl;
 	private PostProcessor _postProcessor;
 	private readonly Texture2D _fallbackTexture;
+
+	private readonly BasicEffect _boundsEffect;
+	private DrModelMeshPart? _boundsSphere;
+	private Matrix _boundsView;
+	private Matrix _boundsProjection;
 
 	private static readonly Comparison<RenderItem> OpaqueComparison =
 		CompareOpaque;
@@ -71,6 +95,13 @@ internal sealed class Renderer : IDisposable
 
 		_fallbackTexture = new Texture2D(device, 1, 1);
 		_fallbackTexture.SetData([Color.White]);
+
+		_boundsEffect = new BasicEffect(device)
+		{
+			LightingEnabled = false,
+			TextureEnabled = false,
+			VertexColorEnabled = false
+		};
 	}
 
 	/// <summary>
@@ -86,6 +117,8 @@ internal sealed class Renderer : IDisposable
 		Statistics.Reset();
 		_frameOpen = true;
 		_viewProjection = view * projection;
+		_boundsView = view;
+		_boundsProjection = projection;
 		_frustum = new BoundingFrustum(_viewProjection);
 		_cameraPosition = Matrix.Invert(view).Translation;
 
@@ -397,6 +430,76 @@ internal sealed class Renderer : IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Draws every mesh part bounding sphere as a wireframe, following the same transform
+	/// used to draw the part (parent bone for static parts, first skin joint for skinned ones).
+	/// </summary>
+	public void DrawBoundingSpheres(DrModelInstance instance)
+	{
+		ArgumentNullException.ThrowIfNull(instance);
+
+		EnsureFrameOpen();
+
+		DrModelMeshPart sphere = GetBoundingSpherePart();
+
+		if (sphere.VertexBuffer is null || sphere.IndexBuffer is null)
+		{
+			return;
+		}
+
+		Matrix[] absoluteBoneTransforms = instance.AbsoluteBoneTransforms;
+
+		_device.BlendState = BlendState.Opaque;
+		_device.DepthStencilState = BoundingSphereDepthState;
+		_device.RasterizerState = RasterizerState.CullNone;
+		_device.SetVertexBuffer(sphere.VertexBuffer);
+		_device.Indices = sphere.IndexBuffer;
+
+		_boundsEffect.VertexColorEnabled = false;
+		_boundsEffect.DiffuseColor = BoundingSphereColor;
+		_boundsEffect.LightingEnabled = false;
+		_boundsEffect.TextureEnabled = false;
+		_boundsEffect.View = _boundsView;
+		_boundsEffect.Projection = _boundsProjection;
+
+		foreach (DrModelMesh mesh in instance.Model.Meshes)
+		{
+			foreach (DrModelMeshPart part in mesh.MeshParts)
+			{
+				BoundingSphere bounds = part.BoundingSphere;
+
+				if (bounds.Radius <= 0f)
+				{
+					continue;
+				}
+
+				// Match DrModelInstance: skinned parts follow the first joint of their skin,
+				// static parts follow their parent bone.
+				Matrix transform = part.Skin is { Joints.Length: > 0 } skin
+					? instance.GetSkinTransforms(skin.Index)[0]
+					: GetMeshWorld(part, absoluteBoneTransforms);
+
+				// Row-vector convention: scale the unit sphere, move it to the bounds center,
+				// then apply the part transform, so the composed order is S * T * transform.
+				_boundsEffect.World = Matrix.CreateScale(bounds.Radius)
+					* Matrix.CreateTranslation(bounds.Center)
+					* transform;
+
+				foreach (EffectPass pass in _boundsEffect.CurrentTechnique.Passes)
+				{
+					pass.Apply();
+					_device.DrawIndexedPrimitives(
+						sphere.PrimitiveType,
+						sphere.VertexOffset,
+						sphere.StartIndex,
+						sphere.PrimitiveCount);
+
+					Statistics.AddDrawCall();
+				}
+			}
+		}
+	}
+
 	public void EndFrame()
 	{
 		EnsureFrameOpen();
@@ -436,9 +539,26 @@ internal sealed class Renderer : IDisposable
 
 	public void Dispose()
 	{
+		_boundsSphere?.Dispose();
+		_boundsEffect.Dispose();
 		_fallbackTexture.Dispose();
 		_ibl.Dispose();
 		_postProcessor.Dispose();
+	}
+
+	/// <summary>
+	/// Creates and caches a unit-radius sphere wireframe with <see cref="MeshPrimitives"/>.
+	/// The overlay scales and translates it onto each part's bounding sphere.
+	/// </summary>
+	private DrModelMeshPart GetBoundingSpherePart()
+	{
+		_boundsSphere ??= MeshPrimitives.CreateSphereLines(
+			_device,
+			radius: 1f,
+			slices: BoundingSphereSegments,
+			stacks: BoundingSphereSegments / 2);
+
+		return _boundsSphere;
 	}
 
 	private static Matrix GetMeshWorld(

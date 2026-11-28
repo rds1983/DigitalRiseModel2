@@ -16,4 +16,9 @@ internal sealed class ShaderSettings
 	/// Gets or sets whether FXAA is applied to the shaded output.
 	/// </summary>
 	public bool EnableFxaa { get; set; } = true;
+
+	/// <summary>
+	/// Gets or sets whether mesh part bounding spheres are drawn as wireframes.
+	/// </summary>
+	public bool ShowBoundingSpheres { get; set; }
 }

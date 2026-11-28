@@ -169,6 +169,11 @@ internal sealed class ViewerGame : Game
 				// Linear background; the post-process pass applies ACES and gamma.
 				_renderer.Clear(new Color(4, 5, 6));
 				_renderer.DrawModel(_instance!);
+
+				if (_renderer.Settings.ShowBoundingSpheres)
+				{
+					_renderer.DrawBoundingSpheres(_instance!);
+				}
 			}
 			finally
 			{
