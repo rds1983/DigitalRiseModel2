@@ -199,3 +199,13 @@ Bind your effect, set world/view/projection, and choose a rasterizer state that 
 - The parts are not skinned. Assigning `part.Skin` without matching blend attributes will not animate them.
 
 If you need a different vertex layout or skinned geometry, build the buffers yourself and fill a `DrModelMeshPart` directly.
+
+## Runnable sample
+
+`Samples/PrimitivesDemo` builds a scene from every primitive, solid and wireframe, with no asset files:
+
+```bash
+dotnet run --project Samples/PrimitivesDemo
+```
+
+It demonstrates materials, `cullClockwise`, drawing by `part.PrimitiveType`, lighting solid vs. line parts and spinning shapes through `DrModelInstance.SetLocalTransform`.

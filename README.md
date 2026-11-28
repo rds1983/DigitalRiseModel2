@@ -33,6 +33,12 @@ root.Mesh = new DrModelMesh(new[] { part });
 
 `MeshPrimitives` creates plane, box, sphere, cylinder, cone, capsule and torus parts with write-only buffers and clockwise front faces. Pass `cullClockwise: true` for `RasterizerState.CullClockwise`. Each shape also has a `*Lines` counterpart (for example `CreateBoxLines`) that returns a `VertexPosition` wireframe drawn with `PrimitiveType.LineList`. The parts carry no material, so assign one in your renderer.
 
+`Samples/PrimitivesDemo` is a runnable sample that builds a scene from every primitive, solid and wireframe, without any asset files:
+
+```bash
+dotnet run --project Samples/PrimitivesDemo
+```
+
 ## Viewer
 
 ```bash
@@ -86,8 +92,8 @@ dotnet test DigitalRiseModel.MonoGame.sln
 | Library | 35 | 5,531 | 3,672 | 155.3 KB |
 | Unit tests | 17 | 3,245 | 2,640 | 87.6 KB |
 | Viewer | 18 | 2,774 | 2,262 | 75.5 KB |
-| Samples | 7 | 856 | 690 | 21.3 KB |
-| **Total** | **77** | **12,406** | **9,264** | **339.8 KB** |
+| Samples | 11 | 1,421 | 1,124 | 35.0 KB |
+| **Total** | **81** | **12,971** | **9,698** | **353.5 KB** |
 
 22 public types, 222 tests.
 
