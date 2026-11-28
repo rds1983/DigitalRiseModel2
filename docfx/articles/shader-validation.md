@@ -49,4 +49,4 @@ All supported extension tests pass. The dark clearcoat rows in
   screenshots.
 - Normal mapping requires authored `TANGENT` attributes; tangent generation is
   not implemented.
-- Bloom and FXAA are optional startup flags and are disabled unless requested.
+- Bloom is off unless requested; FXAA is enabled by default and can be disabled with `--no-fxaa`.

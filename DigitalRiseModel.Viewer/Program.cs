@@ -14,7 +14,7 @@ internal static class Program
 		ShaderDebugView debugView = ShaderDebugView.Shaded;
 		float exposure = 1f;
 		float bloom = 0f;
-		bool fxaa = false;
+		bool fxaa = true;
 
 		for (int i = 0; i < args.Length; i++)
 		{
@@ -76,6 +76,9 @@ internal static class Program
 				case "--fxaa":
 					fxaa = true;
 					break;
+				case "--no-fxaa":
+					fxaa = false;
+					break;
 				case "--help":
 				case "-h":
 					PrintUsage();
@@ -132,6 +135,6 @@ internal static class Program
 		Console.Error.WriteLine(
 			"Usage: drm-viewer <path-to-gltf-or-glb> " +
 			"[--debug-view <name>] [--exposure <value>] [--bloom <intensity>] " +
-			"[--fxaa] [--screenshot <file.png>]");
+			"[--fxaa|--no-fxaa] [--screenshot <file.png>]");
 	}
 }

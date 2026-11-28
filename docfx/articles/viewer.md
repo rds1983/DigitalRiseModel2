@@ -19,12 +19,12 @@ Command-line options:
 - `--debug-view <name>` — start with a PBR debug view: `shaded`, `basecolor`, `metallic`, `roughness`, `normal`, `occlusion`, `emissive`, `diffuse`, `specular`, `ibldiffuse` or `iblspecular`.
 - `--exposure <value>` — set the shaded-output exposure scale.
 - `--bloom <intensity>` — add HDR bloom before tone mapping; `0` disables it.
-- `--fxaa` — apply FXAA to the shaded output.
+- `--fxaa` / `--no-fxaa` — enable or disable FXAA (enabled by default).
 - `--screenshot <file>` — render a few frames, save a PNG and exit.
 
 The main viewer always uses the custom PBR path. It combines a fixed three-point studio light rig with image-based lighting generated at startup from a procedural environment, renders to an HDR scene target and resolves it with exposure, ACES tone mapping and gamma. `Samples/SimpleViewer` remains the stock-effect reference.
 
-`F3` cycles PBR debug views and updates the window title. A top-right stats panel shows smoothed FPS, frame time, draw calls (including post-processing) and triangle count. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from `--fxaa`, `--bloom` and `--exposure`.
+`F3` cycles PBR debug views and updates the window title. A top-right stats panel shows smoothed FPS, frame time, draw calls (including post-processing) and triangle count. A bottom-right graphics panel exposes FXAA, bloom and exposure, initialized from `--fxaa`/`--no-fxaa`, `--bloom` and `--exposure`.
 
 ## Controls
 
@@ -69,7 +69,7 @@ Not implemented:
 - Normal maps require authored `TANGENT` attributes; tangent generation is not implemented.
 - Shadows and HDR environment loading are not available.
 - Transparent parts are sorted per part; skinned parts are not frustum-culled.
-- Bloom and FXAA are initialized from `--bloom` and `--fxaa`; the graphics panel adjusts them at runtime.
+- Bloom is initialized from `--bloom` and FXAA is enabled by default; the graphics panel adjusts both at runtime.
 
 ## Troubleshooting
 
@@ -84,7 +84,7 @@ Not implemented:
 - Base color and emissive textures are sRGB and are linearized in the shader. Normal, metallic-roughness and occlusion textures remain linear.
 - Rendering is HDR/linear; exposure, ACES tone mapping and gamma are applied only by the post-process pass. Do not apply gamma again in material shaders.
 - Debug views bypass tone mapping, so their brightness is not representative of the shaded output.
-- Bloom and FXAA start from `--bloom` and `--fxaa` and can be changed in the graphics panel.
+- Bloom starts from `--bloom`, and FXAA is on by default; both can be changed in the graphics panel.
 
 ## UI panels
 

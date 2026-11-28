@@ -57,7 +57,7 @@ internal sealed class ViewerGame : Game
 		ShaderDebugView debugView = ShaderDebugView.Shaded,
 		float exposure = 1f,
 		float bloom = 0f,
-		bool fxaa = false)
+		bool fxaa = true)
 	{
 		_modelPath = modelPath;
 		_screenshotPath = screenshotPath;

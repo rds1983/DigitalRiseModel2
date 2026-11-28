@@ -15,5 +15,5 @@ internal sealed class ShaderSettings
 	/// <summary>
 	/// Gets or sets whether FXAA is applied to the shaded output.
 	/// </summary>
-	public bool EnableFxaa { get; set; }
+	public bool EnableFxaa { get; set; } = true;
 }
