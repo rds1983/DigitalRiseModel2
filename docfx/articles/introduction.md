@@ -38,5 +38,6 @@ MonoGame already provides the XNA types. This library adds a parallel data layer
 
 - [Get started](getting-started.md)
 - [Learn the model data concepts](model-data.md)
+- [Build primitives with MeshPrimitives](mesh-primitives.md)
 - [Load a glTF model](gltf-loading.md)
 - Browse the API reference.

@@ -96,6 +96,10 @@ A mesh part stores:
 
 Parts are owned by a mesh and are disposed with it.
 
+## MeshPrimitives
+
+`MeshPrimitives` builds a `DrModelMeshPart` for common shapes: plane, box, sphere, cylinder, cone, capsule and torus. Geometry uses the `VertexPositionNormalTexture` layout with clockwise front faces by default, or counter-clockwise front faces when `cullClockwise` is `true`. Each factory creates write-only buffers on the supplied `GraphicsDevice`. The built part carries no material; the caller assigns one for rendering. See [Mesh primitives](mesh-primitives.md) for the full guide.
+
 ## DrMaterial and DrSkin
 
 `DrMaterial` mirrors glTF metallic-roughness material data: base color, metallic/roughness factors, texture references, emissive color, alpha mode and double-sided flag.

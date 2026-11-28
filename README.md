@@ -24,6 +24,15 @@ animation.Play("Walk");
 animation.Update(elapsedTime);
 ```
 
+## Primitives
+
+```csharp
+DrModelMeshPart part = MeshPrimitives.CreateSphere(graphicsDevice, radius: 1f);
+root.Mesh = new DrModelMesh(new[] { part });
+```
+
+`MeshPrimitives` creates plane, box, sphere, cylinder, cone, capsule and torus parts with write-only buffers and clockwise front faces. Pass `cullClockwise: true` for `RasterizerState.CullClockwise`. The parts carry no material, so assign one in your renderer.
+
 ## Viewer
 
 ```bash
@@ -65,6 +74,7 @@ dotnet test DigitalRiseModel.MonoGame.sln
 - [Introduction](docfx/articles/introduction.md)
 - [Loading glTF](docfx/articles/gltf-loading.md)
 - [Model data](docfx/articles/model-data.md)
+- [Mesh primitives](docfx/articles/mesh-primitives.md)
 - [Viewer and shaders](docfx/articles/viewer.md)
 - [Shader validation](docfx/articles/shader-validation.md)
 - [Agent instructions](AGENTS.md)
@@ -73,13 +83,13 @@ dotnet test DigitalRiseModel.MonoGame.sln
 
 | Area | Files | Lines | Code | Size |
 | --- | ---: | ---: | ---: | ---: |
-| Library | 24 | 4,120 | 2,821 | 108.6 KB |
-| Unit tests | 15 | 2,269 | 1,861 | 60.8 KB |
+| Library | 34 | 5,113 | 3,459 | 139.5 KB |
+| Unit tests | 16 | 2,897 | 2,355 | 78.3 KB |
 | Viewer | 18 | 2,773 | 2,261 | 75.5 KB |
 | Samples | 7 | 853 | 687 | 21.0 KB |
-| **Total** | **64** | **10,015** | **7,630** | **265.9 KB** |
+| **Total** | **75** | **11,636** | **8,762** | **314.3 KB** |
 
-21 public types, 149 tests.
+22 public types, 198 tests.
 
 ## License
 

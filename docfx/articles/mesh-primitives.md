@@ -1,0 +1,169 @@
+# Mesh primitives
+
+`MeshPrimitives` builds ready-to-render `DrModelMeshPart` objects for common shapes. Use it for prototypes, gizmos, collision debug shapes and test scenes when you do not want to author or load a model.
+
+## Requirements
+
+Each factory needs a `GraphicsDevice` because it creates the vertex and index buffers up front:
+
+- Vertex buffer: `BufferUsage.WriteOnly`
+- Index buffer: `BufferUsage.WriteOnly`, 16-bit when the part has 65,536 vertices or fewer, otherwise 32-bit
+- Vertex layout: `VertexPositionNormalTexture` (position, unit normal, texture coordinate)
+
+The library never draws. It fills the part and returns it; your renderer issues the draw call.
+
+## Create one part
+
+```csharp
+using DigitalRiseModel;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+
+DrModelMeshPart part = MeshPrimitives.CreateSphere(graphicsDevice, radius: 1f);
+
+var mesh = new DrModelMesh(new[] { part });
+rootBone.Mesh = mesh;
+```
+
+The returned part has these fields filled in:
+
+| Member | Value |
+| --- | --- |
+| `VertexBuffer` | New buffer containing the geometry |
+| `IndexBuffer` | New triangle-list index buffer |
+| `VertexDeclaration` | `VertexPositionNormalTexture.VertexDeclaration` |
+| `NumVertices` | Number of vertices |
+| `PrimitiveCount` | Number of triangles |
+| `StartIndex`, `VertexOffset` | `0` |
+| `BoundingSphere` | Fits every vertex, centered on the AABB center |
+| `Material`, `Skin` | `null` — assign your own material |
+
+Because a part owns its buffers, dispose it (or its owning `DrModelMesh`) when you are done.
+
+## Available primitives
+
+All primitives are centered on the origin and use Y as up.
+
+| Factory | Shape |
+| --- | --- |
+| `CreatePlane(device, width, depth, segmentsX = 1, segmentsZ = 1)` | Rectangle in the XZ plane facing +Y |
+| `CreateBox(device, size)` | Axis-aligned box with per-face normals and UVs |
+| `CreateSphere(device, radius, slices = 32, stacks = 16)` | UV sphere |
+| `CreateCylinder(device, radius, height, slices = 32)` | Y-aligned cylinder with flat caps |
+| `CreateCone(device, radius, height, slices = 32)` | Y-aligned cone, apex up, flat base |
+| `CreateCapsule(device, radius, height, slices = 32, stacks = 16)` | Cylinder plus two hemispherical caps |
+| `CreateTorus(device, majorRadius, minorRadius, majorSlices = 32, minorSlices = 16)` | Torus in the XZ plane |
+
+`CreateCapsule` treats `height` as the total height including both caps, so it must be at least `2 * radius`. `CreateTorus` measures `majorRadius` to the center of the tube and `minorRadius` as the tube radius.
+
+Every factory validates its arguments: non-positive sizes and slice counts below the documented minimums throw `ArgumentOutOfRangeException`.
+
+## Winding and culling
+
+Primitives emit clockwise front faces by default. This matches MonoGame's default `RasterizerState.CullCounterClockwise` and the winding that `AssetManager.LoadDrModel` produces for glTF models, so the same rasterizer state works for both.
+
+If your renderer uses `RasterizerState.CullClockwise`, pass `cullClockwise: true`:
+
+```csharp
+DrModelMeshPart part = MeshPrimitives.CreateBox(
+    graphicsDevice,
+    new Vector3(1f, 2f, 1f),
+    cullClockwise: true);
+```
+
+The flag reverses the triangle winding. It does not touch positions, normals or UVs, so lighting and textures are unaffected.
+
+| Rasterizer state | `cullClockwise` |
+| --- | --- |
+| `RasterizerState.CullCounterClockwise` (default) | `false` |
+| `RasterizerState.CullClockwise` | `true` |
+| `RasterizerState.CullNone` | either |
+
+For double-sided materials, either value works because nothing is culled.
+
+## Tessellation and detail
+
+Slices and stacks control triangle density:
+
+```csharp
+// Coarse sphere for a debug gizmo.
+var coarse = MeshPrimitives.CreateSphere(graphicsDevice, 1f, slices: 8, stacks: 4);
+
+// Smooth sphere for a hero asset.
+var smooth = MeshPrimitives.CreateSphere(graphicsDevice, 1f, slices: 64, stacks: 32);
+```
+
+Two details are worth knowing:
+
+- Pole rows produce single triangles rather than degenerate quads, so sphere and capsule poles have no zero-area triangles.
+- `CreateCapsule` with `height == 2 * radius` skips the duplicated equator row and produces the same geometry as the equivalent sphere.
+
+## Combine primitives into a model
+
+Each call returns one part. A `DrModelMesh` can hold several parts, which is useful for building compound shapes:
+
+```csharp
+var body = MeshPrimitives.CreateBox(graphicsDevice, new Vector3(1f, 0.5f, 1f));
+var head = MeshPrimitives.CreateSphere(graphicsDevice, 0.3f);
+
+var mesh = new DrModelMesh(new[] { body, head });
+rootBone.Mesh = mesh;
+```
+
+If you want the parts to move independently, put them on separate bones instead:
+
+```csharp
+var root = new DrModelBone("Root");
+var headBone = new DrModelBone("Head")
+{
+    Transform = Matrix.CreateTranslation(0f, 0.75f, 0f)
+};
+headBone.Mesh = new DrModelMesh(new[] { head });
+root.Children = [headBone];
+
+var model = new DrModel(root);
+```
+
+## Materials
+
+Primitives return plain geometry with no material. To get a shaded result, assign a `DrMaterial` before drawing:
+
+```csharp
+part.Material = new DrMaterial
+{
+    BaseColorFactor = new Vector4(0.8f, 0.2f, 0.2f, 1f),
+    MetallicFactor = 0f,
+    RoughnessFactor = 0.6f
+};
+```
+
+The viewer and samples read `DrMaterial` when binding their shader. See [Model data](model-data.md) for the material fields.
+
+## Render a primitive
+
+Rendering is the same as for any other mesh part:
+
+```csharp
+graphicsDevice.SetVertexBuffer(part.VertexBuffer);
+graphicsDevice.Indices = part.IndexBuffer;
+
+foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+{
+    pass.Apply();
+    graphicsDevice.DrawIndexedPrimitives(
+        PrimitiveType.TriangleList,
+        part.VertexOffset,
+        part.StartIndex,
+        part.PrimitiveCount);
+}
+```
+
+Bind your effect, set world/view/projection, and choose a rasterizer state that matches the part's winding. `part.BoundingSphere` is available for culling.
+
+## Limitations
+
+- Only the `VertexPositionNormalTexture` layout is produced: no tangents, vertex colors, second UV set or skinning weights.
+- Normal maps that require tangents are not supported unless your renderer derives tangents.
+- The parts are not skinned. Assigning `part.Skin` without matching blend attributes will not animate them.
+
+If you need a different vertex layout or skinned geometry, build the buffers yourself and fill a `DrModelMeshPart` directly.

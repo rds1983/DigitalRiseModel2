@@ -4,6 +4,8 @@
   href: articles/getting-started.md
 - name: Model data
   href: articles/model-data.md
+- name: Mesh primitives
+  href: articles/mesh-primitives.md
 - name: Loading glTF
   href: articles/gltf-loading.md
 - name: Viewer

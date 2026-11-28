@@ -69,6 +69,32 @@ root.Mesh = mesh;
 
 Assigning `root.Mesh` also sets `mesh.ParentBone` to `root`.
 
+## Create a primitive instead of building geometry
+
+`MeshPrimitives` creates a ready-to-render `DrModelMeshPart` for common shapes. Each factory uploads write-only vertex and index buffers to the `GraphicsDevice`, fills `NumVertices`, `PrimitiveCount` and `BoundingSphere`, and uses the `VertexPositionNormalTexture` layout:
+
+```csharp
+DrModelMeshPart part = MeshPrimitives.CreateSphere(
+    graphicsDevice,
+    radius: 1f,
+    slices: 32,
+    stacks: 16);
+
+root.Mesh = new DrModelMesh(new[] { part });
+```
+
+Available primitives:
+
+- `CreatePlane(graphicsDevice, width, depth, segmentsX, segmentsZ, cullClockwise)`
+- `CreateBox(graphicsDevice, size, cullClockwise)`
+- `CreateSphere(graphicsDevice, radius, slices, stacks, cullClockwise)`
+- `CreateCylinder(graphicsDevice, radius, height, slices, cullClockwise)`
+- `CreateCone(graphicsDevice, radius, height, slices, cullClockwise)`
+- `CreateCapsule(graphicsDevice, radius, height, slices, stacks, cullClockwise)`
+- `CreateTorus(graphicsDevice, majorRadius, minorRadius, majorSlices, minorSlices, cullClockwise)`
+
+Primitives are centered on the origin and use Y as up. Their front faces are clockwise by default, matching MonoGame's `RasterizerState.CullCounterClockwise`. Pass `cullClockwise: true` to emit counter-clockwise front faces for `RasterizerState.CullClockwise`. The returned part has no `Material`; assign one before drawing if you need color or textures. See [Mesh primitives](mesh-primitives.md) for winding, tessellation, materials and rendering details.
+
 ## Read bone transforms
 
 ```csharp
